@@ -58,7 +58,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("g", "top"),
 		),
 		Bottom: key.NewBinding(
-			key.WithKeys("shift+g"),
+			key.WithKeys("G"), // note: in future charm library versions, this may change to "shift+g"
 			key.WithHelp("G", "bottom"),
 		),
 	}
