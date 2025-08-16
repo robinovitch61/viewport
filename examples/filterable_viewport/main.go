@@ -86,10 +86,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		m.fv, cmd = m.fv.Update(msg)
-		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
-
 	case tea.WindowSizeMsg:
 		// 2 for border, 5 for content above viewport
 		viewportWidth, viewportHeight := msg.Width-2, msg.Height-5-2
@@ -110,6 +106,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.ready {
+		m.fv, cmd = m.fv.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 	return m, tea.Batch(cmds...)
 }
 
