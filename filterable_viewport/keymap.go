@@ -1,7 +1,7 @@
 package filterable_viewport
 
 import (
-	"github.com/charmbracelet/bubbles/v2/key"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/robinovitch61/bubbleo/viewport"
 )
 

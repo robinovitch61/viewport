@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // MultiLineBuffer implements LineBufferer by wrapping multiple LineBuffers without extra memory allocation

@@ -3,7 +3,7 @@ package linebuffer
 import (
 	"testing"
 
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func getEquivalentLineBuffers() map[string][]LineBufferer {

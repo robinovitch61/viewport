@@ -9,11 +9,11 @@ import (
 
 	"github.com/robinovitch61/bubbleo/examples/common"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 
-	tea "github.com/charmbracelet/bubbletea/v2"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/bubbleo/viewport"
 )
 

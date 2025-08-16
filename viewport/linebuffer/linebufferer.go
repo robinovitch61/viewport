@@ -1,7 +1,7 @@
 package linebuffer
 
 import (
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // LineBufferer defines the interface for line buffer implementations.

@@ -6,20 +6,20 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss/v2"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/internal"
 )
 
 var (
-	downKeyMsg       = tea.KeyPressMsg{Code: 'j', Text: "j"}
-	halfPgDownKeyMsg = tea.KeyPressMsg{Code: 'd', Text: "d"}
-	fullPgDownKeyMsg = tea.KeyPressMsg{Code: 'f', Text: "f"}
-	upKeyMsg         = tea.KeyPressMsg{Code: 'k', Text: "k"}
-	halfPgUpKeyMsg   = tea.KeyPressMsg{Code: 'u', Text: "u"}
-	fullPgUpKeyMsg   = tea.KeyPressMsg{Code: 'b', Text: "b"}
-	goToTopKeyMsg    = tea.KeyPressMsg{Code: 'g', Text: "g"}
-	goToBottomKeyMsg = tea.KeyPressMsg{Code: 'g', Text: "g", Mod: tea.ModShift}
+	downKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	halfPgDownKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
+	fullPgDownKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}
+	upKeyMsg         = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	halfPgUpKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	fullPgUpKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}}
+	goToTopKeyMsg    = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}}
+	goToBottomKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}}
 	red              = lipgloss.Color("#ff0000")
 	blue             = lipgloss.Color("#0000ff")
 	green            = lipgloss.Color("#00ff00")

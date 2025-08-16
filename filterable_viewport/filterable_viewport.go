@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	"github.com/charmbracelet/bubbles/v2/textinput"
-	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport"
 )
 
@@ -77,16 +77,14 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
 			return m, nil
 		}
-
-		if m.filterMode == filterModeEditing {
-			m.textInput, cmd = m.textInput.Update(msg)
-			m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
-			cmds = append(cmds, cmd)
-		}
 	}
 
 	if m.filterMode != filterModeEditing {
 		m.Viewport, cmd = m.Viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	} else {
+		m.textInput, cmd = m.textInput.Update(msg)
+		m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
 		cmds = append(cmds, cmd)
 	}
 
@@ -110,7 +108,6 @@ func (m *Model[T]) SetContent(items []T) {
 // SetWidth updates the width of both the viewport and textinput
 func (m *Model[T]) SetWidth(width int) {
 	m.Viewport.SetWidth(width)
-	m.textInput.SetWidth(width)
 }
 
 // SetHeight updates the height, accounting for the filter line
