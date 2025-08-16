@@ -31,7 +31,7 @@ func TestLineBuffer_Width(t *testing.T) {
 		},
 		{
 			name:     "ansi",
-			s:        "\x1b[38;2;255;0;0mhi\x1b[0m",
+			s:        "\x1b[38;2;255;0;0mhi" + RST,
 			expected: 2,
 		},
 	}
@@ -562,58 +562,58 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:         "ansi simple, no continuation",
-			s:            "\x1b[38;2;255;0;0ma really really long line\x1b[0m",
+			s:            "\x1b[38;2;255;0;0ma really really long line" + RST,
 			width:        15,
 			continuation: "",
 			numTakes:     2,
 			expected: []string{
-				"\x1b[38;2;255;0;0ma really really\x1b[0m",
-				"\x1b[38;2;255;0;0m long line\x1b[0m",
+				"\x1b[38;2;255;0;0ma really really" + RST,
+				"\x1b[38;2;255;0;0m long line" + RST,
 			},
 		},
 		{
 			name:         "ansi simple, continuation",
-			s:            "\x1b[38;2;255;0;0m12345678901234567890123456789012345\x1b[0m",
+			s:            "\x1b[38;2;255;0;0m12345678901234567890123456789012345" + RST,
 			width:        15,
 			continuation: "...",
 			numTakes:     3,
 			expected: []string{
-				"\x1b[38;2;255;0;0m123456789012...\x1b[0m",
-				"\x1b[38;2;255;0;0m...901234567...\x1b[0m",
-				"\x1b[38;2;255;0;0m...45\x1b[0m",
+				"\x1b[38;2;255;0;0m123456789012..." + RST,
+				"\x1b[38;2;255;0;0m...901234567..." + RST,
+				"\x1b[38;2;255;0;0m...45" + RST,
 			},
 		},
 		{
 			name:         "inline ansi, no continuation",
-			s:            "\x1b[38;2;255;0;0ma\x1b[0m really really long line",
+			s:            "\x1b[38;2;255;0;0ma" + RST + " really really long line",
 			width:        15,
 			continuation: "",
 			numTakes:     2,
 			expected: []string{
-				"\x1b[38;2;255;0;0ma\x1b[0m really really",
+				"\x1b[38;2;255;0;0ma" + RST + " really really",
 				" long line",
 			},
 		},
 		{
 			name:         "inline ansi, continuation",
-			s:            "|\x1b[38;2;169;15;15mfl..-1\x1b[0m| {\"timestamp\": \"now\"}",
+			s:            "|\x1b[38;2;169;15;15mfl..-1" + RST + "| {\"timestamp\": \"now\"}",
 			width:        15,
 			continuation: "...",
 			numTakes:     3,
 			expected: []string{
-				"|\x1b[38;2;169;15;15mfl..-1\x1b[0m| {\"t...",
+				"|\x1b[38;2;169;15;15mfl..-1" + RST + "| {\"t...",
 				"...mp\": \"now\"}",
 				"",
 			},
 		},
 		{
 			name:         "ansi short",
-			s:            "\x1b[38;2;0;0;255mhi\x1b[0m",
+			s:            "\x1b[38;2;0;0;255mhi" + RST,
 			width:        3,
 			continuation: "...",
 			numTakes:     1,
 			expected: []string{
-				"\x1b[38;2;0;0;255mhi\x1b[0m",
+				"\x1b[38;2;0;0;255mhi" + RST,
 			},
 		},
 		{
@@ -628,12 +628,12 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:         "multi-byte runes with ansi and continuation",
-			s:            "\x1b[38;2;0;0;255m├─flask\x1b[0m",
+			s:            "\x1b[38;2;0;0;255m├─flask" + RST,
 			width:        6,
 			continuation: "...",
 			numTakes:     1,
 			expected: []string{
-				"\x1b[38;2;0;0;255m├─f...\x1b[0m",
+				"\x1b[38;2;0;0;255m├─f..." + RST,
 			},
 		},
 		{
@@ -704,20 +704,20 @@ func TestLineBuffer_Take(t *testing.T) {
 			highlightStyle: redBg,
 			numTakes:       2,
 			expected: []string{
-				strings.Repeat("\x1b[48;2;255;0;0mr\x1b[0m", 6),
-				strings.Repeat("\x1b[48;2;255;0;0mr\x1b[0m", 4),
+				strings.Repeat("\x1b[48;2;255;0;0mr"+RST+"", 6),
+				strings.Repeat("\x1b[48;2;255;0;0mr"+RST+"", 4),
 			},
 		},
 		{
 			name:           "toHighlight, no continuation, no overflow, ansi",
-			s:              "\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mthere\x1b[0m er",
+			s:              "\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mthere" + RST + " er",
 			width:          15,
 			continuation:   "",
 			toHighlight:    "er",
 			highlightStyle: redBg,
 			numTakes:       1,
 			expected: []string{
-				"\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mth\x1b[0m\x1b[48;2;255;0;0mer\x1b[0m\x1b[38;2;0;0;255m\x1b[48;2;0;255;0me\x1b[0m \x1b[48;2;255;0;0mer\x1b[0m",
+				"\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mth" + RST + "\x1b[48;2;255;0;0mer" + RST + "\x1b[38;2;0;0;255m\x1b[48;2;0;255;0me" + RST + " \x1b[48;2;255;0;0mer" + RST,
 			},
 		},
 		{
@@ -735,15 +735,15 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:           "toHighlight, no continuation, overflows left and right, ansi",
-			s:              "\x1b[38;2;0;0;255mhi there re\x1b[0m",
+			s:              "\x1b[38;2;0;0;255mhi there re" + RST,
 			width:          6,
 			continuation:   "",
 			toHighlight:    "hi there",
 			highlightStyle: redBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[48;2;255;0;0mhi the\x1b[0m",
-				"\x1b[48;2;255;0;0mre\x1b[0m\x1b[38;2;0;0;255m re\x1b[0m",
+				"\x1b[48;2;255;0;0mhi the" + RST,
+				"\x1b[48;2;255;0;0mre" + RST + "\x1b[38;2;0;0;255m re" + RST,
 			},
 		},
 		{
@@ -799,7 +799,7 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:           "unicode toHighlight, no continuation, overflow, ansi",
-			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟\x1b[0m",
+			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟" + RST,
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界🌟世",
@@ -807,20 +807,20 @@ func TestLineBuffer_Take(t *testing.T) {
 			numTakes:       2,
 			expected: []string{
 				redBg.Render("世界🌟"),
-				redBg.Render("世") + "\x1b[38;2;0;0;255m界🌟\x1b[0m",
+				redBg.Render("世") + "\x1b[38;2;0;0;255m界🌟" + RST,
 			},
 		},
 		{
 			name:           "unicode toHighlight, continuation, overflow, ansi",
-			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟\x1b[0m",
+			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟" + RST,
 			width:          7,
 			continuation:   "...",
 			toHighlight:    "世界🌟世",
 			highlightStyle: redBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[38;2;0;0;255m世界..\x1b[0m", // does not highlight continuation, could in future
-				"\x1b[38;2;0;0;255m..界🌟\x1b[0m", // does not highlight continuation, could in future
+				"\x1b[38;2;0;0;255m世界.." + RST, // does not highlight continuation, could in future
+				"\x1b[38;2;0;0;255m..界🌟" + RST, // does not highlight continuation, could in future
 			},
 		},
 		{
@@ -947,7 +947,7 @@ func TestLineBuffer_WrappedLines(t *testing.T) {
 		},
 		{
 			name:            "single chars",
-			s:               strings.Repeat("Test \x1b[38;2;0;0;255mtest\x1b[0m", 1),
+			s:               strings.Repeat("Test \x1b[38;2;0;0;255mtest"+RST+"", 1),
 			width:           1,
 			maxLinesEachEnd: -1,
 			want: []string{
@@ -956,15 +956,15 @@ func TestLineBuffer_WrappedLines(t *testing.T) {
 				"s",
 				"t",
 				" ",
-				"\x1b[38;2;0;0;255mt\x1b[0m",
-				"\x1b[38;2;0;0;255me\x1b[0m",
-				"\x1b[38;2;0;0;255ms\x1b[0m",
-				"\x1b[38;2;0;0;255mt\x1b[0m",
+				"\x1b[38;2;0;0;255mt" + RST,
+				"\x1b[38;2;0;0;255me" + RST,
+				"\x1b[38;2;0;0;255ms" + RST,
+				"\x1b[38;2;0;0;255mt" + RST,
 			},
 		},
 		{
 			name:            "long s with maxLinesEachEnd and space at end",
-			s:               strings.Repeat("This \x1b[38;2;0;0;255mtest\x1b[0m sentence. ", 200),
+			s:               strings.Repeat("This \x1b[38;2;0;0;255mtest"+RST+" sentence. ", 200),
 			width:           1,
 			maxLinesEachEnd: 6,
 			want: []string{
@@ -973,10 +973,10 @@ func TestLineBuffer_WrappedLines(t *testing.T) {
 				"i",
 				"s",
 				" ",
-				"\x1b[38;2;0;0;255mt\x1b[0m",
-				//"\x1b[38;2;0;0;255me\x1b[0m",
-				//"\x1b[38;2;0;0;255ms\x1b[0m",
-				//"\x1b[38;2;0;0;255mt\x1b[0m",
+				"\x1b[38;2;0;0;255mt" + RST,
+				//"\x1b[38;2;0;0;255me" + RST ,
+				//"\x1b[38;2;0;0;255ms" + RST ,
+				//"\x1b[38;2;0;0;255mt" + RST ,
 				//" ",
 				//"s",
 				//"e",

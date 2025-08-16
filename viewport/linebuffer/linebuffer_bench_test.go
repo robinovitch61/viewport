@@ -53,7 +53,7 @@ func BenchmarkNew_Plain_10000(b *testing.B) {
 
 // BenchmarkNew_ANSI benchmarks New() with ANSI-styled strings of various sizes
 func BenchmarkNew_ANSI_10(b *testing.B) {
-	baseString := strings.Repeat("\x1b[31mh\x1b[0m", 10)
+	baseString := strings.Repeat("\x1b[31mh"+RST+"", 10)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = New(baseString)
@@ -61,7 +61,7 @@ func BenchmarkNew_ANSI_10(b *testing.B) {
 }
 
 func BenchmarkNew_ANSI_100(b *testing.B) {
-	baseString := strings.Repeat("\x1b[31mh\x1b[0m", 100)
+	baseString := strings.Repeat("\x1b[31mh"+RST+"", 100)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = New(baseString)
@@ -69,7 +69,7 @@ func BenchmarkNew_ANSI_100(b *testing.B) {
 }
 
 func BenchmarkNew_ANSI_1000(b *testing.B) {
-	baseString := strings.Repeat("\x1b[31mh\x1b[0m", 1000)
+	baseString := strings.Repeat("\x1b[31mh"+RST+"", 1000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = New(baseString)
@@ -77,7 +77,7 @@ func BenchmarkNew_ANSI_1000(b *testing.B) {
 }
 
 func BenchmarkNew_ANSI_10000(b *testing.B) {
-	baseString := strings.Repeat("\x1b[31mh\x1b[0m", 10000)
+	baseString := strings.Repeat("\x1b[31mh"+RST+"", 10000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = New(baseString)

@@ -9,6 +9,10 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// RST is the ansi escape sequence for resetting styles
+// note that in future charm library versions this may change to "\x1b[m"
+const RST = "\x1b[0m"
+
 var emptySequenceRegex = regexp.MustCompile("\x1b\\[[0-9;]+m\x1b\\[0?m")
 
 // Test helper colors and styles
@@ -49,7 +53,7 @@ func reapplyAnsi(original, truncated string, truncByteOffset int, ansiCodeIndexe
 			originalByteIdx := truncByteOffset + i + lenAnsiAdded
 			if codeStart <= originalByteIdx {
 				code := original[codeStart:codeEnd]
-				isReset = code == "\x1b[m" || code == "\x1b[0m"
+				isReset = code == RST
 				ansisToAdd = append(ansisToAdd, code)
 				lenAnsiAdded += codeEnd - codeStart
 				ansiCodeIndexes = ansiCodeIndexes[1:]
@@ -69,7 +73,7 @@ func reapplyAnsi(original, truncated string, truncByteOffset int, ansiCodeIndexe
 	}
 
 	if !isReset {
-		result.WriteString("\x1b[0m")
+		result.WriteString(RST)
 	}
 	return result.String()
 }
@@ -123,7 +127,7 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 			if ansiLen != -1 {
 				escEnd := i + ansiLen + 1
 				ansi := line[i:escEnd]
-				if ansi == "\x1b[m" || ansi == "\x1b[0m" {
+				if ansi == RST {
 					activeStyles = []string{} // reset
 				} else {
 					activeStyles = append(activeStyles, ansi) // add new active style
@@ -141,7 +145,7 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 			if textToCheck == highlight {
 				// reset current styles, if any
 				if len(activeStyles) > 0 {
-					result.WriteString("\x1b[0m")
+					result.WriteString(RST)
 				}
 				// apply highlight
 				result.WriteString(renderedHighlight)
@@ -261,22 +265,22 @@ func simplifyAnsiCodes(ansis []string) []string {
 	// if there's just a bunch of reset sequences, compress it to one
 	allReset := true
 	for _, ansi := range ansis {
-		if ansi != "\x1b[m" && ansi != "\x1b[0m" {
+		if ansi != RST {
 			allReset = false
 			break
 		}
 	}
 	if allReset {
-		return []string{"\x1b[0m"}
+		return []string{RST}
 	}
 
 	// return all ansis to the right of the rightmost reset seq
 	for i := len(ansis) - 1; i >= 0; i-- {
-		if ansis[i] == "\x1b[m" || ansis[i] == "\x1b[0m" {
+		if ansis[i] == RST {
 			result := ansis[i+1:]
 			// keep reset at the start if present
-			if ansis[0] == "\x1b[m" || ansis[0] == "\x1b[0m" {
-				return append([]string{"\x1b[0m"}, result...)
+			if ansis[0] == RST {
+				return append([]string{RST}, result...)
 			}
 			return result
 		}

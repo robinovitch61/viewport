@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/internal"
+	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
 // Note: this won't be necessary in future charm library versions
@@ -94,9 +95,9 @@ func TestViewport_SelectionOff_WrapOff_Basic(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -137,8 +138,8 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -147,9 +148,9 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -158,9 +159,9 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -186,7 +187,7 @@ func TestViewport_SelectionOff_WrapOff_FooterStyle(t *testing.T) {
 		"1",
 		"2",
 		"3",
-		"\x1b[38;2;255;0;0m75% (3/4)\x1b[0m",
+		"\x1b[38;2;255;0;0m75% (3/4)" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -776,8 +777,8 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlight(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -803,8 +804,8 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlight(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;255;0;0msecon\x1b[0md",
-		"\x1b[38;2;255;0;0msecon\x1b[0md",
+		"\x1b[38;2;255;0;0msecon" + linebuffer.RST + "d",
+		"\x1b[38;2;255;0;0msecon" + linebuffer.RST + "d",
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -827,7 +828,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightManyMatches(t *testing.T
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 7) + strings.Repeat(".", 3),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 7) + strings.Repeat(".", 3),
 		})
 		internal.CmpStr(t, expectedView, vp.View())
 	}
@@ -851,7 +852,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightManyMatches(t *testing.T)
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 7) + strings.Repeat(".", 3),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 7) + strings.Repeat(".", 3),
 		})
 		internal.CmpStr(t, expectedView, vp.View())
 	}
@@ -863,7 +864,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsi(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	vp.SetStringToHighlight("e")
 	vp.SetStyles(Styles{
@@ -874,7 +875,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsi(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"lin\x1b[38;2;0;0;255me\x1b[0m \x1b[38;2;255;0;0mr\x1b[0m\x1b[38;2;0;0;255me\x1b[0m\x1b[38;2;255;0;0md\x1b[0m \x1b[38;2;0;0;255me\x1b[0m again",
+		"lin\x1b[38;2;0;0;255me" + linebuffer.RST + " \x1b[38;2;255;0;0mr" + linebuffer.RST + "\x1b[38;2;0;0;255me" + linebuffer.RST + "\x1b[38;2;255;0;0md" + linebuffer.RST + " \x1b[38;2;0;0;255me" + linebuffer.RST + " again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -882,7 +883,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsi(t *testing.T) {
 	vp.SetStringToHighlight("38")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -892,7 +893,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightAnsi(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	vp.SetRegexToHighlight(regexp.MustCompile("r+e"))
 	vp.SetStyles(Styles{
@@ -903,7 +904,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightAnsi(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line \x1b[38;2;0;0;255mre\x1b[0m\x1b[38;2;255;0;0md\x1b[0m e again",
+		"line \x1b[38;2;0;0;255mre" + linebuffer.RST + "\x1b[38;2;255;0;0md" + linebuffer.RST + " e again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -911,7 +912,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightAnsi(t *testing.T) {
 	vp.SetRegexToHighlight(regexp.MustCompile("38"))
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -934,8 +935,8 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsiUnicode(t *testing.T
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
-		"A💖\x1b[38;2;0;0;255m中é\x1b[0m",
-		"A💖\x1b[38;2;0;0;255m中é\x1b[0m...",
+		"A💖\x1b[38;2;0;0;255m中é" + linebuffer.RST,
+		"A💖\x1b[38;2;0;0;255m中é" + linebuffer.RST + "...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -955,7 +956,7 @@ func TestViewport_SelectionOff_WrapOff_SetSelectionEnabled_SetsTopVisibleItem(t 
 	vp, _ = vp.Update(downKeyMsg)
 	vp.SetSelectionEnabled(true)
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"fourth",
 		"fifth",
 		"50% (3/6)",
@@ -999,7 +1000,7 @@ func TestViewport_SelectionOn_WrapOff_SmolDimensions(t *testing.T) {
 	vp.SetHeight(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"...",
-		"\x1b[38;2;0;0;255mhi\x1b[0m",
+		"\x1b[38;2;0;0;255mhi" + linebuffer.RST,
 		"...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1018,10 +1019,10 @@ func TestViewport_SelectionOn_WrapOff_Basic(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1067,9 +1068,9 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1077,10 +1078,10 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 	vp.SetHeight(6)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1088,10 +1089,10 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 	vp.SetHeight(7)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really rea...\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really rea...",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really rea..." + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really rea...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1115,10 +1116,10 @@ func TestViewport_SelectionOn_WrapOff_FooterStyle(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m1\x1b[0m",
+		"\x1b[38;2;0;0;255m1" + linebuffer.RST,
 		"2",
 		"3",
-		"\x1b[38;2;255;0;0m25% (1/4)\x1b[0m",
+		"\x1b[38;2;255;0;0m25% (1/4)" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1136,7 +1137,7 @@ func TestViewport_SelectionOn_WrapOff_FooterDisabled(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
 		"second line",
 		"third line",
 		"25% (1/4)",
@@ -1146,7 +1147,7 @@ func TestViewport_SelectionOn_WrapOff_FooterDisabled(t *testing.T) {
 	vp.SetFooterEnabled(false)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
 		"second line",
 		"third line",
 		"fourth line",
@@ -1166,7 +1167,7 @@ func TestViewport_SelectionOn_WrapOff_SpaceAround(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m    first li...\x1b[0m",
+		"\x1b[38;2;0;0;255m    first li..." + linebuffer.RST,
 		"          fi...",
 		"            ...",
 		"33% (1/3)",
@@ -1200,7 +1201,7 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header1",
 		"header2",
-		"\x1b[38;2;0;0;255mline1\x1b[0m",
+		"\x1b[38;2;0;0;255mline1" + linebuffer.RST,
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1209,7 +1210,7 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header1",
 		"header2",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1219,7 +1220,7 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 		"header1",
 		"header2",
 		"line1",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1229,7 +1230,7 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 		"header1",
 		"header2",
 		"line1",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1245,7 +1246,7 @@ func TestViewport_SelectionOn_WrapOff_OverflowLine(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"long header ...",
-		"\x1b[38;2;0;0;255m123456789012345\x1b[0m",
+		"\x1b[38;2;0;0;255m123456789012345" + linebuffer.RST,
 		"123456789012...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1266,7 +1267,7 @@ func TestViewport_SelectionOn_WrapOff_OverflowHeight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m123456789012345\x1b[0m",
+		"\x1b[38;2;0;0;255m123456789012345" + linebuffer.RST,
 		"123456789012...",
 		"123456789012...",
 		"123456789012...",
@@ -1299,7 +1300,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 	doSetContent()
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"third",
 		"fourth",
@@ -1316,7 +1317,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"third",
 		"fourth",
 		"33% (2/6)",
@@ -1333,7 +1334,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 		"third",
 		"fourth",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	validate(expectedView)
@@ -1358,7 +1359,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"16% (1/6)",
 	})
@@ -1368,7 +1369,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	vp.ScrollSoItemIdxInView(5)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"16% (1/6)",
 	})
@@ -1379,7 +1380,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"33% (2/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1388,7 +1389,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	vp.ScrollSoItemIdxInView(2)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"third",
 		"33% (2/6)",
 	})
@@ -1410,7 +1411,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"16% (1/6)",
 	})
@@ -1420,7 +1421,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(fullPgDownKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"fourth",
 		"50% (3/6)",
 	})
@@ -1430,7 +1431,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(halfPgDownKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfourth\x1b[0m",
+		"\x1b[38;2;0;0;255mfourth" + linebuffer.RST,
 		"fifth",
 		"66% (4/6)",
 	})
@@ -1441,7 +1442,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1451,7 +1452,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"third",
-		"\x1b[38;2;0;0;255mfourth\x1b[0m",
+		"\x1b[38;2;0;0;255mfourth" + linebuffer.RST,
 		"66% (4/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1461,7 +1462,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1471,7 +1472,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"33% (2/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1480,7 +1481,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(fullPgUpKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"16% (1/6)",
 	})
@@ -1491,7 +1492,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1500,7 +1501,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(goToTopKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"16% (1/6)",
 	})
@@ -1531,7 +1532,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	doSetContent()
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255mfirst l...\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst l..." + linebuffer.RST,
 		"second ...",
 		"third l...",
 		"fourth",
@@ -1543,7 +1544,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	vp.safelySetXOffset(5)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255m...ne t...\x1b[0m",
+		"\x1b[38;2;0;0;255m...ne t..." + linebuffer.RST,
 		"...ine ...",
 		"...ne t...",
 		".",
@@ -1556,7 +1557,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...ne t...",
-		"\x1b[38;2;0;0;255m...ine ...\x1b[0m",
+		"\x1b[38;2;0;0;255m...ine ..." + linebuffer.RST,
 		"...ne t...",
 		".",
 		"33% (2/6)",
@@ -1568,7 +1569,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...",
-		"\x1b[38;2;0;0;255m...e first\x1b[0m",
+		"\x1b[38;2;0;0;255m...e first" + linebuffer.RST,
 		"...",
 		"...",
 		"33% (2/6)",
@@ -1581,7 +1582,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		"header ...",
 		"...",
 		"...e first",
-		"\x1b[38;2;0;0;255m...\x1b[0m",
+		"\x1b[38;2;0;0;255m..." + linebuffer.RST,
 		"...",
 		"50% (3/6)",
 	})
@@ -1594,7 +1595,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		"...",
 		"...e first",
 		"...",
-		"\x1b[38;2;0;0;255m...\x1b[0m",
+		"\x1b[38;2;0;0;255m..." + linebuffer.RST,
 		"66% (4/6)",
 	})
 	validate(expectedView)
@@ -1606,7 +1607,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		"...e first",
 		"...",
 		"...",
-		"\x1b[38;2;0;0;255m...\x1b[0m",
+		"\x1b[38;2;0;0;255m..." + linebuffer.RST,
 		"83% (5/6)",
 	})
 	validate(expectedView)
@@ -1618,7 +1619,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		"...ly long",
 		"...",
 		"...ly long",
-		"\x1b[38;2;0;0;255m...\x1b[0m",
+		"\x1b[38;2;0;0;255m..." + linebuffer.RST,
 		"100% (6/6)",
 	})
 	validate(expectedView)
@@ -1629,7 +1630,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		"header ...",
 		"...ly long",
 		"...",
-		"\x1b[38;2;0;0;255m...ly long\x1b[0m",
+		"\x1b[38;2;0;0;255m...ly long" + linebuffer.RST,
 		"...",
 		"83% (5/6)",
 	})
@@ -1640,7 +1641,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...ly long",
-		"\x1b[38;2;0;0;255m...\x1b[0m",
+		"\x1b[38;2;0;0;255m..." + linebuffer.RST,
 		"...ly long",
 		"...",
 		"66% (4/6)",
@@ -1651,7 +1652,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255m...ly long\x1b[0m",
+		"\x1b[38;2;0;0;255m...ly long" + linebuffer.RST,
 		"...",
 		"...ly long",
 		"...",
@@ -1663,7 +1664,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255m...n mu...\x1b[0m",
+		"\x1b[38;2;0;0;255m...n mu..." + linebuffer.RST,
 		"...ly long",
 		"...",
 		"...ly long",
@@ -1675,7 +1676,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255m...ly long\x1b[0m",
+		"\x1b[38;2;0;0;255m...ly long" + linebuffer.RST,
 		"...n mu...",
 		"...ly long",
 		"...",
@@ -1689,7 +1690,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
-		"\x1b[38;2;0;0;255m...rst one\x1b[0m",
+		"\x1b[38;2;0;0;255m...rst one" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1710,7 +1711,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"seventh",
 		"eighth",
 		"16% (1/6)",
@@ -1722,7 +1723,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth",
-		"\x1b[38;2;0;0;255mseventh\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh" + linebuffer.RST,
 		"eighth",
 		"33% (2/6)",
 	})
@@ -1745,7 +1746,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth",
-		"\x1b[38;2;0;0;255mseventh\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh" + linebuffer.RST,
 		"eighth",
 		"63% (7/11)",
 	})
@@ -1773,7 +1774,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth",
-		"\x1b[38;2;0;0;255mseventh\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh" + linebuffer.RST,
 		"eighth",
 		"43% (7/16)",
 	})
@@ -1793,7 +1794,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1804,7 +1805,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"first",
 		"50% (1/2)",
 	})
@@ -1815,7 +1816,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1829,7 +1830,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1848,7 +1849,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1860,7 +1861,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1869,7 +1870,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"first",
 		"50% (1/2)",
 	})
@@ -1883,7 +1884,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"first",
 		"33% (1/3)",
 	})
@@ -1914,7 +1915,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottomOverflowHeight(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1934,7 +1935,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1945,7 +1946,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"first",
 		"50% (1/2)",
 	})
@@ -1956,7 +1957,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1970,7 +1971,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1979,7 +1980,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"third",
 		"66% (2/3)",
 	})
@@ -1994,7 +1995,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"third",
 		"50% (2/4)",
 	})
@@ -2016,7 +2017,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2025,7 +2026,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	vp.SetSelectedItemIdx(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfourth\x1b[0m",
+		"\x1b[38;2;0;0;255mfourth" + linebuffer.RST,
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2037,7 +2038,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2058,7 +2059,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"16% (1/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2067,7 +2068,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 	vp.SetHeight(8)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"third",
 		"fourth",
@@ -2084,7 +2085,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 		"header",
 		"first",
 		"second",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"fourth",
 		"fifth",
 		"sixth",
@@ -2096,7 +2097,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 	vp.SetHeight(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2107,7 +2108,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 		"header",
 		"first",
 		"second",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"fourth",
 		"fifth",
 		"sixth",
@@ -2126,7 +2127,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 		"third",
 		"fourth",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2135,7 +2136,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 	vp.SetHeight(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2149,7 +2150,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 		"third",
 		"fourth",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2170,7 +2171,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"third",
 		"16% (1/6)",
@@ -2183,7 +2184,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 		"header",
 		"fourth",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2194,7 +2195,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -2216,7 +2217,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"third",
 		"16% (1/6)",
@@ -2244,9 +2245,9 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first line\x1b[0m",
-		"the \x1b[38;2;0;255;0msecond\x1b[0m line",
-		"the \x1b[38;2;0;255;0msecond\x1b[0m line",
+		"\x1b[38;2;0;0;255mthe first line" + linebuffer.RST,
+		"the \x1b[38;2;0;255;0msecond" + linebuffer.RST + " line",
+		"the \x1b[38;2;0;255;0msecond" + linebuffer.RST + " line",
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2254,7 +2255,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlight(t *testing.T) {
 	vp.SetStringToHighlight("first")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe \x1b[0m\x1b[38;2;255;0;0mfirst\x1b[0m\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe " + linebuffer.RST + "\x1b[38;2;255;0;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"the second line",
 		"the second line",
 		"25% (1/4)",
@@ -2269,7 +2270,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlight(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;255;0;0mfirst\x1b[0m\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;255;0;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"second line",
 		"second line",
 		"25% (1/4)",
@@ -2297,9 +2298,9 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first line\x1b[0m",
-		"the \x1b[38;2;0;255;0msecond\x1b[0m line",
-		"the \x1b[38;2;0;255;0msecond\x1b[0m line",
+		"\x1b[38;2;0;0;255mthe first line" + linebuffer.RST,
+		"the \x1b[38;2;0;255;0msecond" + linebuffer.RST + " line",
+		"the \x1b[38;2;0;255;0msecond" + linebuffer.RST + " line",
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2307,7 +2308,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlight(t *testing.T) {
 	vp.SetRegexToHighlight(regexp.MustCompile("fir.t"))
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe \x1b[0m\x1b[38;2;255;0;0mfirst\x1b[0m\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe " + linebuffer.RST + "\x1b[38;2;255;0;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"the second line",
 		"the second line",
 		"25% (1/4)",
@@ -2322,7 +2323,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlight(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;255;0;0mfirst\x1b[0m\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;255;0;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"second line",
 		"second line",
 		"25% (1/4)",
@@ -2348,7 +2349,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightManyMatches(t *testing.T)
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 7) + "\x1b[38;2;0;0;255m" + strings.Repeat(".", 3) + "\x1b[0m",
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 7) + "\x1b[38;2;0;0;255m" + strings.Repeat(".", 3) + linebuffer.RST,
 		})
 		internal.CmpStr(t, expectedView, vp.View())
 	}
@@ -2373,7 +2374,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlightManyMatches(t *testing.T) 
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 7) + "\x1b[38;2;0;0;255m" + strings.Repeat(".", 3) + "\x1b[0m",
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 7) + "\x1b[38;2;0;0;255m" + strings.Repeat(".", 3) + linebuffer.RST,
 		})
 		internal.CmpStr(t, expectedView, vp.View())
 	}
@@ -2386,11 +2387,11 @@ func TestViewport_SelectionOn_WrapOff_AnsiOnSelection(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
-		"line with \x1b[38;2;255;0;0mred\x1b[0m text",
+		"line with \x1b[38;2;255;0;0mred" + linebuffer.RST + " text",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mline with \x1b[0m\x1b[38;2;255;0;0mred\x1b[0m\x1b[38;2;0;0;255m text\x1b[0m",
+		"\x1b[38;2;0;0;255mline with " + linebuffer.RST + "\x1b[38;2;255;0;0mred" + linebuffer.RST + "\x1b[38;2;0;0;255m text" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2405,7 +2406,7 @@ func TestViewport_SelectionOn_WrapOff_SelectionEmpty(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m \x1b[0m",
+		"\x1b[38;2;0;0;255m " + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2416,11 +2417,11 @@ func TestViewport_SelectionOn_WrapOff_ExtraSlash(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
-		"|2024|\x1b[38;2;0mfl..lq\x1b[0m/\x1b[38;2;0mflask-3\x1b[0m|",
+		"|2024|\x1b[38;2;0mfl..lq" + linebuffer.RST + "/\x1b[38;2;0mflask-3" + linebuffer.RST + "|",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m|2024|\x1b[0m\x1b[38;2;0mfl..lq\x1b[0m\x1b[38;2;0;0;255m/\x1b[0m\x1b[38;2;0mflask-3\x1b[0m\x1b[38;2;0;0;255m|\x1b[0m",
+		"\x1b[38;2;0;0;255m|2024|" + linebuffer.RST + "\x1b[38;2;0mfl..lq" + linebuffer.RST + "\x1b[38;2;0;0;255m/" + linebuffer.RST + "\x1b[38;2;0mflask-3" + linebuffer.RST + "\x1b[38;2;0;0;255m|" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2444,8 +2445,8 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightAnsiUnicode(t *testing.T)
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
-		"\x1b[38;2;0;0;255mA💖\x1b[0m\x1b[38;2;255;0;0m中é\x1b[0m",
-		"A💖\x1b[38;2;0;255;0m中é\x1b[0m...",
+		"\x1b[38;2;0;0;255mA💖" + linebuffer.RST + "\x1b[38;2;255;0;0m中é" + linebuffer.RST,
+		"A💖\x1b[38;2;0;255;0m中é" + linebuffer.RST + "...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2507,9 +2508,9 @@ func TestViewport_SelectionOff_WrapOn_Basic(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2552,10 +2553,10 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		"99% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2564,10 +2565,10 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		" long line",
 		"100% (4/4)",
 	})
@@ -2577,10 +2578,10 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		" long line",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2608,7 +2609,7 @@ func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 		"1",
 		"2",
 		"3",
-		"\x1b[38;2;255;0;0m75% (3/4)\x1b[0m",
+		"\x1b[38;2;255;0;0m75% (3/4)" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3201,8 +3202,8 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlight(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3214,8 +3215,8 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlight(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"averylongw",
-		"ordthat\x1b[38;2;255;0;0mwra\x1b[0m",
-		"\x1b[38;2;255;0;0mps\x1b[0m",
+		"ordthat\x1b[38;2;255;0;0mwra" + linebuffer.RST,
+		"\x1b[38;2;255;0;0mps" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3242,8 +3243,8 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlight(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST,
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3267,9 +3268,9 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightManyMatches(t *testing.T)
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
 			"99% (1/1)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -3295,9 +3296,9 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightManyMatches(t *testing.T) 
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;0;255;0mr\x1b[0m", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;0;255;0mr"+linebuffer.RST+"", 10),
 			"99% (1/1)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -3334,7 +3335,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightMissesWrap(t *testing.T) {
 		vp.SetRegexToHighlight(regexp.MustCompile("this.*to"))
 		expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			"\x1b[38;2;0;255;0mthis is to\x1b[0m",
+			"\x1b[38;2;0;255;0mthis is to" + linebuffer.RST,
 			"o long and",
 			" triggers ",
 			"99% (1/1)",
@@ -3350,7 +3351,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsi(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	setContent(vp, []string{
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	vp.SetStringToHighlight("e")
 	vp.SetStyles(Styles{
@@ -3361,7 +3362,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsi(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"lin\x1b[38;2;0;0;255me\x1b[0m \x1b[38;2;255;0;0mr\x1b[0m\x1b[38;2;0;0;255me\x1b[0m\x1b[38;2;255;0;0md\x1b[0m \x1b[38;2;0;0;255me\x1b[0m",
+		"lin\x1b[38;2;0;0;255me" + linebuffer.RST + " \x1b[38;2;255;0;0mr" + linebuffer.RST + "\x1b[38;2;0;0;255me" + linebuffer.RST + "\x1b[38;2;255;0;0md" + linebuffer.RST + " \x1b[38;2;0;0;255me" + linebuffer.RST,
 		" again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3370,7 +3371,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsi(t *testing.T) {
 	vp.SetStringToHighlight("38")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line \x1b[38;2;255;0;0mred\x1b[0m e",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e",
 		" again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3382,7 +3383,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightAnsi(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	setContent(vp, []string{
-		"line \x1b[38;2;255;0;0mred\x1b[0m e again",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e again",
 	})
 	vp.SetRegexToHighlight(regexp.MustCompile("e"))
 	vp.SetStyles(Styles{
@@ -3393,7 +3394,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightAnsi(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"lin\x1b[38;2;0;0;255me\x1b[0m \x1b[38;2;255;0;0mr\x1b[0m\x1b[38;2;0;0;255me\x1b[0m\x1b[38;2;255;0;0md\x1b[0m \x1b[38;2;0;0;255me\x1b[0m",
+		"lin\x1b[38;2;0;0;255me" + linebuffer.RST + " \x1b[38;2;255;0;0mr" + linebuffer.RST + "\x1b[38;2;0;0;255me" + linebuffer.RST + "\x1b[38;2;255;0;0md" + linebuffer.RST + " \x1b[38;2;0;0;255me" + linebuffer.RST,
 		" again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3402,7 +3403,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightAnsi(t *testing.T) {
 	vp.SetRegexToHighlight(regexp.MustCompile("38"))
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line \x1b[38;2;255;0;0mred\x1b[0m e",
+		"line \x1b[38;2;255;0;0mred" + linebuffer.RST + " e",
 		" again",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3480,9 +3481,9 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsiUnicode(t *testing.T)
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
-		"A💖\x1b[38;2;0;255;0m中é\x1b[0m",
-		"A💖\x1b[38;2;0;255;0m中é\x1b[0mA💖",
-		"\x1b[38;2;0;255;0m中é\x1b[0m",
+		"A💖\x1b[38;2;0;255;0m中é" + linebuffer.RST,
+		"A💖\x1b[38;2;0;255;0m中é" + linebuffer.RST + "A💖",
+		"\x1b[38;2;0;255;0m中é" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3509,9 +3510,9 @@ func TestViewport_SelectionOff_WrapOn_EnableSelectionShowsTopLineInItem(t *testi
 	internal.CmpStr(t, expectedView, vp.View())
 	vp.SetSelectionEnabled(true)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"\x1b[38;2;0;0;255mthis is a \x1b[0m",
-		"\x1b[38;2;0;0;255mvery long \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthis is a " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mvery long " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"50% (2/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3561,7 +3562,7 @@ func TestViewport_SelectionOn_WrapOn_SmolDimensions(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"head",
 		"er",
-		"\x1b[38;2;0;0;255mhi\x1b[0m",
+		"\x1b[38;2;0;0;255mhi" + linebuffer.RST,
 		"1...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3581,10 +3582,10 @@ func TestViewport_SelectionOn_WrapOn_Basic(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3632,11 +3633,11 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3644,11 +3645,11 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 	vp.SetHeight(8)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		" long line",
 		"25% (1/4)",
 	})
@@ -3657,11 +3658,11 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 	vp.SetHeight(9)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;255;0;0msecond\x1b[0m line",
-		"\x1b[38;2;255;0;0ma really really\x1b[0m",
-		"\x1b[38;2;255;0;0m long line\x1b[0m",
-		"\x1b[38;2;255;0;0ma\x1b[0m really really",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"\x1b[38;2;255;0;0ma really really" + linebuffer.RST,
+		"\x1b[38;2;255;0;0m long line" + linebuffer.RST,
+		"\x1b[38;2;255;0;0ma" + linebuffer.RST + " really really",
 		" long line",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3687,10 +3688,10 @@ func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m1\x1b[0m",
+		"\x1b[38;2;0;0;255m1" + linebuffer.RST,
 		"2",
 		"3",
-		"\x1b[38;2;255;0;0m25% (1/4)\x1b[0m",
+		"\x1b[38;2;255;0;0m25% (1/4)" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3709,7 +3710,7 @@ func TestViewport_SelectionOn_WrapOn_FooterDisabled(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
 		"second line",
 		"third line",
 		"25% (1/4)",
@@ -3719,7 +3720,7 @@ func TestViewport_SelectionOn_WrapOn_FooterDisabled(t *testing.T) {
 	vp.SetFooterEnabled(false)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
 		"second line",
 		"third line",
 		"fourth line",
@@ -3741,8 +3742,8 @@ func TestViewport_SelectionOn_WrapOn_SpaceAround(t *testing.T) {
 	// trailing space is not trimmed
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m    first line \x1b[0m",
-		"\x1b[38;2;0;0;255m    \x1b[0m",
+		"\x1b[38;2;0;0;255m    first line " + linebuffer.RST,
+		"\x1b[38;2;0;0;255m    " + linebuffer.RST,
 		"          first",
 		"33% (1/3)",
 	})
@@ -3776,7 +3777,7 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header1",
 		"header2",
-		"\x1b[38;2;0;0;255mline1\x1b[0m",
+		"\x1b[38;2;0;0;255mline1" + linebuffer.RST,
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3785,7 +3786,7 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header1",
 		"header2",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3795,7 +3796,7 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 		"header1",
 		"header2",
 		"line1",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3805,7 +3806,7 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 		"header1",
 		"header2",
 		"line1",
-		"\x1b[38;2;0;0;255mline2\x1b[0m",
+		"\x1b[38;2;0;0;255mline2" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3823,7 +3824,7 @@ func TestViewport_SelectionOn_WrapOn_OverflowLine(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"long header ove",
 		"rflows",
-		"\x1b[38;2;0;0;255m123456789012345\x1b[0m",
+		"\x1b[38;2;0;0;255m123456789012345" + linebuffer.RST,
 		"123456789012345",
 		"6",
 		"50% (1/2)",
@@ -3849,8 +3850,8 @@ func TestViewport_SelectionOn_WrapOn_OverflowHeight(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"123456789012345",
-		"\x1b[38;2;0;0;255m123456789012345\x1b[0m",
-		"\x1b[38;2;0;0;255m6\x1b[0m",
+		"\x1b[38;2;0;0;255m123456789012345" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m6" + linebuffer.RST,
 		"123456789012345",
 		"33% (2/6)",
 	})
@@ -3882,7 +3883,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 	doSetContent()
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
 		"second",
 		"third",
 		"fourth",
@@ -3899,7 +3900,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
-		"\x1b[38;2;0;0;255msecond\x1b[0m",
+		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"third",
 		"fourth",
 		"33% (2/6)",
@@ -3912,7 +3913,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 		"header",
 		"first",
 		"second",
-		"\x1b[38;2;0;0;255mthird\x1b[0m",
+		"\x1b[38;2;0;0;255mthird" + linebuffer.RST,
 		"fourth",
 		"50% (3/6)",
 	})
@@ -3927,7 +3928,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 		"third",
 		"fourth",
 		"fifth",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	validate(expectedView)
@@ -3950,8 +3951,8 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the second",
 		" line",
 		"33% (1/3)",
@@ -3962,8 +3963,8 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	vp.ScrollSoItemIdxInView(2)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the second",
 		" line",
 		"33% (1/3)",
@@ -3976,8 +3977,8 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 		"header",
 		"the first",
 		"line",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3986,8 +3987,8 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	vp.ScrollSoItemIdxInView(2)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"the third",
 		"line",
 		"66% (2/3)",
@@ -4008,8 +4009,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"33% (1/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4018,8 +4019,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(fullPgDownKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4028,8 +4029,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(halfPgDownKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4042,8 +4043,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(fullPgUpKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4052,8 +4053,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(halfPgUpKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"33% (1/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4066,8 +4067,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(goToBottomKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4076,8 +4077,8 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp, _ = vp.Update(goToTopKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"33% (1/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4109,9 +4110,9 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;0;0;255m that is f\x1b[0m",
-		"\x1b[38;2;0;0;255mairly long\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m that is f" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mairly long" + linebuffer.RST,
 		"second lin",
 		"16% (1/6)",
 	})
@@ -4126,10 +4127,10 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255msecond lin\x1b[0m",
-		"\x1b[38;2;0;0;255me that is \x1b[0m",
-		"\x1b[38;2;0;0;255meven much \x1b[0m",
-		"\x1b[38;2;0;0;255mlonger tha\x1b[0m",
+		"\x1b[38;2;0;0;255msecond lin" + linebuffer.RST,
+		"\x1b[38;2;0;0;255me that is " + linebuffer.RST,
+		"\x1b[38;2;0;0;255meven much " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mlonger tha" + linebuffer.RST,
 		"33% (2/6)",
 	})
 	validate(expectedView)
@@ -4143,10 +4144,10 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255mthird line\x1b[0m",
-		"\x1b[38;2;0;0;255m that is f\x1b[0m",
-		"\x1b[38;2;0;0;255mairly long\x1b[0m",
-		"\x1b[38;2;0;0;255m as well\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m that is f" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mairly long" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m as well" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	validate(expectedView)
@@ -4158,8 +4159,8 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 		"g",
 		"airly long",
 		" as well",
-		"\x1b[38;2;0;0;255mfourth kin\x1b[0m",
-		"\x1b[38;2;0;0;255mda long\x1b[0m",
+		"\x1b[38;2;0;0;255mfourth kin" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mda long" + linebuffer.RST,
 		"66% (4/6)",
 	})
 	validate(expectedView)
@@ -4171,8 +4172,8 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 		"g",
 		"fourth kin",
 		"da long",
-		"\x1b[38;2;0;0;255mfifth kind\x1b[0m",
-		"\x1b[38;2;0;0;255ma long too\x1b[0m",
+		"\x1b[38;2;0;0;255mfifth kind" + linebuffer.RST,
+		"\x1b[38;2;0;0;255ma long too" + linebuffer.RST,
 		"83% (5/6)",
 	})
 	validate(expectedView)
@@ -4185,7 +4186,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 		"da long",
 		"fifth kind",
 		"a long too",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	validate(expectedView)
@@ -4196,8 +4197,8 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 		"header lon",
 		"g",
 		"da long",
-		"\x1b[38;2;0;0;255mfifth kind\x1b[0m",
-		"\x1b[38;2;0;0;255ma long too\x1b[0m",
+		"\x1b[38;2;0;0;255mfifth kind" + linebuffer.RST,
+		"\x1b[38;2;0;0;255ma long too" + linebuffer.RST,
 		"sixth",
 		"83% (5/6)",
 	})
@@ -4208,8 +4209,8 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255mfourth kin\x1b[0m",
-		"\x1b[38;2;0;0;255mda long\x1b[0m",
+		"\x1b[38;2;0;0;255mfourth kin" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mda long" + linebuffer.RST,
 		"fifth kind",
 		"a long too",
 		"66% (4/6)",
@@ -4221,10 +4222,10 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255mthird line\x1b[0m",
-		"\x1b[38;2;0;0;255m that is f\x1b[0m",
-		"\x1b[38;2;0;0;255mairly long\x1b[0m",
-		"\x1b[38;2;0;0;255m as well\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m that is f" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mairly long" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m as well" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	validate(expectedView)
@@ -4234,10 +4235,10 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255msecond lin\x1b[0m",
-		"\x1b[38;2;0;0;255me that is \x1b[0m",
-		"\x1b[38;2;0;0;255meven much \x1b[0m",
-		"\x1b[38;2;0;0;255mlonger tha\x1b[0m",
+		"\x1b[38;2;0;0;255msecond lin" + linebuffer.RST,
+		"\x1b[38;2;0;0;255me that is " + linebuffer.RST,
+		"\x1b[38;2;0;0;255meven much " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mlonger tha" + linebuffer.RST,
 		"33% (2/6)",
 	})
 	validate(expectedView)
@@ -4247,9 +4248,9 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header lon",
 		"g",
-		"\x1b[38;2;0;0;255mfirst line\x1b[0m",
-		"\x1b[38;2;0;0;255m that is f\x1b[0m",
-		"\x1b[38;2;0;0;255mairly long\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m that is f" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mairly long" + linebuffer.RST,
 		"second lin",
 		"16% (1/6)",
 	})
@@ -4273,7 +4274,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255msixth item\x1b[0m",
+		"\x1b[38;2;0;0;255msixth item" + linebuffer.RST,
 		"seventh it",
 		"em",
 		"eighth ite",
@@ -4286,8 +4287,8 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth item",
-		"\x1b[38;2;0;0;255mseventh it\x1b[0m",
-		"\x1b[38;2;0;0;255mem\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh it" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mem" + linebuffer.RST,
 		"eighth ite",
 		"33% (2/6)",
 	})
@@ -4310,8 +4311,8 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth item",
-		"\x1b[38;2;0;0;255mseventh it\x1b[0m",
-		"\x1b[38;2;0;0;255mem\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh it" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mem" + linebuffer.RST,
 		"eighth ite",
 		"63% (7/11)",
 	})
@@ -4339,8 +4340,8 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"sixth item",
-		"\x1b[38;2;0;0;255mseventh it\x1b[0m",
-		"\x1b[38;2;0;0;255mem\x1b[0m",
+		"\x1b[38;2;0;0;255mseventh it" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mem" + linebuffer.RST,
 		"eighth ite",
 		"43% (7/16)",
 	})
@@ -4361,8 +4362,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4374,8 +4375,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4384,8 +4385,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	vp, _ = vp.Update(downKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4398,8 +4399,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4419,8 +4420,8 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -4433,8 +4434,8 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 		"header",
 		"the second",
 		" line",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4447,10 +4448,10 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255ma very lon\x1b[0m",
-		"\x1b[38;2;0;0;255mg line tha\x1b[0m",
-		"\x1b[38;2;0;0;255mt wraps a \x1b[0m",
-		"\x1b[38;2;0;0;255mlot\x1b[0m",
+		"\x1b[38;2;0;0;255ma very lon" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mg line tha" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mt wraps a " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mlot" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4459,8 +4460,8 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"a very lon",
 		"g line tha",
 		"66% (2/3)",
@@ -4476,8 +4477,8 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"a very lon",
 		"g line tha",
 		"50% (2/4)",
@@ -4509,8 +4510,8 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomOverflowHeight(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4531,8 +4532,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4544,8 +4545,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4554,8 +4555,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	vp, _ = vp.Update(downKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4568,8 +4569,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4578,8 +4579,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4593,8 +4594,8 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"50% (2/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4616,7 +4617,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first line",
-		"\x1b[38;2;0;0;255mnext line\x1b[0m",
+		"\x1b[38;2;0;0;255mnext line" + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -4629,12 +4630,12 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 		"header",
 		"first line",
 		"next line",
-		"\x1b[38;2;0;0;255ma very lon\x1b[0m",
-		"\x1b[38;2;0;0;255mg line at \x1b[0m",
-		"\x1b[38;2;0;0;255mthe bottom\x1b[0m",
-		"\x1b[38;2;0;0;255m that wrap\x1b[0m",
-		"\x1b[38;2;0;0;255ms many tim\x1b[0m",
-		"\x1b[38;2;0;0;255mes\x1b[0m",
+		"\x1b[38;2;0;0;255ma very lon" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mg line at " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mthe bottom" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m that wrap" + linebuffer.RST,
+		"\x1b[38;2;0;0;255ms many tim" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mes" + linebuffer.RST,
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4656,7 +4657,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe second\x1b[0m",
+		"\x1b[38;2;0;0;255mthe second" + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4665,7 +4666,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	vp.SetSelectedItemIdx(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe fourth\x1b[0m",
+		"\x1b[38;2;0;0;255mthe fourth" + linebuffer.RST,
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4677,7 +4678,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4699,7 +4700,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
 		"16% (1/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4708,8 +4709,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	vp.SetHeight(6)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the second",
 		" line",
 		"16% (1/6)",
@@ -4723,8 +4724,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 		"header",
 		"the second",
 		" line",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4733,7 +4734,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	vp.SetHeight(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4742,8 +4743,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	vp.SetHeight(8)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the fourth",
 		" line",
 		"the fifth ",
@@ -4762,8 +4763,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 		" line",
 		"the fifth ",
 		"line",
-		"\x1b[38;2;0;0;255mthe sixth \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe sixth " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4772,7 +4773,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	vp.SetHeight(3)
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe sixth \x1b[0m",
+		"\x1b[38;2;0;0;255mthe sixth " + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4794,8 +4795,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the second",
 		"16% (1/6)",
 	})
@@ -4806,8 +4807,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
-		"\x1b[38;2;0;0;255mthe sixth \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe sixth " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4820,8 +4821,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		" line",
-		"\x1b[38;2;0;0;255mthe third \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe third " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4844,8 +4845,8 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe first \x1b[0m",
-		"\x1b[38;2;0;0;255mline\x1b[0m",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
 		"the second",
 		"16% (1/6)",
 	})
@@ -4873,9 +4874,9 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
-		"\x1b[38;2;0;255;0msecond\x1b[0m",
-		"\x1b[38;2;0;255;0msecond\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
+		"\x1b[38;2;0;255;0msecond" + linebuffer.RST,
+		"\x1b[38;2;0;255;0msecond" + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4883,7 +4884,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	vp.SetStringToHighlight("first")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;255;0;0mfirst\x1b[0m",
+		"\x1b[38;2;255;0;0mfirst" + linebuffer.RST,
 		"second",
 		"second",
 		"25% (1/4)",
@@ -4896,9 +4897,9 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	vp.SetStringToHighlight("wraps")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255maverylongw\x1b[0m",
-		"\x1b[38;2;0;0;255mordthat\x1b[0m\x1b[38;2;255;0;0mwra\x1b[0m",
-		"\x1b[38;2;255;0;0mps\x1b[0m\x1b[38;2;0;0;255mover\x1b[0m",
+		"\x1b[38;2;0;0;255maverylongw" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mordthat" + linebuffer.RST + "\x1b[38;2;255;0;0mwra" + linebuffer.RST,
+		"\x1b[38;2;255;0;0mps" + linebuffer.RST + "\x1b[38;2;0;0;255mover" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4909,9 +4910,9 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	vp.SetStringToHighlight("l")
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255ma super \x1b[0m\x1b[38;2;255;0;0ml\x1b[0m\x1b[38;2;0;0;255mo\x1b[0m",
-		"\x1b[38;2;0;0;255mng \x1b[0m\x1b[38;2;255;0;0ml\x1b[0m\x1b[38;2;0;0;255mine a \x1b[0m",
-		"\x1b[38;2;0;0;255msuper \x1b[0m\x1b[38;2;255;0;0ml\x1b[0m\x1b[38;2;0;0;255mong\x1b[0m",
+		"\x1b[38;2;0;0;255ma super " + linebuffer.RST + "\x1b[38;2;255;0;0ml" + linebuffer.RST + "\x1b[38;2;0;0;255mo" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mng " + linebuffer.RST + "\x1b[38;2;255;0;0ml" + linebuffer.RST + "\x1b[38;2;0;0;255mine a " + linebuffer.RST,
+		"\x1b[38;2;0;0;255msuper " + linebuffer.RST + "\x1b[38;2;255;0;0ml" + linebuffer.RST + "\x1b[38;2;0;0;255mong" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4938,9 +4939,9 @@ func TestViewport_SelectionOn_WrapOn_RegexToHighlight(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst\x1b[0m",
-		"\x1b[38;2;0;255;0msecond\x1b[0m",
-		"\x1b[38;2;0;255;0msecond\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst" + linebuffer.RST,
+		"\x1b[38;2;0;255;0msecond" + linebuffer.RST,
+		"\x1b[38;2;0;255;0msecond" + linebuffer.RST,
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4948,7 +4949,7 @@ func TestViewport_SelectionOn_WrapOn_RegexToHighlight(t *testing.T) {
 	vp.SetRegexToHighlight(regexp.MustCompile("fi?rst"))
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;255;0;0mfirst\x1b[0m",
+		"\x1b[38;2;255;0;0mfirst" + linebuffer.RST,
 		"second",
 		"second",
 		"25% (1/4)",
@@ -4975,9 +4976,9 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightManyMatches(t *testing.T) 
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
 			"100% (1/1)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -5004,9 +5005,9 @@ func TestViewport_SelectionOn_WrapOn_RegexToHighlightManyMatches(t *testing.T) {
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
-			strings.Repeat("\x1b[38;2;255;0;0mr\x1b[0m", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
+			strings.Repeat("\x1b[38;2;255;0;0mr"+linebuffer.RST+"", 10),
 			"100% (1/1)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -5021,13 +5022,13 @@ func TestViewport_SelectionOn_WrapOn_AnsiOnSelection(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
 	setContent(vp, []string{
-		"line with some \x1b[38;2;255;0;0mred\x1b[0m text",
+		"line with some \x1b[38;2;255;0;0mred" + linebuffer.RST + " text",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mline with \x1b[0m",
-		"\x1b[38;2;0;0;255msome \x1b[0m\x1b[38;2;255;0;0mred\x1b[0m\x1b[38;2;0;0;255m t\x1b[0m",
-		"\x1b[38;2;0;0;255mext\x1b[0m",
+		"\x1b[38;2;0;0;255mline with " + linebuffer.RST,
+		"\x1b[38;2;0;0;255msome " + linebuffer.RST + "\x1b[38;2;255;0;0mred" + linebuffer.RST + "\x1b[38;2;0;0;255m t" + linebuffer.RST,
+		"\x1b[38;2;0;0;255mext" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5044,7 +5045,7 @@ func TestViewport_SelectionOn_WrapOn_SelectionEmpty(t *testing.T) {
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m \x1b[0m",
+		"\x1b[38;2;0;0;255m " + linebuffer.RST,
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -5056,13 +5057,13 @@ func TestViewport_SelectionOn_WrapOn_ExtraSlash(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
 	setContent(vp, []string{
-		"|2024|\x1b[38;2;0mfl..lq\x1b[0m/\x1b[38;2;0mflask-3\x1b[0m|",
+		"|2024|\x1b[38;2;0mfl..lq" + linebuffer.RST + "/\x1b[38;2;0mflask-3" + linebuffer.RST + "|",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255m|2024|\x1b[0m\x1b[38;2;0mfl..\x1b[0m",
-		"\x1b[38;2;0mlq\x1b[0m\x1b[38;2;0;0;255m/\x1b[0m\x1b[38;2;0mflask-3\x1b[0m",
-		"\x1b[38;2;0;0;255m|\x1b[0m",
+		"\x1b[38;2;0;0;255m|2024|" + linebuffer.RST + "\x1b[38;2;0mfl.." + linebuffer.RST,
+		"\x1b[38;2;0mlq" + linebuffer.RST + "\x1b[38;2;0;0;255m/" + linebuffer.RST + "\x1b[38;2;0mflask-3" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m|" + linebuffer.RST,
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5082,7 +5083,7 @@ func TestViewport_SelectionOn_WrapOn_SuperLongWrappedLine(t *testing.T) {
 		})
 		expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			"\x1b[38;2;0;0;255msmol\x1b[0m",
+			"\x1b[38;2;0;0;255msmol" + linebuffer.RST,
 			"1234567812",
 			"3456781234",
 			"33% (1/3)",
@@ -5092,9 +5093,9 @@ func TestViewport_SelectionOn_WrapOn_SuperLongWrappedLine(t *testing.T) {
 		vp, _ = vp.Update(downKeyMsg)
 		expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 			"header",
-			"\x1b[38;2;0;0;255m1234567812\x1b[0m",
-			"\x1b[38;2;0;0;255m3456781234\x1b[0m",
-			"\x1b[38;2;0;0;255m5678123456\x1b[0m",
+			"\x1b[38;2;0;0;255m1234567812" + linebuffer.RST,
+			"\x1b[38;2;0;0;255m3456781234" + linebuffer.RST,
+			"\x1b[38;2;0;0;255m5678123456" + linebuffer.RST,
 			"66% (2/3)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -5104,7 +5105,7 @@ func TestViewport_SelectionOn_WrapOn_SuperLongWrappedLine(t *testing.T) {
 			"header",
 			"5678123456",
 			"7812345678",
-			"\x1b[38;2;0;0;255msmol\x1b[0m",
+			"\x1b[38;2;0;0;255msmol" + linebuffer.RST,
 			"100% (3/3)",
 		})
 		internal.CmpStr(t, expectedView, vp.View())
@@ -5132,9 +5133,9 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightAnsiUnicode(t *testing.T) 
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
-		"\x1b[38;2;0;0;255mA💖\x1b[0m\x1b[38;2;255;0;0m中é\x1b[0m",
-		"A💖\x1b[38;2;0;255;0m中é\x1b[0mA💖",
-		"\x1b[38;2;0;255;0m中é\x1b[0m",
+		"\x1b[38;2;0;0;255mA💖" + linebuffer.RST + "\x1b[38;2;255;0;0m中é" + linebuffer.RST,
+		"A💖\x1b[38;2;0;255;0m中é" + linebuffer.RST + "A💖",
+		"\x1b[38;2;0;255;0m中é" + linebuffer.RST,
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5159,7 +5160,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 	// wrap off, selection on first line
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mfirst line t...\x1b[0m",
+		"\x1b[38;2;0;0;255mfirst line t..." + linebuffer.RST,
 		"second line ...",
 		"third line t...",
 		"fourth",
@@ -5174,7 +5175,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"header",
 		"first line t...",
 		"second line ...",
-		"\x1b[38;2;0;0;255mthird line t...\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line t..." + linebuffer.RST,
 		"fourth",
 		"50% (3/6)",
 	})
@@ -5186,8 +5187,8 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"header",
 		"longer than the",
 		" first",
-		"\x1b[38;2;0;0;255mthird line that\x1b[0m",
-		"\x1b[38;2;0;0;255m is fairly long\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line that" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m is fairly long" + linebuffer.RST,
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5198,7 +5199,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"header",
 		"first line t...",
 		"second line ...",
-		"\x1b[38;2;0;0;255mthird line t...\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line t..." + linebuffer.RST,
 		"fourth",
 		"50% (3/6)",
 	})
@@ -5213,7 +5214,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"third line t...",
 		"fourth",
 		"fifth line t...",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5225,7 +5226,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"fourth",
 		"fifth line that",
 		" is fairly long",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5237,7 +5238,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 		"third line t...",
 		"fourth",
 		"fifth line t...",
-		"\x1b[38;2;0;0;255msixth\x1b[0m",
+		"\x1b[38;2;0;0;255msixth" + linebuffer.RST,
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5260,7 +5261,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelectionInView(t *testing.T) {
 		"a really rea...",
 		"first line t...",
 		"second line ...",
-		"\x1b[38;2;0;0;255mthird line t...\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line t..." + linebuffer.RST,
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5271,8 +5272,8 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelectionInView(t *testing.T) {
 		"header",
 		"longer than the",
 		" first",
-		"\x1b[38;2;0;0;255mthird line that\x1b[0m",
-		"\x1b[38;2;0;0;255m is fairly long\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line that" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m is fairly long" + linebuffer.RST,
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5284,7 +5285,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelectionInView(t *testing.T) {
 		"a really rea...",
 		"first line t...",
 		"second line ...",
-		"\x1b[38;2;0;0;255mthird line t...\x1b[0m",
+		"\x1b[38;2;0;0;255mthird line t..." + linebuffer.RST,
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -5311,8 +5312,8 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 	vp, _ = vp.Update(upKeyMsg)
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"\x1b[38;2;0;0;255mthe fourth\x1b[0m",
-		"\x1b[38;2;0;0;255m line\x1b[0m",
+		"\x1b[38;2;0;0;255mthe fourth" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m line" + linebuffer.RST,
 		"the fifth ",
 		"line",
 		"the sixth ",
@@ -5326,7 +5327,7 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 		"header",
 		"the sec...",
 		"the thi...",
-		"\x1b[38;2;0;0;255mthe fou...\x1b[0m",
+		"\x1b[38;2;0;0;255mthe fou..." + linebuffer.RST,
 		"the fif...",
 		"the six...",
 		"66% (4/6)",
