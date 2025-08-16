@@ -61,7 +61,7 @@ func (dm *DisplayManager) SafelySetTopItemIdxAndOffset(topItemIdx, topItemLineOf
 	}
 }
 
-// GetNumContentLines returns the number of lines available for content display.
+// GetNumContentLines returns the number of lines available for LineBuffer display.
 func (dm *DisplayManager) GetNumContentLines(headerLines int, showFooter bool) int {
 	contentHeight := dm.Bounds.Height - headerLines
 	if showFooter {
@@ -70,7 +70,7 @@ func (dm *DisplayManager) GetNumContentLines(headerLines int, showFooter bool) i
 	return max(0, contentHeight)
 }
 
-// RenderFinalView applies final styling to the rendered content.
+// RenderFinalView applies final styling to the rendered LineBuffer.
 func (dm *DisplayManager) RenderFinalView(content string) string {
 	return lipgloss.NewStyle().Width(dm.Bounds.Width).Height(dm.Bounds.Height).Render(content)
 }

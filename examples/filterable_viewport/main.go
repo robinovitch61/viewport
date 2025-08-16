@@ -1,28 +1,25 @@
 package main
 
-// An example program demonstrating the viewport component
-
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/robinovitch61/bubbleo/examples/common"
-
 	"github.com/charmbracelet/bubbles/v2/key"
-	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
-
 	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/robinovitch61/bubbleo/examples/common"
+	"github.com/robinovitch61/bubbleo/filterable_viewport"
 	"github.com/robinovitch61/bubbleo/viewport"
+	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
-var keyMap = viewport.DefaultKeyMap()
+var keyMap = filterable_viewport.DefaultKeyMap()
 var styles = viewport.DefaultStyles(true)
 
 type model struct {
-	// viewport is the container for the lines
-	viewport viewport.Model[viewport.Item]
+	// fv is the filterable container for the lines
+	fv filterable_viewport.Model[viewport.Item]
 
 	// lines contains the lines to be displayed in the viewport
 	lines []viewport.Item
@@ -47,10 +44,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		if k := msg.String(); k == "w" {
-			m.viewport.SetWrapText(!m.viewport.GetWrapText())
+			m.fv.Viewport.SetWrapText(!m.fv.Viewport.GetWrapText())
 		}
 		if k := msg.String(); k == "s" {
-			m.viewport.SetSelectionEnabled(!m.viewport.GetSelectionEnabled())
+			m.fv.Viewport.SetSelectionEnabled(!m.fv.Viewport.GetSelectionEnabled())
 		}
 
 	case tea.WindowSizeMsg:
@@ -62,20 +59,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap, styles)
-			m.viewport.SetContent(m.lines)
-			m.viewport.SetSelectionEnabled(false)
-			m.viewport.SetStringToHighlight("surf")
-			m.viewport.SetWrapText(true)
+			m.fv.Viewport = viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap.ViewportKeyMap, styles)
+			m.fv.Viewport.SetContent(m.lines)
+			m.fv.Viewport.SetSelectionEnabled(false)
+			m.fv.Viewport.SetWrapText(true)
 			m.ready = true
 		} else {
-			m.viewport.SetWidth(viewportWidth)
-			m.viewport.SetHeight(viewportHeight)
+			m.fv.Viewport.SetWidth(viewportWidth)
+			m.fv.Viewport.SetHeight(viewportHeight)
 		}
 	}
 
 	// Handle keyboard events in the viewport
-	m.viewport, cmd = m.viewport.Update(msg)
+	m.fv.Viewport, cmd = m.fv.Viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -86,34 +82,41 @@ func (m model) View() string {
 		return "\n  Initializing..."
 	}
 	var header = strings.Join(getHeader(
-		m.viewport.GetWrapText(),
-		m.viewport.GetSelectionEnabled(),
+		m.fv.Viewport.GetWrapText(),
+		m.fv.Viewport.GetSelectionEnabled(),
+		keyMap.ViewportKeyMap,
 		[]key.Binding{
-			keyMap.PageDown,
-			keyMap.PageUp,
-			keyMap.HalfPageUp,
-			keyMap.HalfPageDown,
-			keyMap.Up,
-			keyMap.Down,
-			keyMap.Left,
-			keyMap.Right,
-			keyMap.Top,
-			keyMap.Bottom,
+			keyMap.FilterKey,
+			keyMap.RegexFilterKey,
+			keyMap.ApplyFilterKey,
+			keyMap.CancelFilterKey,
+			keyMap.ToggleMatchesOnlyKey,
 		},
 	), "\n")
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
-		lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.viewport.View()),
+		lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.fv.Viewport.View()),
 	)
 }
 
-func getHeader(wrapped, selectionEnabled bool, bindings []key.Binding) []string {
+func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Viewport (q/ctrl+c/esc to quit)"))
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport (q/ctrl+c/esc to quit)"))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+" (w to toggle)")
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+" (s to toggle)")
-	header = append(header, "- Text to highlight: 'surf'")
+	header = append(header, getShortHelp([]key.Binding{
+		viewportKeyMap.PageDown,
+		viewportKeyMap.PageUp,
+		viewportKeyMap.HalfPageUp,
+		viewportKeyMap.HalfPageDown,
+		viewportKeyMap.Up,
+		viewportKeyMap.Down,
+		viewportKeyMap.Left,
+		viewportKeyMap.Right,
+		viewportKeyMap.Top,
+		viewportKeyMap.Bottom,
+	}))
 	header = append(header, getShortHelp(bindings))
 	return header
 }

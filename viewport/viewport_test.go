@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/v2/key"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/viewport/internal"
@@ -27,49 +26,7 @@ var (
 	selectionStyle   = lipgloss.NewStyle().Foreground(blue)
 )
 
-func newViewport(width, height int) Model[RenderableString] {
-	km := KeyMap{
-		PageDown: key.NewBinding(
-			key.WithKeys("pgdown", "f", "ctrl+f"),
-			key.WithHelp("f", "pgdn"),
-		),
-		PageUp: key.NewBinding(
-			key.WithKeys("pgup", "b", "ctrl+b"),
-			key.WithHelp("b", "pgup"),
-		),
-		HalfPageUp: key.NewBinding(
-			key.WithKeys("u", "ctrl+u"),
-			key.WithHelp("u", "½ page up"),
-		),
-		HalfPageDown: key.NewBinding(
-			key.WithKeys("d", "ctrl+d"),
-			key.WithHelp("d", "½ page down"),
-		),
-		Up: key.NewBinding(
-			key.WithKeys("up", "k"),
-			key.WithHelp("↑/k", "scroll up"),
-		),
-		Down: key.NewBinding(
-			key.WithKeys("down", "j"),
-			key.WithHelp("↓/j", "scroll down"),
-		),
-		Left: key.NewBinding(
-			key.WithKeys("left"),
-			key.WithHelp("←", "left"),
-		),
-		Right: key.NewBinding(
-			key.WithKeys("right"),
-			key.WithHelp("→", "right"),
-		),
-		Top: key.NewBinding(
-			key.WithKeys("g", "ctrl+g"),
-			key.WithHelp("g", "top"),
-		),
-		Bottom: key.NewBinding(
-			key.WithKeys("shift+g"),
-			key.WithHelp("G", "bottom"),
-		),
-	}
+func newViewport(width, height int) Model[Item] {
 	styles := Styles{
 		FooterStyle:              lipgloss.NewStyle(),
 		HighlightStyle:           lipgloss.NewStyle(),
@@ -77,7 +34,7 @@ func newViewport(width, height int) Model[RenderableString] {
 		SelectedItemStyle:        selectionStyle,
 	}
 
-	return New[RenderableString](width, height, km, styles)
+	return New[Item](width, height, DefaultKeyMap(), styles)
 }
 
 // # SELECTION DISABLED, WRAP OFF
@@ -388,7 +345,7 @@ func TestViewport_SelectionOff_WrapOff_Scrolling(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -594,7 +551,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -658,7 +615,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	})
 	validate(expectedView)
 
-	// set shorter content
+	// set shorter LineBuffer
 	setContent(&vp, []string{
 		"the first one",
 	})
@@ -771,14 +728,14 @@ func TestViewport_SelectionOff_WrapOff_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// re-add content
+	// re-add LineBuffer
 	setContent(&vp, []string{
 		"first",
 		"second",
@@ -1326,7 +1283,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -1558,7 +1515,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -1718,7 +1675,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	})
 	validate(expectedView)
 
-	// set shorter content
+	// set shorter LineBuffer
 	setContent(&vp, []string{
 		"the first one",
 	})
@@ -1734,7 +1691,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	setContent(&vp, []string{
 		"sixth",
 		"seventh",
@@ -1763,7 +1720,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content above
+	// add LineBuffer above
 	setContent(&vp, []string{
 		"first",
 		"second",
@@ -1786,7 +1743,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content below
+	// add LineBuffer below
 	setContent(&vp, []string{
 		"first",
 		"second",
@@ -1821,7 +1778,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	setContent(&vp, []string{
 		"first",
@@ -1832,7 +1789,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -1855,7 +1812,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -1876,7 +1833,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
 	setContent(&vp, []string{
 		"first",
@@ -1887,7 +1844,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -1910,7 +1867,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -1931,10 +1888,10 @@ func TestViewport_SelectionOn_WrapOff_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
 
-	// test covers case where first set content to empty, then overflow height
+	// test covers case where first set LineBuffer to empty, then overflow height
 	setContent(&vp, []string{})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -1961,7 +1918,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
 	setContent(&vp, []string{
@@ -1973,7 +1930,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content, top sticky wins out arbitrarily when both set
+	// add LineBuffer, top sticky wins out arbitrarily when both set
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -1996,7 +1953,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -2020,7 +1977,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -2042,7 +1999,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -2065,7 +2022,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{
 		"second",
 		"first",
@@ -2223,7 +2180,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{
 		"second",
 	})
@@ -2233,14 +2190,14 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove all content
+	// remove all LineBuffer
 	setContent(&vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content (maintain selection off)
+	// add LineBuffer (maintain selection off)
 	setContent(&vp, []string{
 		"first",
 		"second",
@@ -2820,7 +2777,7 @@ func TestViewport_SelectionOff_WrapOn_Scrolling(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -3023,7 +2980,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -3179,7 +3136,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{
 		"the first line",
 		"the second line",
@@ -3192,7 +3149,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the first line",
 		"the second line",
@@ -3207,7 +3164,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove all content
+	// remove all LineBuffer
 	setContent(&vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -3909,7 +3866,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -4135,7 +4092,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 		})
 	}
 	validate := func(expectedView string) {
-		// set content multiple times to confirm no side effects of doing it
+		// set LineBuffer multiple times to confirm no side effects of doing it
 		internal.CmpStr(t, expectedView, vp.View())
 		doSetContent()
 		internal.CmpStr(t, expectedView, vp.View())
@@ -4297,7 +4254,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	setContent(&vp, []string{
 		"sixth item",
 		"seventh item",
@@ -4328,7 +4285,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content above
+	// add LineBuffer above
 	setContent(&vp, []string{
 		"first item",
 		"second item",
@@ -4352,7 +4309,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content below
+	// add LineBuffer below
 	setContent(&vp, []string{
 		"first item",
 		"second item",
@@ -4389,7 +4346,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	setContent(&vp, []string{
 		"the first line",
@@ -4402,7 +4359,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4425,7 +4382,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4447,7 +4404,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
 	setContent(&vp, []string{
 		"the first line",
@@ -4459,7 +4416,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4474,7 +4431,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add longer content at bottom
+	// add longer LineBuffer at bottom
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4502,7 +4459,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4527,10 +4484,10 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
 
-	// test covers case where first set content to empty, then overflow height
+	// test covers case where first set LineBuffer to empty, then overflow height
 	setContent(&vp, []string{})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -4558,7 +4515,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
 	setContent(&vp, []string{
@@ -4572,7 +4529,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content, top sticky wins out arbitrarily when both set
+	// add LineBuffer, top sticky wins out arbitrarily when both set
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4595,7 +4552,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4619,7 +4576,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4642,7 +4599,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(RenderableStringCompareFn)
+	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
 	setContent(&vp, []string{
 		"first line",
@@ -4682,7 +4639,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4705,7 +4662,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the first line",
@@ -4847,7 +4804,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove content
+	// remove LineBuffer
 	setContent(&vp, []string{
 		"the second line",
 		"the third line",
@@ -4861,14 +4818,14 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove all content
+	// remove all LineBuffer
 	setContent(&vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// add content
+	// add LineBuffer
 	setContent(&vp, []string{
 		"the first line",
 		"the second line",

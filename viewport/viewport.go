@@ -35,14 +35,6 @@ import (
 
 var surroundingAnsiRegex = regexp.MustCompile(`(\x1b\[[0-9;]*m.*?\x1b\[0?m)`)
 
-// Styles contains styling configuration for the viewport
-type Styles struct {
-	FooterStyle              lipgloss.Style
-	HighlightStyle           lipgloss.Style
-	HighlightStyleIfSelected lipgloss.Style
-	SelectedItemStyle        lipgloss.Style
-}
-
 // CompareFn is a function type for comparing two items of type T.
 type CompareFn[T any] func(a, b T) bool
 
@@ -210,7 +202,7 @@ func (m *Model[T]) View() string {
 		}
 
 		if isSelection && truncated == "" {
-			// ensure selection is visible even if content empty
+			// ensure selection is visible even if LineBuffer empty
 			truncated = m.styleSelection(" ")
 		}
 
@@ -250,7 +242,7 @@ func (m *Model[T]) SetStyles(styles Styles) {
 	m.display.Styles = styles
 }
 
-// SetContent sets the content, the selectable set of lines in the viewport
+// SetContent sets the LineBuffer, the selectable set of lines in the viewport
 func (m *Model[T]) SetContent(content []T) {
 	var initialNumLinesAboveSelection int
 	var stayAtTop, stayAtBottom bool
@@ -271,10 +263,10 @@ func (m *Model[T]) SetContent(content []T) {
 	}
 
 	m.content.Items = content
-	// ensure scroll position is valid given new content
+	// ensure scroll position is valid given new LineBuffer
 	m.safelySetTopItemIdxAndOffset(m.display.TopItemIdx, m.display.TopItemLineOffset)
 
-	// ensure xOffset is valid given new content
+	// ensure xOffset is valid given new LineBuffer
 	m.safelySetXOffset(m.display.XOffset)
 
 	if m.navigation.SelectionEnabled {
@@ -284,7 +276,7 @@ func (m *Model[T]) SetContent(content []T) {
 			m.content.SetSelectedIdx(max(0, m.content.NumItems()-1))
 			m.scrollSoSelectionInView()
 		} else if m.content.CompareFn != nil {
-			// TODO: could flag when content is sorted & comparable and use binary search instead
+			// TODO: could flag when LineBuffer is sorted & comparable and use binary search instead
 			found := false
 			items := m.content.Items
 			for i := range items {
@@ -310,12 +302,12 @@ func (m *Model[T]) SetContent(content []T) {
 	}
 }
 
-// SetTopSticky sets whether selection should stay at top when new content added and selection is at the top
+// SetTopSticky sets whether selection should stay at top when new LineBuffer added and selection is at the top
 func (m *Model[T]) SetTopSticky(topSticky bool) {
 	m.navigation.TopSticky = topSticky
 }
 
-// SetBottomSticky sets whether selection should stay at bottom when new content added and selection is at the bottom
+// SetBottomSticky sets whether selection should stay at bottom when new LineBuffer added and selection is at the bottom
 func (m *Model[T]) SetBottomSticky(bottomSticky bool) {
 	m.navigation.BottomSticky = bottomSticky
 }
@@ -338,8 +330,8 @@ func (m *Model[T]) SetFooterEnabled(footerEnabled bool) {
 	m.config.FooterEnabled = footerEnabled
 }
 
-// SetSelectionComparator sets the comparator function for maintaining the current selection when content changes.
-// If compareFn is non-nil, the viewport will try to maintain the current selection when content changes.
+// SetSelectionComparator sets the comparator function for maintaining the current selection when LineBuffer changes.
+// If compareFn is non-nil, the viewport will try to maintain the current selection when LineBuffer changes.
 func (m *Model[T]) SetSelectionComparator(compareFn CompareFn[T]) {
 	m.content.CompareFn = compareFn
 }
@@ -758,7 +750,7 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	scrolledToTop := m.display.TopItemIdx == 0 && m.display.TopItemLineOffset == 0
 	var showFooter bool
 	if scrolledToTop && len(contentLines)+1 >= numLinesAfterHeader {
-		// if seeing all the content on screen, show footer
+		// if seeing all the LineBuffer on screen, show footer
 		// if one blank line at bottom, still show footer
 		// if two blank lines at bottom, do not show footer
 		showFooter = true

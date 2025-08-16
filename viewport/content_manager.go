@@ -2,7 +2,7 @@ package viewport
 
 import "github.com/robinovitch61/bubbleo/viewport/linebuffer"
 
-// ContentManager manages the actual content and selection state
+// ContentManager manages the actual LineBuffer and selection state
 type ContentManager[T Renderable] struct {
 	// Items is the complete list of items to be rendered in the viewport
 	Items []T
@@ -17,8 +17,8 @@ type ContentManager[T Renderable] struct {
 	// ToHighlight is what to highlight wherever it shows up within an item, even wrapped between lines
 	ToHighlight linebuffer.HighlightData
 
-	// CompareFn is an optional function to compare items for maintaining the selection when content changes
-	// if set, the viewport will try to maintain the previous selected item when content changes
+	// CompareFn is an optional function to compare items for maintaining the selection when LineBuffer changes
+	// if set, the viewport will try to maintain the previous selected item when LineBuffer changes
 	CompareFn CompareFn[T]
 }
 
