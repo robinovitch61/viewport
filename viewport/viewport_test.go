@@ -26,7 +26,7 @@ var (
 	selectionStyle   = lipgloss.NewStyle().Foreground(blue)
 )
 
-func newViewport(width, height int) Model[Item] {
+func newViewport(width, height int) *Model[Item] {
 	styles := Styles{
 		FooterStyle:              lipgloss.NewStyle(),
 		HighlightStyle:           lipgloss.NewStyle(),
@@ -53,7 +53,7 @@ func TestViewport_SelectionOff_WrapOff_SmolDimensions(t *testing.T) {
 	w, h := 0, 0
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{"hi"})
+	setContent(vp, []string{"hi"})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{""})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -77,7 +77,7 @@ func TestViewport_SelectionOff_WrapOff_Basic(t *testing.T) {
 	w, h := 15, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -98,7 +98,7 @@ func TestViewport_SelectionOff_WrapOff_GetConfigs(t *testing.T) {
 	w, h := 15, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 	})
@@ -120,7 +120,7 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -167,7 +167,7 @@ func TestViewport_SelectionOff_WrapOff_FooterStyle(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"1",
 		"2",
 		"3",
@@ -187,7 +187,7 @@ func TestViewport_SelectionOff_WrapOff_FooterDisabled(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"third line",
@@ -217,7 +217,7 @@ func TestViewport_SelectionOff_WrapOff_SpaceAround(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"    first line     ",
 		"          first line          ",
 		"               first line               ",
@@ -236,7 +236,7 @@ func TestViewport_SelectionOff_WrapOff_MultiHeader(t *testing.T) {
 	w, h := 15, 2
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header1", "header2"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line1",
 		"line2",
 	})
@@ -295,7 +295,7 @@ func TestViewport_SelectionOff_WrapOff_OverflowLine(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"long header overflows"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 	})
@@ -311,7 +311,7 @@ func TestViewport_SelectionOff_WrapOff_OverflowHeight(t *testing.T) {
 	w, h := 15, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 		"1234567890123456",
@@ -335,7 +335,7 @@ func TestViewport_SelectionOff_WrapOff_Scrolling(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first",
 			"second",
 			"third",
@@ -398,7 +398,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -439,7 +439,7 @@ func TestViewport_SelectionOff_WrapOff_BulkScrolling(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -541,7 +541,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header long"})
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first line that is fairly long",
 			"second line that is even much longer than the first",
 			"third line that is fairly long",
@@ -616,7 +616,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// set shorter LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first one",
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -630,7 +630,7 @@ func TestViewport_SelectionOff_WrapOff_ChangeHeight(t *testing.T) {
 	w, h := 10, 3
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -698,7 +698,7 @@ func TestViewport_SelectionOff_WrapOff_ChangeContent(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -729,14 +729,14 @@ func TestViewport_SelectionOff_WrapOff_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// re-add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 	})
@@ -759,7 +759,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -786,7 +786,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -807,7 +807,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightManyMatches(t *testing.T
 		w, h := 10, 5
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetStringToHighlight("r")
@@ -831,7 +831,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightManyMatches(t *testing.T)
 		w, h := 10, 5
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetRegexToHighlight(regexp.MustCompile("r"))
@@ -854,7 +854,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsi(t *testing.T) {
 	w, h := 20, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line \x1b[38;2;255;0;0mred\x1b[m e again",
 	})
 	vp.SetStringToHighlight("e")
@@ -883,7 +883,7 @@ func TestViewport_SelectionOff_WrapOff_RegexToHighlightAnsi(t *testing.T) {
 	w, h := 20, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line \x1b[38;2;255;0;0mred\x1b[m e again",
 	})
 	vp.SetRegexToHighlight(regexp.MustCompile("r+e"))
@@ -913,7 +913,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsiUnicode(t *testing.T
 	vp := newViewport(w, h)
 	// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
 	vp.SetHeader([]string{"A💖中é"})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"A💖中é",
 		"A💖中éA💖中é",
 	})
@@ -935,7 +935,7 @@ func TestViewport_SelectionOff_WrapOff_StringToHighlightAnsiUnicode(t *testing.T
 func TestViewport_SelectionOff_WrapOff_SetSelectionEnabled_SetsTopVisibleItem(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -973,7 +973,7 @@ func TestViewport_SelectionOn_WrapOff_SmolDimensions(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetSelectionEnabled(true)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{"hi"})
+	setContent(vp, []string{"hi"})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{""})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1002,7 +1002,7 @@ func TestViewport_SelectionOn_WrapOff_Basic(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -1024,7 +1024,7 @@ func TestViewport_SelectionOn_WrapOff_GetConfigs(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 	})
@@ -1051,7 +1051,7 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -1099,7 +1099,7 @@ func TestViewport_SelectionOn_WrapOff_FooterStyle(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"1",
 		"2",
 		"3",
@@ -1120,7 +1120,7 @@ func TestViewport_SelectionOn_WrapOff_FooterDisabled(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"third line",
@@ -1151,7 +1151,7 @@ func TestViewport_SelectionOn_WrapOff_SpaceAround(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"    first line     ",
 		"          first line          ",
 		"               first line               ",
@@ -1171,7 +1171,7 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header1", "header2"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line1",
 		"line2",
 	})
@@ -1231,7 +1231,7 @@ func TestViewport_SelectionOn_WrapOff_OverflowLine(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"long header overflows"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 	})
@@ -1248,7 +1248,7 @@ func TestViewport_SelectionOn_WrapOff_OverflowHeight(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 		"1234567890123456",
@@ -1273,7 +1273,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first",
 			"second",
 			"third",
@@ -1340,7 +1340,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -1392,7 +1392,7 @@ func TestViewport_SelectionOn_WrapOff_BulkScrolling(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -1505,7 +1505,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	vp.SetHeader([]string{"header long"})
 	vp.SetSelectionEnabled(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first line that is fairly long",
 			"second line that is even much longer than the first",
 			"third line that is fairly long",
@@ -1676,7 +1676,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// set shorter LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first one",
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -1692,7 +1692,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetSelectionComparator(ItemCompareFn)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"sixth",
 		"seventh",
 		"eighth",
@@ -1721,7 +1721,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer above
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -1744,7 +1744,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer below
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -1780,7 +1780,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	// stickyness should override maintain selection
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -1790,7 +1790,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 	})
@@ -1813,7 +1813,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -1835,7 +1835,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	// stickyness should override maintain selection
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -1845,7 +1845,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 	})
@@ -1868,7 +1868,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -1892,13 +1892,13 @@ func TestViewport_SelectionOn_WrapOff_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetBottomSticky(true)
 
 	// test covers case where first set LineBuffer to empty, then overflow height
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -1921,7 +1921,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -1931,7 +1931,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer, top sticky wins out arbitrarily when both set
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 	})
@@ -1954,7 +1954,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -1978,7 +1978,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -2000,7 +2000,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	vp.SetSelectionEnabled(true)
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 		"third",
@@ -2023,7 +2023,7 @@ func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 		"first",
 	})
@@ -2040,7 +2040,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeHeight(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -2152,7 +2152,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -2181,7 +2181,7 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"second",
 	})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -2191,14 +2191,14 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove all LineBuffer
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer (maintain selection off)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"third",
@@ -2228,7 +2228,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(red),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the second line",
@@ -2253,7 +2253,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlight(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"second line",
@@ -2281,7 +2281,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(red),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the second line",
@@ -2306,7 +2306,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlight(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"second line",
@@ -2328,7 +2328,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightManyMatches(t *testing.T)
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetSelectionEnabled(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetStringToHighlight("r")
@@ -2353,7 +2353,7 @@ func TestViewport_SelectionOn_WrapOff_RegexToHighlightManyMatches(t *testing.T) 
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetSelectionEnabled(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetRegexToHighlight(regexp.MustCompile("r"))
@@ -2377,7 +2377,7 @@ func TestViewport_SelectionOn_WrapOff_AnsiOnSelection(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line with \x1b[38;2;255;0;0mred\x1b[m text",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -2392,7 +2392,7 @@ func TestViewport_SelectionOn_WrapOff_SelectionEmpty(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -2407,7 +2407,7 @@ func TestViewport_SelectionOn_WrapOff_ExtraSlash(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"|2024|\x1b[38;2;0mfl..lq\x1b[m/\x1b[38;2;0mflask-3\x1b[m|",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -2423,7 +2423,7 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightAnsiUnicode(t *testing.T)
 	// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
 	vp.SetHeader([]string{"A💖中é"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"A💖中é",
 		"A💖中éA💖中é",
 	})
@@ -2460,7 +2460,7 @@ func TestViewport_SelectionOff_WrapOn_SmolDimensions(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetWrapText(true)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{"hi"})
+	setContent(vp, []string{"hi"})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{""})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -2490,7 +2490,7 @@ func TestViewport_SelectionOff_WrapOn_Basic(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -2512,7 +2512,7 @@ func TestViewport_SelectionOff_WrapOn_GetConfigs(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 	})
@@ -2535,7 +2535,7 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -2589,7 +2589,7 @@ func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"1",
 		"2",
 		"3",
@@ -2610,7 +2610,7 @@ func TestViewport_SelectionOff_WrapOn_FooterDisabled(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"third line",
@@ -2641,7 +2641,7 @@ func TestViewport_SelectionOff_WrapOn_SpaceAround(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"    first line     ",
 		"          first line          ",
 		"               first line               ",
@@ -2662,7 +2662,7 @@ func TestViewport_SelectionOff_WrapOn_MultiHeader(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header1", "header2"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line1",
 		"line2",
 	})
@@ -2722,7 +2722,7 @@ func TestViewport_SelectionOff_WrapOn_OverflowLine(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"long header overflows"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 	})
@@ -2742,7 +2742,7 @@ func TestViewport_SelectionOff_WrapOn_OverflowHeight(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 		"1234567890123456",
@@ -2767,7 +2767,7 @@ func TestViewport_SelectionOff_WrapOn_Scrolling(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first",
 			"second",
 			"third",
@@ -2831,7 +2831,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -2870,7 +2870,7 @@ func TestViewport_SelectionOff_WrapOn_BulkScrolling(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -2970,7 +2970,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 	vp.SetHeader([]string{"header long"})
 	vp.SetWrapText(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first line that is fairly long",
 			"second line that is even much longer than the first",
 			"third line that is fairly long",
@@ -3050,7 +3050,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeHeight(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -3112,7 +3112,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -3137,7 +3137,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 	})
@@ -3150,7 +3150,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -3165,7 +3165,7 @@ func TestViewport_SelectionOff_WrapOn_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove all LineBuffer
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
@@ -3184,7 +3184,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -3199,7 +3199,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlight(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"averylongwordthatwraps",
 	})
 	vp.SetStringToHighlight("wraps")
@@ -3225,7 +3225,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -3247,7 +3247,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightManyMatches(t *testing.T)
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetStringToHighlight("r")
@@ -3275,7 +3275,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightManyMatches(t *testing.T) 
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetRegexToHighlight(regexp.MustCompile("r"))
@@ -3303,7 +3303,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightMissesWrap(t *testing.T) {
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"this is too long and triggers wrapping",
 		})
 		vp.SetRegexToHighlight(regexp.MustCompile("this.*too"))
@@ -3341,7 +3341,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsi(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line \x1b[38;2;255;0;0mred\x1b[m e again",
 	})
 	vp.SetStringToHighlight("e")
@@ -3373,7 +3373,7 @@ func TestViewport_SelectionOff_WrapOn_RegexToHighlightAnsi(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line \x1b[38;2;255;0;0mred\x1b[m e again",
 	})
 	vp.SetRegexToHighlight(regexp.MustCompile("e"))
@@ -3406,7 +3406,7 @@ func TestViewport_SelectionOff_WrapOn_SuperLongWrappedLine(t *testing.T) {
 		vp := newViewport(w, h)
 		vp.SetHeader([]string{"header"})
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"smol",
 			strings.Repeat("12345678", 1000000),
 			"smol",
@@ -3459,7 +3459,7 @@ func TestViewport_SelectionOff_WrapOn_StringToHighlightAnsiUnicode(t *testing.T)
 	// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
 	vp.SetHeader([]string{"A💖中é"})
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"A💖中é",
 		"A💖中éA💖中é",
 	})
@@ -3484,7 +3484,7 @@ func TestViewport_SelectionOff_WrapOn_EnableSelectionShowsTopLineInItem(t *testi
 	w, h := 10, 4
 	vp := newViewport(w, h)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"short",
 		"this is a very long line",
 		"another short line",
@@ -3529,7 +3529,7 @@ func TestViewport_SelectionOn_WrapOn_SmolDimensions(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	vp.SetHeader([]string{"header"})
-	setContent(&vp, []string{"hi"})
+	setContent(vp, []string{"hi"})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{""})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -3565,7 +3565,7 @@ func TestViewport_SelectionOn_WrapOn_Basic(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -3588,7 +3588,7 @@ func TestViewport_SelectionOn_WrapOn_GetConfigs(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 	})
@@ -3616,7 +3616,7 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
 		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
@@ -3671,7 +3671,7 @@ func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"1",
 		"2",
 		"3",
@@ -3693,7 +3693,7 @@ func TestViewport_SelectionOn_WrapOn_FooterDisabled(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"second line",
 		"third line",
@@ -3725,7 +3725,7 @@ func TestViewport_SelectionOn_WrapOn_SpaceAround(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"    first line     ",
 		"          first line          ",
 		"               first line               ",
@@ -3747,7 +3747,7 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 	vp.SetHeader([]string{"header1", "header2"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line1",
 		"line2",
 	})
@@ -3808,7 +3808,7 @@ func TestViewport_SelectionOn_WrapOn_OverflowLine(t *testing.T) {
 	vp.SetHeader([]string{"long header overflows"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 	})
@@ -3829,7 +3829,7 @@ func TestViewport_SelectionOn_WrapOn_OverflowHeight(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"123456789012345",
 		"1234567890123456",
 		"1234567890123456",
@@ -3856,7 +3856,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first",
 			"second",
 			"third",
@@ -3935,7 +3935,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -3993,7 +3993,7 @@ func TestViewport_SelectionOn_WrapOn_BulkScrolling(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -4082,7 +4082,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	doSetContent := func() {
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"first line that is fairly long",
 			"second line that is even much longer than the first",
 			"third line that is fairly long as well",
@@ -4255,7 +4255,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	vp.SetSelectionComparator(ItemCompareFn)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"sixth item",
 		"seventh item",
 		"eighth item",
@@ -4286,7 +4286,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer above
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first item",
 		"second item",
 		"third item",
@@ -4310,7 +4310,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer below
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first item",
 		"second item",
 		"third item",
@@ -4348,7 +4348,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	// stickyness should override maintain selection
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -4360,7 +4360,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 	})
@@ -4383,7 +4383,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"the third line",
@@ -4406,7 +4406,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	// stickyness should override maintain selection
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -4417,7 +4417,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 	})
@@ -4432,7 +4432,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add longer LineBuffer at bottom
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"a very long line that wraps a lot",
@@ -4460,7 +4460,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"a very long line that wraps a lot",
@@ -4488,13 +4488,13 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetBottomSticky(true)
 
 	// test covers case where first set LineBuffer to empty, then overflow height
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"the third line",
@@ -4518,7 +4518,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -4530,7 +4530,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer, top sticky wins out arbitrarily when both set
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 	})
@@ -4553,7 +4553,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"the third line",
@@ -4577,7 +4577,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"the third line",
@@ -4601,7 +4601,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 	// stickyness should override maintain selection
 	vp.SetSelectionComparator(ItemCompareFn)
 	vp.SetBottomSticky(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"next line",
 	})
@@ -4612,7 +4612,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line",
 		"next line",
 		"a very long line at the bottom that wraps many times",
@@ -4640,7 +4640,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	vp.SetSelectionEnabled(true)
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 		"the third line",
@@ -4663,7 +4663,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the first line",
 	})
@@ -4681,7 +4681,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeHeight(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -4776,7 +4776,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -4805,7 +4805,7 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the second line",
 		"the third line",
 	})
@@ -4819,14 +4819,14 @@ func TestViewport_SelectionOn_WrapOn_ChangeContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// remove all LineBuffer
-	setContent(&vp, []string{})
+	setContent(vp, []string{})
 	expectedView = pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// add LineBuffer
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",
@@ -4857,7 +4857,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(red),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -4882,7 +4882,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"averylongwordthatwrapsover",
 	})
 	vp.SetStringToHighlight("wraps")
@@ -4895,7 +4895,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlight(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line a super long line ",
 	})
 	vp.SetStringToHighlight("l")
@@ -4922,7 +4922,7 @@ func TestViewport_SelectionOn_WrapOn_RegexToHighlight(t *testing.T) {
 		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(red),
 		SelectedItemStyle:        selectionStyle,
 	})
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first",
 		"second",
 		"second",
@@ -4955,7 +4955,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightManyMatches(t *testing.T) 
 		vp.SetHeader([]string{"header"})
 		vp.SetSelectionEnabled(true)
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetStringToHighlight("r")
@@ -4984,7 +4984,7 @@ func TestViewport_SelectionOn_WrapOn_RegexToHighlightManyMatches(t *testing.T) {
 		vp.SetHeader([]string{"header"})
 		vp.SetSelectionEnabled(true)
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			strings.Repeat("r", 100000),
 		})
 		vp.SetRegexToHighlight(regexp.MustCompile("r"))
@@ -5012,7 +5012,7 @@ func TestViewport_SelectionOn_WrapOn_AnsiOnSelection(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"line with some \x1b[38;2;255;0;0mred\x1b[m text",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -5031,7 +5031,7 @@ func TestViewport_SelectionOn_WrapOn_SelectionEmpty(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -5047,7 +5047,7 @@ func TestViewport_SelectionOn_WrapOn_ExtraSlash(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"|2024|\x1b[38;2;0mfl..lq\x1b[m/\x1b[38;2;0mflask-3\x1b[m|",
 	})
 	expectedView := pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -5067,7 +5067,7 @@ func TestViewport_SelectionOn_WrapOn_SuperLongWrappedLine(t *testing.T) {
 		vp.SetHeader([]string{"header"})
 		vp.SetSelectionEnabled(true)
 		vp.SetWrapText(true)
-		setContent(&vp, []string{
+		setContent(vp, []string{
 			"smol",
 			strings.Repeat("12345678", 1000000),
 			"smol",
@@ -5111,7 +5111,7 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightAnsiUnicode(t *testing.T) 
 	vp.SetHeader([]string{"A💖中é"})
 	vp.SetSelectionEnabled(true)
 	vp.SetWrapText(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"A💖中é",
 		"A💖中éA💖中é",
 	})
@@ -5139,7 +5139,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"first line that is fairly long",
 		"second line that is even much longer than the first",
 		"third line that is fairly long",
@@ -5240,7 +5240,7 @@ func TestViewport_SelectionOn_ToggleWrap_PreserveSelectionInView(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"a really really really really really really really really really really really really long preamble",
 		"first line that is fairly long",
 		"second line that is even much longer than the first",
@@ -5288,7 +5288,7 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	setContent(&vp, []string{
+	setContent(vp, []string{
 		"the first line",
 		"the second line",
 		"the third line",

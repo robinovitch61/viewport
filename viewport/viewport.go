@@ -54,7 +54,8 @@ type Model[T Renderable] struct {
 }
 
 // New creates a new viewport model with reasonable defaults
-func New[T Renderable](width, height int, keyMap KeyMap, styles Styles) (m Model[T]) {
+func New[T Renderable](width, height int, keyMap KeyMap, styles Styles) (m *Model[T]) {
+	m = &Model[T]{}
 	m.content = NewContentManager[T]()
 	m.display = NewDisplayManager(width, height, styles)
 	m.navigation = NewNavigationManager(keyMap)
@@ -63,7 +64,7 @@ func New[T Renderable](width, height int, keyMap KeyMap, styles Styles) (m Model
 }
 
 // Update processes messages and updates the model
-func (m *Model[T]) Update(msg tea.Msg) (Model[T], tea.Cmd) {
+func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -150,7 +151,7 @@ func (m *Model[T]) Update(msg tea.Msg) (Model[T], tea.Cmd) {
 	}
 
 	cmds = append(cmds, cmd)
-	return *m, tea.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
 // View renders the viewport

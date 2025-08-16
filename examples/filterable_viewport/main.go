@@ -19,7 +19,7 @@ var styles = viewport.DefaultStyles(true)
 
 type model struct {
 	// fv is the filterable container for the lines
-	fv filterable_viewport.Model[viewport.Item]
+	fv *filterable_viewport.Model[viewport.Item]
 
 	// lines contains the lines to be displayed in the viewport
 	lines []viewport.Item
@@ -59,7 +59,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.fv.Viewport = viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap.ViewportKeyMap, styles)
+			m.fv = filterable_viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap, styles)
 			m.fv.Viewport.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
 			m.fv.Viewport.SetWrapText(true)
@@ -71,7 +71,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle keyboard events in the viewport
-	m.fv.Viewport, cmd = m.fv.Viewport.Update(msg)
+	m.fv, cmd = m.fv.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)

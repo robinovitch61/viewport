@@ -22,7 +22,7 @@ var styles = viewport.DefaultStyles(true)
 
 type model struct {
 	// viewport is the container for the lines
-	viewport viewport.Model[viewport.Item]
+	viewport *viewport.Model[viewport.Item]
 
 	// lines contains the lines to be displayed in the viewport
 	lines []viewport.Item
