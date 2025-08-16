@@ -14,6 +14,27 @@ import (
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
+type appKeys struct {
+	quit               key.Binding
+	toggleWrapTextKey  key.Binding
+	toggleSelectionKey key.Binding
+}
+
+var appKeyMap = appKeys{
+	quit: key.NewBinding(
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quit"),
+	),
+	toggleWrapTextKey: key.NewBinding(
+		key.WithKeys("w"),
+		key.WithHelp("w", "toggle wrapping"),
+	),
+	toggleSelectionKey: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "toggle selection"),
+	),
+}
+
 var keyMap = filterable_viewport.DefaultKeyMap()
 var styles = viewport.DefaultStyles(true)
 
@@ -40,15 +61,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
+		// quit is always available
+		if key.Matches(msg, appKeyMap.quit) {
 			return m, tea.Quit
 		}
-		if k := msg.String(); k == "w" {
+
+		if !m.ready {
+			// if the viewport not ready, only handle quitting
+			return m, nil
+		}
+		// if the filterable viewport is focused, handle its messages
+		if m.fv.FilterFocused() {
+			m.fv, cmd = m.fv.Update(msg)
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
+		}
+
+		switch {
+		case key.Matches(msg, appKeyMap.toggleWrapTextKey):
 			m.fv.Viewport.SetWrapText(!m.fv.Viewport.GetWrapText())
-		}
-		if k := msg.String(); k == "s" {
+			return m, nil
+		case key.Matches(msg, appKeyMap.toggleSelectionKey):
 			m.fv.Viewport.SetSelectionEnabled(!m.fv.Viewport.GetSelectionEnabled())
+			return m, nil
 		}
+
+		m.fv, cmd = m.fv.Update(msg)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
 
 	case tea.WindowSizeMsg:
 		// 2 for border, 5 for content above viewport
@@ -60,19 +100,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			m.fv = filterable_viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap, styles)
-			m.fv.Viewport.SetContent(m.lines)
+			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
 			m.fv.Viewport.SetWrapText(true)
 			m.ready = true
 		} else {
-			m.fv.Viewport.SetWidth(viewportWidth)
-			m.fv.Viewport.SetHeight(viewportHeight)
+			m.fv.SetWidth(viewportWidth)
+			m.fv.SetHeight(viewportHeight)
 		}
 	}
-
-	// Handle keyboard events in the viewport
-	m.fv, cmd = m.fv.Update(msg)
-	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -96,15 +132,15 @@ func (m model) View() string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
-		lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.fv.Viewport.View()),
+		lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.fv.View()),
 	)
 }
 
 func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport (q/ctrl+c/esc to quit)"))
-	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+" (w to toggle)")
-	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+" (s to toggle)")
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport"+fmt.Sprintf(" (%s to quit)", appKeyMap.quit.Help().Key)))
+	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleWrapTextKey.Help().Key))
+	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleSelectionKey.Help().Key))
 	header = append(header, getShortHelp([]key.Binding{
 		viewportKeyMap.PageDown,
 		viewportKeyMap.PageUp,
