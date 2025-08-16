@@ -7,12 +7,15 @@ import (
 
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
+
+	keyMap KeyMap
 }
 
 // New creates a new filterable viewport model
 func New[T viewport.Renderable](width, height int, km KeyMap, styles viewport.Styles) *Model[T] {
 	return &Model[T]{
 		Viewport: viewport.New[T](width, height, km.ViewportKeyMap, styles),
+		keyMap:   km,
 	}
 }
 
