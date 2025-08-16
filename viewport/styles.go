@@ -13,18 +13,15 @@ type Styles struct {
 }
 
 // DefaultStyles returns a set of default styles for the viewport
-func DefaultStyles(hasDarkBackground bool) Styles {
-	lightGrey := lipgloss.Color("7")
+func DefaultStyles() Styles {
+	// in the future could pass in `hasDarkBackground` and determine foreground/background colors based on that
+	white := lipgloss.Color("255")
 	darkGrey := lipgloss.Color("245")
-	textForeground := lightGrey
-	if hasDarkBackground {
-		textForeground = darkGrey
-	}
 
 	return Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(textForeground).Padding(0, 1),
-		HighlightStyle:           lipgloss.NewStyle().Foreground(textForeground).Background(lipgloss.Color("2")),
-		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(textForeground).Background(lipgloss.Color("3")),
-		SelectedItemStyle:        lipgloss.NewStyle().Foreground(textForeground).Background(lipgloss.Color("2")),
+		FooterStyle:              lipgloss.NewStyle().Foreground(darkGrey).Padding(0, 1),
+		HighlightStyle:           lipgloss.NewStyle().Foreground(white).Background(lipgloss.Color("5")),
+		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(darkGrey).Background(lipgloss.Color("14")),
+		SelectedItemStyle:        lipgloss.NewStyle().Foreground(white).Background(lipgloss.Color("12")),
 	}
 }

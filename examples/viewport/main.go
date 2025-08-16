@@ -18,7 +18,7 @@ import (
 )
 
 var keyMap = viewport.DefaultKeyMap()
-var styles = viewport.DefaultStyles(true)
+var styles = viewport.DefaultStyles()
 
 type model struct {
 	// viewport is the container for the lines

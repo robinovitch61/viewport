@@ -36,7 +36,7 @@ var appKeyMap = appKeys{
 }
 
 var keyMap = filterable_viewport.DefaultKeyMap()
-var styles = viewport.DefaultStyles(true)
+var styles = viewport.DefaultStyles()
 
 type model struct {
 	// fv is the filterable container for the lines
