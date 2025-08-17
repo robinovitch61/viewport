@@ -100,6 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				viewportHeight,
 				filterable_viewport.WithKeyMap[viewport.Item](keyMap),
 				filterable_viewport.WithStyles[viewport.Item](styles),
+				filterable_viewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
 			)
 			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
@@ -120,7 +121,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if !m.ready {
-		return "\n  Initializing..."
+		return "Initializing filterable viewport..."
 	}
 	var header = strings.Join(getHeader(
 		m.fv.Viewport.GetWrapText(),

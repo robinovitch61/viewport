@@ -88,7 +88,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if !m.ready {
-		return "\n  Initializing..."
+		return "Initializing viewport..."
 	}
 	var header = strings.Join(getHeader(
 		m.viewport.GetWrapText(),

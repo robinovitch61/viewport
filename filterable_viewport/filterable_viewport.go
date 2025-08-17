@@ -42,12 +42,27 @@ func WithStyles[T viewport.Renderable](styles viewport.Styles) Option[T] {
 	}
 }
 
+type textState struct {
+	val       string
+	whenEmpty string
+}
+
+func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
+	return func(m *Model[T]) {
+		m.text = textState{
+			val:       prefix,
+			whenEmpty: whenEmpty,
+		}
+	}
+}
+
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
 	keyMap        KeyMap
 	textInput     textinput.Model
 	filterMode    filterMode
+	text          textState
 	items         []T
 	matchingItems int
 	isRegexMode   bool
@@ -77,6 +92,7 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 		Viewport:   vp,
 		keyMap:     defaultKeyMap,
 		filterMode: filterModeOff,
+		text:       textState{whenEmpty: "No Filter"},
 		textInput:  ti,
 	}
 
@@ -150,7 +166,6 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 func (m *Model[T]) View() string {
 	filterLine := m.renderFilterLine()
 	viewportView := m.Viewport.View()
-
 	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
 }
 
@@ -207,23 +222,31 @@ func (m *Model[T]) FilterFocused() bool {
 func (m *Model[T]) renderFilterLine() string {
 	switch m.filterMode {
 	case filterModeOff:
-		return "No filter"
+		return m.text.whenEmpty
 	case filterModeEditing, filterModeApplied:
-		modeIndicator := ""
-		if m.isRegexMode {
-			modeIndicator = "[regex] "
-		}
-
 		if m.textInput.Value() == "" {
 			if m.filterMode == filterModeApplied {
-				return "No filter"
+				return m.text.whenEmpty
 			}
-			return modeIndicator + m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
 		}
-		return modeIndicator + m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
+		return strings.Join(removeEmpty([]string{
+			m.getModeIndicator(),
+			m.text.val,
+			m.textInput.View(),
+			matchCountText(m.matchingItems, len(m.items)),
+		}),
+			" ",
+		)
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
+}
+
+func (m *Model[T]) getModeIndicator() string {
+	if m.isRegexMode {
+		return "[regex]"
+	}
+	return "[exact]"
 }
 
 func matchingItems[T viewport.Renderable](
@@ -262,4 +285,14 @@ func matchCountText(matching, total int) string {
 		return "(no matches)"
 	}
 	return fmt.Sprintf("(%d/%d matches)", matching, total)
+}
+
+func removeEmpty(s []string) []string {
+	var result []string
+	for _, str := range s {
+		if str != "" {
+			result = append(result, str)
+		}
+	}
+	return result
 }
