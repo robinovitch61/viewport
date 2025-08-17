@@ -26,6 +26,13 @@ const (
 	filterLineHeight = 1
 )
 
+// Match represents a single match in the content
+type Match struct {
+	ItemIndex int // index of the item containing the match
+	Start     int // start position of the match within the item's content
+	End       int // end position of the match within the item's content
+}
+
 // Option is a functional option for configuring the filterable viewport
 type Option[T viewport.Renderable] func(*Model[T])
 
@@ -59,17 +66,17 @@ func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
 	}
 }
 
-// WithMatchesOnly sets whether to show only the matching items
-func WithMatchesOnly[T viewport.Renderable](matchesOnly bool) Option[T] {
+// WithMatchingItemsOnly sets whether to show only the matching items
+func WithMatchingItemsOnly[T viewport.Renderable](matchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
-		m.matchesOnly = matchesOnly
+		m.matchingItemsOnly = matchingItemsOnly
 	}
 }
 
-// WithCanToggleMatchesOnly sets whether this viewport can toggle matches only mode
-func WithCanToggleMatchesOnly[T viewport.Renderable](canToggleMatchesOnly bool) Option[T] {
+// WithCanToggleMatchingItemsOnly sets whether this viewport can toggle matching items only mode
+func WithCanToggleMatchingItemsOnly[T viewport.Renderable](canToggleMatchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
-		m.canToggleMatchesOnly = canToggleMatchesOnly
+		m.canToggleMatchingItemsOnly = canToggleMatchingItemsOnly
 	}
 }
 
@@ -77,15 +84,20 @@ func WithCanToggleMatchesOnly[T viewport.Renderable](canToggleMatchesOnly bool) 
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
-	keyMap               KeyMap
-	filterTextInput      textinput.Model
-	filterMode           filterMode
-	text                 textState
-	items                []T
-	numMatchingItems     int
-	isRegexMode          bool
-	matchesOnly          bool
-	canToggleMatchesOnly bool
+	height          int
+	keyMap          KeyMap
+	filterTextInput textinput.Model
+	filterMode      filterMode
+	text            textState
+	items           []T
+	isRegexMode     bool
+
+	matchingItemsOnly          bool
+	canToggleMatchingItemsOnly bool
+	allMatches                 []Match
+	numMatchingItems           int
+	currentMatchIdx            int
+	totalMatchesOnAllItems     int
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -102,23 +114,27 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 	ti.Prompt = ""
 
 	defaultKeyMap := DefaultKeyMap()
-	viewportHeight := height - filterLineHeight
+	viewportHeight := max(0, height-filterLineHeight)
 	vp := viewport.New[T](width, viewportHeight,
 		viewport.WithKeyMap[T](defaultKeyMap.ViewportKeyMap),
 		viewport.WithStyles[T](viewport.DefaultStyles()),
 	)
 
 	m := &Model[T]{
-		Viewport:             vp,
-		keyMap:               defaultKeyMap,
-		filterTextInput:      ti,
-		filterMode:           filterModeOff,
-		text:                 textState{whenEmpty: "No Filter"},
-		items:                []T{},
-		numMatchingItems:     0,
-		isRegexMode:          false,
-		matchesOnly:          false,
-		canToggleMatchesOnly: true,
+		Viewport:                   vp,
+		height:                     height,
+		keyMap:                     defaultKeyMap,
+		filterTextInput:            ti,
+		filterMode:                 filterModeOff,
+		text:                       textState{whenEmpty: "No Filter"},
+		items:                      []T{},
+		isRegexMode:                false,
+		matchingItemsOnly:          false,
+		canToggleMatchingItemsOnly: true,
+		allMatches:                 []Match{},
+		numMatchingItems:           0,
+		currentMatchIdx:            -1,
+		totalMatchesOnAllItems:     0,
 	}
 
 	for _, opt := range opts {
@@ -174,10 +190,20 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.updateHighlighting()
 			m.updateMatchingItems()
 			return m, nil
-		case key.Matches(msg, m.keyMap.ToggleMatchesOnlyKey):
-			if m.canToggleMatchesOnly {
-				m.matchesOnly = !m.matchesOnly
+		case key.Matches(msg, m.keyMap.ToggleMatchingItemsOnlyKey):
+			if m.canToggleMatchingItemsOnly {
+				m.matchingItemsOnly = !m.matchingItemsOnly
 				m.updateMatchingItems()
+				return m, nil
+			}
+		case key.Matches(msg, m.keyMap.NextMatchKey):
+			if m.filterMode != filterModeOff && len(m.allMatches) > 0 {
+				m.navigateToNextMatch()
+				return m, nil
+			}
+		case key.Matches(msg, m.keyMap.PrevMatchKey):
+			if m.filterMode != filterModeOff && len(m.allMatches) > 0 {
+				m.navigateToPrevMatch()
 				return m, nil
 			}
 		}
@@ -198,16 +224,20 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 // View renders the filterable viewport model as a string
 func (m *Model[T]) View() string {
+	if m.height <= 0 {
+		return ""
+	}
 	filterLine := m.renderFilterLine()
 	viewportView := m.Viewport.View()
 	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
 }
 
-// updateMatchingItems recalculates the matching items
+// updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingItems := m.getMatchingItems()
 	m.numMatchingItems = len(matchingItems)
-	if m.matchesOnly {
+	m.updateMatches()
+	if m.matchingItemsOnly {
 		m.Viewport.SetContent(matchingItems)
 	} else {
 		m.Viewport.SetContent(m.items)
@@ -241,6 +271,9 @@ func (m *Model[T]) GetWidth() int {
 
 // GetHeight returns the height of the filterable viewport
 func (m *Model[T]) GetHeight() int {
+	if m.height <= 0 {
+		return 0
+	}
 	return m.Viewport.GetHeight() + filterLineHeight
 }
 
@@ -283,8 +316,8 @@ func (m *Model[T]) renderFilterLine() string {
 				m.getModeIndicator(),
 				m.text.val,
 				m.filterTextInput.View(),
-				matchCountText(m.numMatchingItems, len(m.items)),
-				matchesOnlyText(m.matchesOnly),
+				m.getTextAfterFilter(),
+				matchingItemsOnlyText(m.matchingItemsOnly),
 			}),
 				" ",
 			)
@@ -331,15 +364,8 @@ func (m *Model[T]) getMatchingItems() []T {
 	return filteredItems
 }
 
-func matchCountText(matching, total int) string {
-	if matching == 0 {
-		return "(no matches)"
-	}
-	return fmt.Sprintf("(%d/%d matches)", matching, total)
-}
-
-func matchesOnlyText(matchesOnly bool) string {
-	if matchesOnly {
+func matchingItemsOnlyText(matchingItemsOnly bool) string {
+	if matchingItemsOnly {
 		return "showing matches only"
 	}
 	return ""
@@ -353,4 +379,112 @@ func removeEmpty(s []string) []string {
 		}
 	}
 	return result
+}
+
+// updateMatches recalculates all matches and updates match tracking
+func (m *Model[T]) updateMatches() {
+	m.allMatches = []Match{}
+	m.currentMatchIdx = -1
+	m.totalMatchesOnAllItems = 0
+
+	filterValue := m.filterTextInput.Value()
+	if m.filterMode == filterModeOff || filterValue == "" {
+		return
+	}
+
+	if m.isRegexMode {
+		regex, err := regexp.Compile(filterValue)
+		if err != nil {
+			return
+		}
+		for i := range m.items {
+			content := m.items[i].Render().Content()
+			matches := regex.FindAllStringIndex(content, -1)
+			for _, match := range matches {
+				m.allMatches = append(m.allMatches, Match{
+					ItemIndex: i,
+					Start:     match[0],
+					End:       match[1],
+				})
+			}
+		}
+	} else {
+		for i := range m.items {
+			content := m.items[i].Render().Content()
+			start := 0
+			for {
+				index := strings.Index(content[start:], filterValue)
+				if index == -1 {
+					break
+				}
+				matchStart := start + index
+				matchEnd := matchStart + len(filterValue)
+				m.allMatches = append(m.allMatches, Match{
+					ItemIndex: i,
+					Start:     matchStart,
+					End:       matchEnd,
+				})
+				start = matchEnd
+			}
+		}
+	}
+
+	m.totalMatchesOnAllItems = len(m.allMatches)
+
+	if m.totalMatchesOnAllItems > 0 {
+		m.currentMatchIdx = 0
+	}
+}
+
+// getTextAfterFilter returns the text to display after the filter input
+func (m *Model[T]) getTextAfterFilter() string {
+	if m.filterTextInput.Value() == "" {
+		return "type to filter"
+	}
+	return m.getMatchCountText()
+}
+
+// getMatchCountText returns the formatted match count text
+func (m *Model[T]) getMatchCountText() string {
+	if m.totalMatchesOnAllItems == 0 {
+		return "(no matches)"
+	}
+	currentMatch := m.currentMatchIdx + 1
+	if m.currentMatchIdx < 0 {
+		currentMatch = 0
+	}
+	return fmt.Sprintf("(%d/%d matches on %d items)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems)
+}
+
+func (m *Model[T]) navigateToNextMatch() {
+	if len(m.allMatches) == 0 {
+		return
+	}
+
+	m.currentMatchIdx = (m.currentMatchIdx + 1) % len(m.allMatches)
+	m.scrollToCurrentMatch()
+}
+
+func (m *Model[T]) navigateToPrevMatch() {
+	if len(m.allMatches) == 0 {
+		return
+	}
+
+	m.currentMatchIdx--
+	if m.currentMatchIdx < 0 {
+		m.currentMatchIdx = len(m.allMatches) - 1
+	}
+	m.scrollToCurrentMatch()
+}
+
+func (m *Model[T]) scrollToCurrentMatch() {
+	if m.currentMatchIdx < 0 || m.currentMatchIdx >= len(m.allMatches) {
+		return
+	}
+
+	currentMatch := m.allMatches[m.currentMatchIdx]
+	m.Viewport.ScrollSoItemIdxInView(currentMatch.ItemIndex)
+	if m.Viewport.GetSelectionEnabled() {
+		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
+	}
 }

@@ -101,8 +101,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithKeyMap[viewport.Item](keyMap),
 				filterableviewport.WithStyles[viewport.Item](styles),
 				filterableviewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
-				filterableviewport.WithMatchesOnly[viewport.Item](false),
-				filterableviewport.WithCanToggleMatchesOnly[viewport.Item](true),
+				filterableviewport.WithMatchingItemsOnly[viewport.Item](false),
+				filterableviewport.WithCanToggleMatchingItemsOnly[viewport.Item](true),
 			)
 			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
@@ -134,7 +134,7 @@ func (m model) View() string {
 			keyMap.RegexFilterKey,
 			keyMap.ApplyFilterKey,
 			keyMap.CancelFilterKey,
-			keyMap.ToggleMatchesOnlyKey,
+			keyMap.ToggleMatchingItemsOnlyKey,
 		},
 	), "\n")
 	return lipgloss.JoinVertical(

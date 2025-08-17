@@ -18,6 +18,8 @@ var (
 	applyFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyEnter}
 	cancelFilterKeyMsg    = tea.KeyMsg{Type: tea.KeyEsc}
 	toggleMatchesKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}}
+	nextMatchKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
+	prevMatchKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'N'}}
 	downKeyMsg            = tea.KeyMsg{Type: tea.KeyDown}
 	typeAKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
 	typePKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
@@ -48,7 +50,7 @@ func TestNew(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestNew_LongText(t *testing.T) {
+func TestNewLongText(t *testing.T) {
 	fv := New[viewport.Item](
 		10, // whenEmpty is longer than this
 		4,
@@ -68,6 +70,38 @@ func TestNew_LongText(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestNewWidthHeight(t *testing.T) {
+	fv := New[viewport.Item](25, 8)
+	if fv.GetWidth() != 25 {
+		t.Errorf("expected width 25, got %d", fv.GetWidth())
+	}
+	if fv.GetHeight() != 8 {
+		t.Errorf("expected height 8, got %d", fv.GetHeight())
+	}
+}
+
+func TestZeroDimensions(t *testing.T) {
+	fv := New[viewport.Item](0, 0)
+	if fv.GetWidth() != 0 {
+		t.Errorf("expected width 0, got %d", fv.GetWidth())
+	}
+	if fv.GetHeight() != 0 {
+		t.Errorf("expected height 0, got %d", fv.GetHeight())
+	}
+	internal.CmpStr(t, "", fv.View())
+}
+
+func TestNegativeDimensions(t *testing.T) {
+	fv := New[viewport.Item](-5, -3)
+	if fv.GetWidth() != 0 {
+		t.Errorf("expected width 0 for negative input, got %d", fv.GetWidth())
+	}
+	if fv.GetHeight() != 0 {
+		t.Errorf("expected height 0 for negative input, got %d", fv.GetHeight())
+	}
+	internal.CmpStr(t, "", fv.View())
+}
+
 func TestSetWidth(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetWidth(30)
@@ -84,16 +118,6 @@ func TestSetHeight(t *testing.T) {
 	}
 }
 
-func TestGetWidthHeight(t *testing.T) {
-	fv := New[viewport.Item](25, 8)
-	if fv.GetWidth() != 25 {
-		t.Errorf("expected width 25, got %d", fv.GetWidth())
-	}
-	if fv.GetHeight() != 8 {
-		t.Errorf("expected height 8, got %d", fv.GetHeight())
-	}
-}
-
 func TestFilterFocused_Initial(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	if fv.FilterFocused() {
@@ -102,78 +126,111 @@ func TestFilterFocused_Initial(t *testing.T) {
 }
 
 func TestEmptyContent(t *testing.T) {
-	fv := New[viewport.Item](20, 4, WithText[viewport.Item]("Filter:", "No items"))
+	fv := New[viewport.Item](20, 4, WithText[viewport.Item]("Filter:", "No filter"))
 	fv.SetContent([]viewport.Item{})
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"No items",
-		"",
-		"",
-		"",
+		"No filter",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestWithMatchesOnly_True(t *testing.T) {
 	fv := New[viewport.Item](
-		20,
+		80,
 		4,
 		WithText[viewport.Item]("Filter:", "Type to filter..."),
-		WithMatchesOnly[viewport.Item](true),
+		WithMatchingItemsOnly[viewport.Item](true),
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
 		"banana",
 		"cherry",
 	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typePKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"Type to filter...",
+		"[exact] Filter: p  (1/2 matches on 1 items) showing matches only",
 		"apple",
-		"banana",
-		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestWithMatchesOnly_False(t *testing.T) {
 	fv := New[viewport.Item](
-		20,
+		80,
 		4,
 		WithText[viewport.Item]("Filter:", "Type to filter..."),
-		WithMatchesOnly[viewport.Item](false),
+		WithMatchingItemsOnly[viewport.Item](false),
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
 		"banana",
 		"cherry",
 	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typePKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"Type to filter...",
+		"[exact] Filter: p  (1/2 matches on 1 items)",
 		"apple",
 		"banana",
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
+func TestWithCanToggleMatchesOnly_True(t *testing.T) {
+	fv := New[viewport.Item](
+		80,
+		4,
+		WithCanToggleMatchingItemsOnly[viewport.Item](true),
+	)
+	fv.SetContent(stringsToItems([]string{
+		"apple",
+		"banana",
+		"cherry",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] p  (1/2 matches on 1 items)",
+		"apple",
+		"banana",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	fv, _ = fv.Update(toggleMatchesKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] p  (1/2 matches on 1 items) showing matches only",
+		"apple",
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
 
 func TestWithCanToggleMatchesOnly_False(t *testing.T) {
 	fv := New[viewport.Item](
-		20,
+		80,
 		4,
-		WithCanToggleMatchesOnly[viewport.Item](false),
+		WithCanToggleMatchingItemsOnly[viewport.Item](false),
 	)
-	if fv.canToggleMatchesOnly {
-		t.Error("canToggleMatchesOnly should be false")
-	}
-}
+	fv.SetContent(stringsToItems([]string{
+		"apple",
+		"banana",
+		"cherry",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] p  (1/2 matches on 1 items)",
+		"apple",
+		"banana",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, fv.View())
 
-func TestNegativeDimensions(t *testing.T) {
-	fv := New[viewport.Item](-5, -3)
-	if fv.GetWidth() != 0 {
-		t.Errorf("expected width 0 for negative input, got %d", fv.GetWidth())
-	}
-	if fv.GetHeight() != 1 {
-		t.Errorf("expected height 1 for negative input (filter line), got %d", fv.GetHeight())
-	}
+	fv, _ = fv.Update(toggleMatchesKeyMsg)
+	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestNilContent(t *testing.T) {
@@ -225,16 +282,6 @@ func TestDefaultText(t *testing.T) {
 		"",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
-}
-
-func TestZeroDimensions(t *testing.T) {
-	fv := New[viewport.Item](0, 0)
-	if fv.GetWidth() != 0 {
-		t.Errorf("expected width 0, got %d", fv.GetWidth())
-	}
-	if fv.GetHeight() != 1 {
-		t.Errorf("expected height 1 (filter line), got %d", fv.GetHeight())
-	}
 }
 
 func TestFilterKey_EnterEditMode(t *testing.T) {
@@ -295,24 +342,24 @@ func TestToggleMatchesOnlyKey(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	initialMatchesOnly := fv.matchesOnly
+	initialMatchesOnly := fv.matchingItemsOnly
 
 	fv, _ = fv.Update(toggleMatchesKeyMsg)
 
-	if fv.matchesOnly == initialMatchesOnly {
+	if fv.matchingItemsOnly == initialMatchesOnly {
 		t.Error("matches only mode should have toggled")
 	}
 }
 
 func TestToggleMatchesOnlyKey_Disabled(t *testing.T) {
-	fv := New[viewport.Item](20, 4, WithCanToggleMatchesOnly[viewport.Item](false))
+	fv := New[viewport.Item](20, 4, WithCanToggleMatchingItemsOnly[viewport.Item](false))
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	initialMatchesOnly := fv.matchesOnly
+	initialMatchesOnly := fv.matchingItemsOnly
 
 	fv, _ = fv.Update(toggleMatchesKeyMsg)
 
-	if fv.matchesOnly != initialMatchesOnly {
+	if fv.matchingItemsOnly != initialMatchesOnly {
 		t.Error("matches only mode should not have toggled when disabled")
 	}
 }
@@ -326,7 +373,7 @@ func TestFilterTextInput_TypingInEditMode(t *testing.T) {
 	fv, _ = fv.Update(typeAKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: a  (2/3 matches)                ",
+		"[exact] Filter: a  (1/4 matches on 2 items)       ",
 		"apple                                             ",
 		"banana                                            ",
 		"66% (2/3)                                         ",
@@ -347,7 +394,7 @@ func TestRegexFilter_ValidPattern(t *testing.T) {
 	fv, _ = fv.Update(typePlusKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[regex] Filter: ap+  (2/3 matches)              ",
+		"[regex] Filter: ap+  (1/2 matches on 2 items)     ",
 		"apple                                             ",
 		"banana                                            ",
 		"66% (2/3)                                         ",
@@ -373,7 +420,7 @@ func TestRegexFilter_InvalidPattern(t *testing.T) {
 }
 
 func TestMatchesOnlyMode_FiltersContent(t *testing.T) {
-	fv := New[viewport.Item](50, 5, WithMatchesOnly[viewport.Item](true))
+	fv := New[viewport.Item](50, 5, WithMatchingItemsOnly[viewport.Item](true))
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "apricot"}))
 
 	fv, _ = fv.Update(filterKeyMsg)
@@ -383,7 +430,7 @@ func TestMatchesOnlyMode_FiltersContent(t *testing.T) {
 	fv, _ = fv.Update(typePKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] ap  (2/3 matches) showing matches only  ",
+		"[exact] ap  (1/2 matches on 2 items) showing ma...",
 		"apple                                             ",
 		"apricot                                           ",
 		"                                                  ",
@@ -469,11 +516,37 @@ func TestEditingEmptyFilter_ShowsEditingInterface(t *testing.T) {
 	fv, _ = fv.Update(filterKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter:   (2/2 matches)                  ",
+		"[exact] Filter:   type to filter                  ",
 		"apple                                             ",
 		"banana                                            ",
 		"100% (2/2)                                        ",
 	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestMatchNavigation_NoMatches(t *testing.T) {
+	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "Type..."))
+	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
+
+	// Start filtering for something that doesn't match
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typeXKeyMsg)
+	fv, _ = fv.Update(applyFilterKeyMsg) // Apply the filter to exit edit mode
+
+	// Should show no matches
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: x  (no matches)                   ",
+		"apple                                             ",
+		"banana                                            ",
+		"100% (2/2)                                        ",
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Navigation should do nothing
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedView, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
