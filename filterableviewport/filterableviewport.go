@@ -1,4 +1,4 @@
-package filterable_viewport
+package filterableviewport
 
 import (
 	"fmt"

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/examples/text"
-	"github.com/robinovitch61/bubbleo/filterable_viewport"
+	"github.com/robinovitch61/bubbleo/filterableviewport"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
@@ -35,12 +35,12 @@ var appKeyMap = appKeys{
 	),
 }
 
-var keyMap = filterable_viewport.DefaultKeyMap()
+var keyMap = filterableviewport.DefaultKeyMap()
 var styles = viewport.DefaultStyles()
 
 type model struct {
 	// fv is the filterable container for the lines
-	fv *filterable_viewport.Model[viewport.Item]
+	fv *filterableviewport.Model[viewport.Item]
 
 	// lines contains the lines to be displayed in the viewport
 	lines []viewport.Item
@@ -95,14 +95,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.fv = filterable_viewport.New[viewport.Item](
+			m.fv = filterableviewport.New[viewport.Item](
 				viewportWidth,
 				viewportHeight,
-				filterable_viewport.WithKeyMap[viewport.Item](keyMap),
-				filterable_viewport.WithStyles[viewport.Item](styles),
-				filterable_viewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
-				filterable_viewport.WithMatchesOnly[viewport.Item](false),
-				filterable_viewport.WithCanToggleMatchesOnly[viewport.Item](true),
+				filterableviewport.WithKeyMap[viewport.Item](keyMap),
+				filterableviewport.WithStyles[viewport.Item](styles),
+				filterableviewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
+				filterableviewport.WithMatchesOnly[viewport.Item](false),
+				filterableviewport.WithCanToggleMatchesOnly[viewport.Item](true),
 			)
 			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
