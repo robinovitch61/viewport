@@ -2,9 +2,10 @@ package filterableviewport
 
 import (
 	"fmt"
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 	"regexp"
 	"strings"
+
+	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -275,20 +276,19 @@ func (m *Model[T]) renderFilterLine() string {
 	case filterModeOff:
 		filterLine = m.text.whenEmpty
 	case filterModeEditing, filterModeApplied:
-		if m.filterTextInput.Value() == "" {
-			if m.filterMode == filterModeApplied {
-				filterLine = m.text.whenEmpty
-			}
+		if m.filterTextInput.Value() == "" && m.filterMode == filterModeApplied {
+			filterLine = m.text.whenEmpty
+		} else {
+			filterLine = strings.Join(removeEmpty([]string{
+				m.getModeIndicator(),
+				m.text.val,
+				m.filterTextInput.View(),
+				matchCountText(m.numMatchingItems, len(m.items)),
+				matchesOnlyText(m.matchesOnly),
+			}),
+				" ",
+			)
 		}
-		filterLine = strings.Join(removeEmpty([]string{
-			m.getModeIndicator(),
-			m.text.val,
-			m.filterTextInput.View(),
-			matchCountText(m.numMatchingItems, len(m.items)),
-			matchesOnlyText(m.matchesOnly),
-		}),
-			" ",
-		)
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}

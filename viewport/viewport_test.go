@@ -1,11 +1,12 @@
 package viewport
 
 import (
-	"github.com/robinovitch61/bubbleo/internal"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/robinovitch61/bubbleo/internal"
 
 	"github.com/muesli/termenv"
 

@@ -1,9 +1,10 @@
 package linebuffer
 
 import (
-	"github.com/robinovitch61/bubbleo/internal"
 	"strings"
 	"testing"
+
+	"github.com/robinovitch61/bubbleo/internal"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -820,7 +821,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			numTakes:       2,
 			expected: []string{
 				"\x1b[38;2;0;0;255m世界.." + RST, // does not highlight continuation, could in future
-				"\x1b[38;2;0;0;255m..界🌟" + RST,  // does not highlight continuation, could in future
+				"\x1b[38;2;0;0;255m..界🌟" + RST, // does not highlight continuation, could in future
 			},
 		},
 		{

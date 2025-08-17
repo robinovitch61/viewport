@@ -1,10 +1,11 @@
 package linebuffer
 
 import (
-	"github.com/robinovitch61/bubbleo/internal"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/robinovitch61/bubbleo/internal"
 
 	"github.com/muesli/termenv"
 

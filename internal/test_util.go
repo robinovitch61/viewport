@@ -2,12 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/google/go-cmp/cmp"
 )
