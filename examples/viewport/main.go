@@ -7,10 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/robinovitch61/bubbleo/examples/common"
-
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/bubbleo/examples/text"
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -133,7 +132,7 @@ func getShortHelp(bindings []key.Binding) string {
 }
 
 func main() {
-	lines := strings.Split(common.ExampleContent, "\n")
+	lines := strings.Split(text.ExampleContent, "\n")
 	renderableLines := make([]viewport.Item, len(lines))
 	for i, line := range lines {
 		renderableLines[i] = viewport.Item{LineBuffer: linebuffer.New(line)}

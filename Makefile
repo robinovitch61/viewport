@@ -8,7 +8,7 @@ goimports:
 
 # Run linting
 lint:
-	golangci-lint run
+	golangci-lint run --output.text.print-issued-lines=false
 
 # Run all tests
 test:

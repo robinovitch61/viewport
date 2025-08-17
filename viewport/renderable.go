@@ -12,6 +12,7 @@ type Item struct {
 	LineBuffer linebuffer.LineBuffer
 }
 
+// Render returns the line buffer for the Item
 func (i Item) Render() linebuffer.LineBufferer {
 	return i.LineBuffer
 }

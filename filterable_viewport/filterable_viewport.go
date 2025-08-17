@@ -47,6 +47,7 @@ type textState struct {
 	whenEmpty string
 }
 
+// WithText sets the text state (prefix and text when empty) for the filter line
 func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
 	return func(m *Model[T]) {
 		m.text = textState{
@@ -56,18 +57,21 @@ func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
 	}
 }
 
+// WithMatchesOnly sets whether to show only the matching items
 func WithMatchesOnly[T viewport.Renderable](matchesOnly bool) Option[T] {
 	return func(m *Model[T]) {
 		m.matchesOnly = matchesOnly
 	}
 }
 
-func WithCanToggleMatchesOnly[T viewport.Renderable](canToggle bool) Option[T] {
+// WithCanToggleMatchesOnly sets whether this viewport can toggle matches only mode
+func WithCanToggleMatchesOnly[T viewport.Renderable](canToggleMatchesOnly bool) Option[T] {
 	return func(m *Model[T]) {
-		m.canToggleMatchesOnly = canToggle
+		m.canToggleMatchesOnly = canToggleMatchesOnly
 	}
 }
 
+// Model is the state and logic for a filterable viewport
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
@@ -124,10 +128,12 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 	return m
 }
 
+// Init initializes the filterable viewport model
 func (m *Model[T]) Init() tea.Cmd {
 	return nil
 }
 
+// Update processes messages and updates the model state
 func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
@@ -188,6 +194,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View renders the filterable viewport model as a string
 func (m *Model[T]) View() string {
 	filterLine := m.renderFilterLine()
 	viewportView := m.Viewport.View()
