@@ -2,8 +2,10 @@ package internal
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"runtime"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,4 +72,21 @@ func RunWithTimeout(t *testing.T, runTest func(t *testing.T), timeout time.Durat
 	median := durations[len(durations)/2]
 	t.Logf("Test timing: median=%v min=%v max=%v",
 		median, durations[0], durations[len(durations)-1])
+}
+
+func Pad(width, height int, lines []string) string {
+	var res []string
+	for _, line := range lines {
+		resLine := line
+		numSpaces := width - lipgloss.Width(line)
+		if numSpaces > 0 {
+			resLine += strings.Repeat(" ", numSpaces)
+		}
+		res = append(res, resLine)
+	}
+	numEmptyLines := height - len(lines)
+	for i := 0; i < numEmptyLines; i++ {
+		res = append(res, strings.Repeat(" ", width))
+	}
+	return strings.Join(res, "\n")
 }

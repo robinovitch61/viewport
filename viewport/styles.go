@@ -19,7 +19,7 @@ func DefaultStyles() Styles {
 	darkGrey := lipgloss.Color("245")
 
 	return Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(darkGrey).Padding(0, 1),
+		FooterStyle:              lipgloss.NewStyle().Foreground(darkGrey).Padding(0, 1, 0, 0),
 		HighlightStyle:           lipgloss.NewStyle().Foreground(white).Background(lipgloss.Color("5")),
 		HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(darkGrey).Background(lipgloss.Color("14")),
 		SelectedItemStyle:        lipgloss.NewStyle().Foreground(white).Background(lipgloss.Color("12")),

@@ -1,6 +1,7 @@
 package linebuffer
 
 import (
+	"github.com/robinovitch61/bubbleo/internal"
 	"regexp"
 	"strings"
 	"testing"
@@ -8,7 +9,6 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/bubbleo/viewport/internal"
 )
 
 // Note: this won't be necessary in future charm library versions

@@ -2,6 +2,7 @@ package filterableviewport
 
 import (
 	"fmt"
+	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 	"regexp"
 	"strings"
 
@@ -232,6 +233,16 @@ func (m *Model[T]) updateHighlighting() {
 	}
 }
 
+// GetWidth returns the width of the filterable viewport
+func (m *Model[T]) GetWidth() int {
+	return m.Viewport.GetWidth()
+}
+
+// GetHeight returns the height of the filterable viewport
+func (m *Model[T]) GetHeight() int {
+	return m.Viewport.GetHeight() + filterLineHeight
+}
+
 // SetContent sets the content and updates total item count
 func (m *Model[T]) SetContent(items []T) {
 	if items == nil {
@@ -258,16 +269,18 @@ func (m *Model[T]) FilterFocused() bool {
 }
 
 func (m *Model[T]) renderFilterLine() string {
+	var filterLine string
+
 	switch m.filterMode {
 	case filterModeOff:
-		return m.text.whenEmpty
+		filterLine = m.text.whenEmpty
 	case filterModeEditing, filterModeApplied:
 		if m.filterTextInput.Value() == "" {
 			if m.filterMode == filterModeApplied {
-				return m.text.whenEmpty
+				filterLine = m.text.whenEmpty
 			}
 		}
-		return strings.Join(removeEmpty([]string{
+		filterLine = strings.Join(removeEmpty([]string{
 			m.getModeIndicator(),
 			m.text.val,
 			m.filterTextInput.View(),
@@ -279,6 +292,9 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
+	filterLineBuffer := linebuffer.New(filterLine)
+	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", linebuffer.HighlightData{}, lipgloss.NewStyle())
+	return res
 }
 
 func (m *Model[T]) getModeIndicator() string {

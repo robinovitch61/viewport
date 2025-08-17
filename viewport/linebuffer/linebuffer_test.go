@@ -1,11 +1,11 @@
 package linebuffer
 
 import (
+	"github.com/robinovitch61/bubbleo/internal"
 	"strings"
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/bubbleo/viewport/internal"
 )
 
 func TestLineBuffer_Width(t *testing.T) {
@@ -820,7 +820,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			numTakes:       2,
 			expected: []string{
 				"\x1b[38;2;0;0;255m世界.." + RST, // does not highlight continuation, could in future
-				"\x1b[38;2;0;0;255m..界🌟" + RST, // does not highlight continuation, could in future
+				"\x1b[38;2;0;0;255m..界🌟" + RST,  // does not highlight continuation, could in future
 			},
 		},
 		{
