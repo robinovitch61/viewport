@@ -37,6 +37,7 @@ type Model[T viewport.Renderable] struct {
 func New[T viewport.Renderable](width, height int, km KeyMap, styles viewport.Styles) *Model[T] {
 	ti := textinput.New()
 	ti.CharLimit = 0
+	ti.Prompt = ""
 
 	viewportHeight := height - filterLineHeight
 	vp := viewport.New[T](width, viewportHeight, km.ViewportKeyMap, styles)
@@ -79,6 +80,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.textInput.Blur()
 			m.textInput.SetValue("")
 			m.updateMatchingItems()
+			m.updateHighlighting()
 			return m, nil
 		}
 	}
@@ -89,6 +91,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	} else {
 		m.textInput, cmd = m.textInput.Update(msg)
 		m.updateMatchingItems()
+		m.updateHighlighting()
 		cmds = append(cmds, cmd)
 	}
 
@@ -105,6 +108,11 @@ func (m *Model[T]) View() string {
 // updateMatchingItems recalculates the matching items count
 func (m *Model[T]) updateMatchingItems() {
 	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+}
+
+// updateHighlighting updates the viewport's highlighting based on the filter
+func (m *Model[T]) updateHighlighting() {
+	m.Viewport.SetStringToHighlight(m.textInput.Value())
 }
 
 // SetContent sets the content and updates total item count
@@ -171,5 +179,5 @@ func matchCountText(matching, total int) string {
 	if matching == 0 {
 		return "(no matches)"
 	}
-	return fmt.Sprintf("(%d/%d items match)", matching, total)
+	return fmt.Sprintf("(%d/%d matches)", matching, total)
 }
