@@ -51,18 +51,17 @@ func WithStyles[T viewport.Renderable](styles viewport.Styles) Option[T] {
 	}
 }
 
-type textState struct {
-	val       string
-	whenEmpty string
+// WithPrefixText sets the prefix text for the filter line
+func WithPrefixText[T viewport.Renderable](prefix string) Option[T] {
+	return func(m *Model[T]) {
+		m.prefixText = prefix
+	}
 }
 
-// WithText sets the text state (prefix and text when empty) for the filter line
-func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
+// WithEmptyText sets the text to display when the filter is empty
+func WithEmptyText[T viewport.Renderable](whenEmpty string) Option[T] {
 	return func(m *Model[T]) {
-		m.text = textState{
-			val:       prefix,
-			whenEmpty: whenEmpty,
-		}
+		m.emptyText = whenEmpty
 	}
 }
 
@@ -88,7 +87,8 @@ type Model[T viewport.Renderable] struct {
 	keyMap          KeyMap
 	filterTextInput textinput.Model
 	filterMode      filterMode
-	text            textState
+	prefixText      string
+	emptyText       string
 	items           []T
 	isRegexMode     bool
 
@@ -126,7 +126,8 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 		keyMap:                     defaultKeyMap,
 		filterTextInput:            ti,
 		filterMode:                 filterModeOff,
-		text:                       textState{whenEmpty: "No Filter"},
+		prefixText:                 "",
+		emptyText:                  "No Filter",
 		items:                      []T{},
 		isRegexMode:                false,
 		matchingItemsOnly:          false,
@@ -307,14 +308,14 @@ func (m *Model[T]) renderFilterLine() string {
 
 	switch m.filterMode {
 	case filterModeOff:
-		filterLine = m.text.whenEmpty
+		filterLine = m.emptyText
 	case filterModeEditing, filterModeApplied:
 		if m.filterTextInput.Value() == "" && m.filterMode == filterModeApplied {
-			filterLine = m.text.whenEmpty
+			filterLine = m.emptyText
 		} else {
 			filterLine = strings.Join(removeEmpty([]string{
 				m.getModeIndicator(),
-				m.text.val,
+				m.prefixText,
 				m.filterTextInput.View(),
 				m.getTextAfterFilter(),
 				matchingItemsOnlyText(m.matchingItemsOnly),

@@ -100,7 +100,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				viewportHeight,
 				filterableviewport.WithKeyMap[viewport.Item](keyMap),
 				filterableviewport.WithStyles[viewport.Item](styles),
-				filterableviewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
+				filterableviewport.WithPrefixText[viewport.Item]("Filter:"),
+				filterableviewport.WithEmptyText[viewport.Item]("No Current Filter"),
 				filterableviewport.WithMatchingItemsOnly[viewport.Item](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[viewport.Item](true),
 			)
