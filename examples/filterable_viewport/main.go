@@ -101,6 +101,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterable_viewport.WithKeyMap[viewport.Item](keyMap),
 				filterable_viewport.WithStyles[viewport.Item](styles),
 				filterable_viewport.WithText[viewport.Item]("Filter:", "No Current Filter"),
+				filterable_viewport.WithMatchesOnly[viewport.Item](false),
+				filterable_viewport.WithCanToggleMatchesOnly[viewport.Item](true),
 			)
 			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)

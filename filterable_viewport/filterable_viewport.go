@@ -56,16 +56,30 @@ func WithText[T viewport.Renderable](prefix, whenEmpty string) Option[T] {
 	}
 }
 
+func WithMatchesOnly[T viewport.Renderable](matchesOnly bool) Option[T] {
+	return func(m *Model[T]) {
+		m.matchesOnly = matchesOnly
+	}
+}
+
+func WithCanToggleMatchesOnly[T viewport.Renderable](canToggle bool) Option[T] {
+	return func(m *Model[T]) {
+		m.canToggleMatchesOnly = canToggle
+	}
+}
+
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
-	keyMap        KeyMap
-	textInput     textinput.Model
-	filterMode    filterMode
-	text          textState
-	items         []T
-	matchingItems int
-	isRegexMode   bool
+	keyMap               KeyMap
+	filterTextInput      textinput.Model
+	filterMode           filterMode
+	text                 textState
+	items                []T
+	numMatchingItems     int
+	isRegexMode          bool
+	matchesOnly          bool
+	canToggleMatchesOnly bool
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -89,11 +103,16 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 	)
 
 	m := &Model[T]{
-		Viewport:   vp,
-		keyMap:     defaultKeyMap,
-		filterMode: filterModeOff,
-		text:       textState{whenEmpty: "No Filter"},
-		textInput:  ti,
+		Viewport:             vp,
+		keyMap:               defaultKeyMap,
+		filterTextInput:      ti,
+		filterMode:           filterModeOff,
+		text:                 textState{whenEmpty: "No Filter"},
+		items:                []T{},
+		numMatchingItems:     0,
+		isRegexMode:          false,
+		matchesOnly:          false,
+		canToggleMatchesOnly: true,
 	}
 
 	for _, opt := range opts {
@@ -119,7 +138,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		case key.Matches(msg, m.keyMap.FilterKey):
 			if m.filterMode != filterModeEditing {
 				m.isRegexMode = false
-				m.textInput.Focus()
+				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
 				return m, textinput.Blink
@@ -127,14 +146,14 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		case key.Matches(msg, m.keyMap.RegexFilterKey):
 			if m.filterMode != filterModeEditing {
 				m.isRegexMode = true
-				m.textInput.Focus()
+				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
 			if m.filterMode == filterModeEditing {
-				m.textInput.Blur()
+				m.filterTextInput.Blur()
 				m.filterMode = filterModeApplied
 				m.updateMatchingItems()
 				return m, nil
@@ -142,11 +161,17 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		case key.Matches(msg, m.keyMap.CancelFilterKey):
 			m.filterMode = filterModeOff
 			m.isRegexMode = false
-			m.textInput.Blur()
-			m.textInput.SetValue("")
-			m.updateMatchingItems()
+			m.filterTextInput.Blur()
+			m.filterTextInput.SetValue("")
 			m.updateHighlighting()
+			m.updateMatchingItems()
 			return m, nil
+		case key.Matches(msg, m.keyMap.ToggleMatchesOnlyKey):
+			if m.canToggleMatchesOnly {
+				m.matchesOnly = !m.matchesOnly
+				m.updateMatchingItems()
+				return m, nil
+			}
 		}
 	}
 
@@ -154,9 +179,9 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		m.Viewport, cmd = m.Viewport.Update(msg)
 		cmds = append(cmds, cmd)
 	} else {
-		m.textInput, cmd = m.textInput.Update(msg)
-		m.updateMatchingItems()
+		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
 		m.updateHighlighting()
+		m.updateMatchingItems()
 		cmds = append(cmds, cmd)
 	}
 
@@ -169,14 +194,20 @@ func (m *Model[T]) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
 }
 
-// updateMatchingItems recalculates the matching items count
+// updateMatchingItems recalculates the matching items
 func (m *Model[T]) updateMatchingItems() {
-	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value(), m.isRegexMode)
+	matchingItems := m.getMatchingItems()
+	m.numMatchingItems = len(matchingItems)
+	if m.matchesOnly {
+		m.Viewport.SetContent(matchingItems)
+	} else {
+		m.Viewport.SetContent(m.items)
+	}
 }
 
 // updateHighlighting updates the viewport's highlighting based on the filter
 func (m *Model[T]) updateHighlighting() {
-	filterText := m.textInput.Value()
+	filterText := m.filterTextInput.Value()
 	if filterText == "" {
 		m.Viewport.SetStringToHighlight("")
 		return
@@ -216,7 +247,7 @@ func (m *Model[T]) SetHeight(height int) {
 
 // FilterFocused returns true if the filter text input is focused
 func (m *Model[T]) FilterFocused() bool {
-	return m.textInput.Focused()
+	return m.filterTextInput.Focused()
 }
 
 func (m *Model[T]) renderFilterLine() string {
@@ -224,7 +255,7 @@ func (m *Model[T]) renderFilterLine() string {
 	case filterModeOff:
 		return m.text.whenEmpty
 	case filterModeEditing, filterModeApplied:
-		if m.textInput.Value() == "" {
+		if m.filterTextInput.Value() == "" {
 			if m.filterMode == filterModeApplied {
 				return m.text.whenEmpty
 			}
@@ -232,8 +263,9 @@ func (m *Model[T]) renderFilterLine() string {
 		return strings.Join(removeEmpty([]string{
 			m.getModeIndicator(),
 			m.text.val,
-			m.textInput.View(),
-			matchCountText(m.matchingItems, len(m.items)),
+			m.filterTextInput.View(),
+			matchCountText(m.numMatchingItems, len(m.items)),
+			matchesOnlyText(m.matchesOnly),
 		}),
 			" ",
 		)
@@ -249,35 +281,31 @@ func (m *Model[T]) getModeIndicator() string {
 	return "[exact]"
 }
 
-func matchingItems[T viewport.Renderable](
-	mode filterMode,
-	items []T,
-	filter string,
-	isRegex bool,
-) int {
-	if mode == filterModeOff || filter == "" {
-		return len(items)
+func (m *Model[T]) getMatchingItems() []T {
+	filterValue := m.filterTextInput.Value()
+	if m.filterMode == filterModeOff || filterValue == "" {
+		return m.items
 	}
 
-	count := 0
-	if isRegex {
-		regex, err := regexp.Compile(filter)
+	filteredItems := make([]T, 0, len(m.items))
+	if m.isRegexMode {
+		regex, err := regexp.Compile(filterValue)
 		if err != nil {
-			return 0
+			return []T{}
 		}
-		for i := range items {
-			if regex.MatchString(items[i].Render().Content()) {
-				count++
+		for i := range m.items {
+			if regex.MatchString(m.items[i].Render().Content()) {
+				filteredItems = append(filteredItems, m.items[i])
 			}
 		}
 	} else {
-		for i := range items {
-			if strings.Contains(items[i].Render().Content(), filter) {
-				count++
+		for i := range m.items {
+			if strings.Contains(m.items[i].Render().Content(), filterValue) {
+				filteredItems = append(filteredItems, m.items[i])
 			}
 		}
 	}
-	return count
+	return filteredItems
 }
 
 func matchCountText(matching, total int) string {
@@ -285,6 +313,13 @@ func matchCountText(matching, total int) string {
 		return "(no matches)"
 	}
 	return fmt.Sprintf("(%d/%d matches)", matching, total)
+}
+
+func matchesOnlyText(matchesOnly bool) string {
+	if matchesOnly {
+		return "showing matches only"
+	}
+	return ""
 }
 
 func removeEmpty(s []string) []string {
