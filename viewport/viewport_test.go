@@ -43,7 +43,10 @@ func newViewport(width, height int) *Model[Item] {
 		SelectedItemStyle:        selectionStyle,
 	}
 
-	return New[Item](width, height, DefaultKeyMap(), styles)
+	return New[Item](width, height,
+		WithKeyMap[Item](DefaultKeyMap()),
+		WithStyles[Item](styles),
+	)
 }
 
 // # SELECTION DISABLED, WRAP OFF

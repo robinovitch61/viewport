@@ -53,13 +53,23 @@ type Model[T viewport.Renderable] struct {
 
 // New creates a new filterable viewport model with default configuration
 func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] {
+	if width < 0 {
+		width = 0
+	}
+	if height < 0 {
+		height = 0
+	}
+
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
 
 	defaultKeyMap := DefaultKeyMap()
 	viewportHeight := height - filterLineHeight
-	vp := viewport.New[T](width, viewportHeight, defaultKeyMap.ViewportKeyMap, viewport.DefaultStyles())
+	vp := viewport.New[T](width, viewportHeight,
+		viewport.WithKeyMap[T](defaultKeyMap.ViewportKeyMap),
+		viewport.WithStyles[T](viewport.DefaultStyles()),
+	)
 
 	m := &Model[T]{
 		Viewport:   vp,
@@ -69,7 +79,9 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 	}
 
 	for _, opt := range opts {
-		opt(m)
+		if opt != nil {
+			opt(m)
+		}
 	}
 
 	return m

@@ -96,7 +96,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			m.fv = filterable_viewport.New[viewport.Item](
-				viewportWidth, 
+				viewportWidth,
 				viewportHeight,
 				filterable_viewport.WithKeyMap[viewport.Item](keyMap),
 				filterable_viewport.WithStyles[viewport.Item](styles),

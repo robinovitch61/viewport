@@ -38,6 +38,44 @@ var surroundingAnsiRegex = regexp.MustCompile(`(\x1b\[[0-9;]*m.*?\x1b\[0?m)`)
 // CompareFn is a function type for comparing two items of type T.
 type CompareFn[T any] func(a, b T) bool
 
+// Option is a functional option for configuring the viewport
+type Option[T Renderable] func(*Model[T])
+
+// WithKeyMap sets the key mapping for the viewport
+func WithKeyMap[T Renderable](keyMap KeyMap) Option[T] {
+	return func(m *Model[T]) {
+		m.navigation.KeyMap = keyMap
+	}
+}
+
+// WithStyles sets the styling for the viewport
+func WithStyles[T Renderable](styles Styles) Option[T] {
+	return func(m *Model[T]) {
+		m.display.Styles = styles
+	}
+}
+
+// WithWrapText sets whether the viewport wraps text
+func WithWrapText[T Renderable](wrap bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetWrapText(wrap)
+	}
+}
+
+// WithSelectionEnabled sets whether the viewport allows selection
+func WithSelectionEnabled[T Renderable](enabled bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetSelectionEnabled(enabled)
+	}
+}
+
+// WithFooterEnabled sets whether the viewport shows the footer
+func WithFooterEnabled[T Renderable](enabled bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetFooterEnabled(enabled)
+	}
+}
+
 // Model represents a viewport component
 type Model[T Renderable] struct {
 	// content manages the content and selection state
@@ -54,12 +92,26 @@ type Model[T Renderable] struct {
 }
 
 // New creates a new viewport model with reasonable defaults
-func New[T Renderable](width, height int, keyMap KeyMap, styles Styles) (m *Model[T]) {
+func New[T Renderable](width, height int, opts ...Option[T]) (m *Model[T]) {
+	if width < 0 {
+		width = 0
+	}
+	if height < 0 {
+		height = 0
+	}
+
 	m = &Model[T]{}
 	m.content = NewContentManager[T]()
-	m.display = NewDisplayManager(width, height, styles)
-	m.navigation = NewNavigationManager(keyMap)
+	m.display = NewDisplayManager(width, height, DefaultStyles())
+	m.navigation = NewNavigationManager(DefaultKeyMap())
 	m.config = NewConfiguration()
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(m)
+		}
+	}
+
 	return m
 }
 

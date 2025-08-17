@@ -62,7 +62,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New[viewport.Item](viewportWidth, viewportHeight, keyMap, styles)
+			m.viewport = viewport.New[viewport.Item](
+				viewportWidth,
+				viewportHeight,
+				viewport.WithKeyMap[viewport.Item](keyMap),
+				viewport.WithStyles[viewport.Item](styles),
+			)
 			m.viewport.SetContent(m.lines)
 			m.viewport.SetSelectionEnabled(false)
 			m.viewport.SetStringToHighlight("surf")
