@@ -19,6 +19,10 @@ const (
 	filterModeApplied
 )
 
+const (
+	filterLineHeight = 1
+)
+
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
@@ -34,7 +38,7 @@ func New[T viewport.Renderable](width, height int, km KeyMap, styles viewport.St
 	ti := textinput.New()
 	ti.CharLimit = 0
 
-	viewportHeight := height - 1 // -1 for filter line
+	viewportHeight := height - filterLineHeight
 	vp := viewport.New[T](width, viewportHeight, km.ViewportKeyMap, styles)
 
 	return &Model[T]{
@@ -60,21 +64,21 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			if m.filterMode != filterModeEditing {
 				m.textInput.Focus()
 				m.filterMode = filterModeEditing
-				m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+				m.updateMatchingItems()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
 			if m.filterMode == filterModeEditing {
 				m.textInput.Blur()
 				m.filterMode = filterModeApplied
-				m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+				m.updateMatchingItems()
 				return m, nil
 			}
 		case key.Matches(msg, m.keyMap.CancelFilterKey):
 			m.filterMode = filterModeOff
 			m.textInput.Blur()
 			m.textInput.SetValue("")
-			m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+			m.updateMatchingItems()
 			return m, nil
 		}
 	}
@@ -84,7 +88,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		cmds = append(cmds, cmd)
 	} else {
 		m.textInput, cmd = m.textInput.Update(msg)
-		m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+		m.updateMatchingItems()
 		cmds = append(cmds, cmd)
 	}
 
@@ -98,11 +102,19 @@ func (m *Model[T]) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
 }
 
+// updateMatchingItems recalculates the matching items count
+func (m *Model[T]) updateMatchingItems() {
+	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+}
+
 // SetContent sets the content and updates total item count
 func (m *Model[T]) SetContent(items []T) {
+	if items == nil {
+		items = []T{}
+	}
 	m.Viewport.SetContent(items)
 	m.items = items
-	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+	m.updateMatchingItems()
 }
 
 // SetWidth updates the width of both the viewport and textinput
@@ -112,7 +124,7 @@ func (m *Model[T]) SetWidth(width int) {
 
 // SetHeight updates the height, accounting for the filter line
 func (m *Model[T]) SetHeight(height int) {
-	m.Viewport.SetHeight(height - 1) // -1 for filter line
+	m.Viewport.SetHeight(height - filterLineHeight)
 }
 
 // FilterFocused returns true if the filter text input is focused
@@ -124,14 +136,12 @@ func (m *Model[T]) renderFilterLine() string {
 	switch m.filterMode {
 	case filterModeOff:
 		return "No filter"
-	case filterModeEditing:
+	case filterModeEditing, filterModeApplied:
 		if m.textInput.Value() == "" {
+			if m.filterMode == filterModeApplied {
+				return "No filter"
+			}
 			return m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
-		}
-		return m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
-	case filterModeApplied:
-		if m.textInput.Value() == "" {
-			return "No filter"
 		}
 		return m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
 	default:
@@ -161,5 +171,5 @@ func matchCountText(matching, total int) string {
 	if matching == 0 {
 		return "(no matches)"
 	}
-	return fmt.Sprintf("(%d / %d items match)", matching, total)
+	return fmt.Sprintf("(%d/%d items match)", matching, total)
 }
