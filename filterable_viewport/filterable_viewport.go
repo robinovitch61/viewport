@@ -2,6 +2,7 @@ package filterable_viewport
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -49,6 +50,7 @@ type Model[T viewport.Renderable] struct {
 	filterMode    filterMode
 	items         []T
 	matchingItems int
+	isRegexMode   bool
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -100,6 +102,15 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.FilterKey):
 			if m.filterMode != filterModeEditing {
+				m.isRegexMode = false
+				m.textInput.Focus()
+				m.filterMode = filterModeEditing
+				m.updateMatchingItems()
+				return m, textinput.Blink
+			}
+		case key.Matches(msg, m.keyMap.RegexFilterKey):
+			if m.filterMode != filterModeEditing {
+				m.isRegexMode = true
 				m.textInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
@@ -114,6 +125,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			}
 		case key.Matches(msg, m.keyMap.CancelFilterKey):
 			m.filterMode = filterModeOff
+			m.isRegexMode = false
 			m.textInput.Blur()
 			m.textInput.SetValue("")
 			m.updateMatchingItems()
@@ -144,12 +156,27 @@ func (m *Model[T]) View() string {
 
 // updateMatchingItems recalculates the matching items count
 func (m *Model[T]) updateMatchingItems() {
-	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value())
+	m.matchingItems = matchingItems(m.filterMode, m.items, m.textInput.Value(), m.isRegexMode)
 }
 
 // updateHighlighting updates the viewport's highlighting based on the filter
 func (m *Model[T]) updateHighlighting() {
-	m.Viewport.SetStringToHighlight(m.textInput.Value())
+	filterText := m.textInput.Value()
+	if filterText == "" {
+		m.Viewport.SetStringToHighlight("")
+		return
+	}
+
+	if m.isRegexMode {
+		regex, err := regexp.Compile(filterText)
+		if err != nil {
+			m.Viewport.SetStringToHighlight("")
+			return
+		}
+		m.Viewport.SetRegexToHighlight(regex)
+	} else {
+		m.Viewport.SetStringToHighlight(filterText)
+	}
 }
 
 // SetContent sets the content and updates total item count
@@ -182,13 +209,18 @@ func (m *Model[T]) renderFilterLine() string {
 	case filterModeOff:
 		return "No filter"
 	case filterModeEditing, filterModeApplied:
+		modeIndicator := ""
+		if m.isRegexMode {
+			modeIndicator = "[regex] "
+		}
+
 		if m.textInput.Value() == "" {
 			if m.filterMode == filterModeApplied {
 				return "No filter"
 			}
-			return m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
+			return modeIndicator + m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
 		}
-		return m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
+		return modeIndicator + m.textInput.View() + " " + matchCountText(m.matchingItems, len(m.items))
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
@@ -198,15 +230,28 @@ func matchingItems[T viewport.Renderable](
 	mode filterMode,
 	items []T,
 	filter string,
+	isRegex bool,
 ) int {
 	if mode == filterModeOff || filter == "" {
 		return len(items)
 	}
 
 	count := 0
-	for i := range items {
-		if strings.Contains(items[i].Render().Content(), filter) {
-			count++
+	if isRegex {
+		regex, err := regexp.Compile(filter)
+		if err != nil {
+			return 0
+		}
+		for i := range items {
+			if regex.MatchString(items[i].Render().Content()) {
+				count++
+			}
+		}
+	} else {
+		for i := range items {
+			if strings.Contains(items[i].Render().Content(), filter) {
+				count++
+			}
 		}
 	}
 	return count
