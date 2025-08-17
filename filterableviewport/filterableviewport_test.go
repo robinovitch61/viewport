@@ -12,6 +12,22 @@ import (
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
+var (
+	filterKeyMsg          = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
+	regexFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	applyFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyEnter}
+	cancelFilterKeyMsg    = tea.KeyMsg{Type: tea.KeyEsc}
+	toggleMatchesKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}}
+	downKeyMsg            = tea.KeyMsg{Type: tea.KeyDown}
+	typeAKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
+	typePKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
+	typePlusKeyMsg        = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}}
+	typeLeftBracketKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'['}}
+	typeXKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+	typeYKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
+	typeZKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'z'}}
+)
+
 func TestNew(t *testing.T) {
 	fv := New[viewport.Item](
 		20,
@@ -225,8 +241,7 @@ func TestFilterKey_EnterEditMode(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(keyMsg)
+	fv, _ = fv.Update(filterKeyMsg)
 
 	if !fv.FilterFocused() {
 		t.Error("filter should be focused after pressing filter key")
@@ -237,8 +252,7 @@ func TestRegexFilterKey_EnterEditMode(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
-	fv, _ = fv.Update(keyMsg)
+	fv, _ = fv.Update(regexFilterKeyMsg)
 
 	if !fv.FilterFocused() {
 		t.Error("filter should be focused after pressing regex filter key")
@@ -252,11 +266,9 @@ func TestApplyFilterKey(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	applyKey := tea.KeyMsg{Type: tea.KeyEnter}
-	fv, _ = fv.Update(applyKey)
+	fv, _ = fv.Update(applyFilterKeyMsg)
 
 	if fv.FilterFocused() {
 		t.Error("filter should not be focused after applying filter")
@@ -267,11 +279,9 @@ func TestCancelFilterKey(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	cancelKey := tea.KeyMsg{Type: tea.KeyEsc}
-	fv, _ = fv.Update(cancelKey)
+	fv, _ = fv.Update(cancelFilterKeyMsg)
 
 	if fv.FilterFocused() {
 		t.Error("filter should not be focused after canceling")
@@ -287,8 +297,7 @@ func TestToggleMatchesOnlyKey(t *testing.T) {
 
 	initialMatchesOnly := fv.matchesOnly
 
-	toggleKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}}
-	fv, _ = fv.Update(toggleKey)
+	fv, _ = fv.Update(toggleMatchesKeyMsg)
 
 	if fv.matchesOnly == initialMatchesOnly {
 		t.Error("matches only mode should have toggled")
@@ -301,8 +310,7 @@ func TestToggleMatchesOnlyKey_Disabled(t *testing.T) {
 
 	initialMatchesOnly := fv.matchesOnly
 
-	toggleKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}}
-	fv, _ = fv.Update(toggleKey)
+	fv, _ = fv.Update(toggleMatchesKeyMsg)
 
 	if fv.matchesOnly != initialMatchesOnly {
 		t.Error("matches only mode should not have toggled when disabled")
@@ -313,11 +321,9 @@ func TestFilterTextInput_TypingInEditMode(t *testing.T) {
 	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "Type..."))
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "cherry"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	typeKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
-	fv, _ = fv.Update(typeKey)
+	fv, _ = fv.Update(typeAKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter: a  (2/3 matches)                ",
@@ -332,17 +338,13 @@ func TestRegexFilter_ValidPattern(t *testing.T) {
 	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "Type..."))
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "apricot"}))
 
-	regexKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
-	fv, _ = fv.Update(regexKey)
+	fv, _ = fv.Update(regexFilterKeyMsg)
 
-	typeA := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
-	fv, _ = fv.Update(typeA)
+	fv, _ = fv.Update(typeAKeyMsg)
 
-	typePPlus := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
-	fv, _ = fv.Update(typePPlus)
+	fv, _ = fv.Update(typePKeyMsg)
 
-	typePlus := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}}
-	fv, _ = fv.Update(typePlus)
+	fv, _ = fv.Update(typePlusKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[regex] Filter: ap+  (2/3 matches)              ",
@@ -357,11 +359,9 @@ func TestRegexFilter_InvalidPattern(t *testing.T) {
 	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "Type..."))
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	regexKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
-	fv, _ = fv.Update(regexKey)
+	fv, _ = fv.Update(regexFilterKeyMsg)
 
-	typeInvalid := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'['}}
-	fv, _ = fv.Update(typeInvalid)
+	fv, _ = fv.Update(typeLeftBracketKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[regex] Filter: [  (no matches)                 ",
@@ -376,14 +376,11 @@ func TestMatchesOnlyMode_FiltersContent(t *testing.T) {
 	fv := New[viewport.Item](50, 5, WithMatchesOnly[viewport.Item](true))
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "apricot"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	typeA := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
-	fv, _ = fv.Update(typeA)
+	fv, _ = fv.Update(typeAKeyMsg)
 
-	typeP := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
-	fv, _ = fv.Update(typeP)
+	fv, _ = fv.Update(typePKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] ap  (2/3 matches) showing matches only  ",
@@ -399,17 +396,13 @@ func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
 	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "Type..."))
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	typeX := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
-	fv, _ = fv.Update(typeX)
+	fv, _ = fv.Update(typeXKeyMsg)
 
-	typeY := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
-	fv, _ = fv.Update(typeY)
+	fv, _ = fv.Update(typeYKeyMsg)
 
-	typeZ := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'z'}}
-	fv, _ = fv.Update(typeZ)
+	fv, _ = fv.Update(typeZKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter: xyz  (no matches)               ",
@@ -444,8 +437,7 @@ func TestUpdate_PassesThroughToViewport(t *testing.T) {
 	fv := New[viewport.Item](20, 4)
 	fv.SetContent(stringsToItems([]string{"line1", "line2", "line3"}))
 
-	downKey := tea.KeyMsg{Type: tea.KeyDown}
-	fv, _ = fv.Update(downKey)
+	fv, _ = fv.Update(downKeyMsg)
 
 	view := fv.View()
 	if !strings.Contains(view, "line2") {
@@ -457,11 +449,9 @@ func TestApplyEmptyFilter_ShowsWhenEmptyText(t *testing.T) {
 	fv := New[viewport.Item](30, 4, WithText[viewport.Item]("Filter:", "No filter applied"))
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
-	applyKey := tea.KeyMsg{Type: tea.KeyEnter}
-	fv, _ = fv.Update(applyKey)
+	fv, _ = fv.Update(applyFilterKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No filter applied             ",
@@ -476,8 +466,7 @@ func TestEditingEmptyFilter_ShowsEditingInterface(t *testing.T) {
 	fv := New[viewport.Item](50, 4, WithText[viewport.Item]("Filter:", "No filter applied"))
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 
-	filterKey := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	fv, _ = fv.Update(filterKey)
+	fv, _ = fv.Update(filterKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter:   (2/2 matches)                  ",

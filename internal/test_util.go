@@ -75,6 +75,7 @@ func RunWithTimeout(t *testing.T, runTest func(t *testing.T), timeout time.Durat
 		median, durations[0], durations[len(durations)-1])
 }
 
+// Pad pads the given lines to the specified width and height
 func Pad(width, height int, lines []string) string {
 	var res []string
 	for _, line := range lines {
