@@ -23,6 +23,24 @@ const (
 	filterLineHeight = 1
 )
 
+// Option is a functional option for configuring the filterable viewport
+type Option[T viewport.Renderable] func(*Model[T])
+
+// WithKeyMap sets the key mapping for the viewport
+func WithKeyMap[T viewport.Renderable](keyMap KeyMap) Option[T] {
+	return func(m *Model[T]) {
+		m.keyMap = keyMap
+		m.Viewport.SetKeyMap(keyMap.ViewportKeyMap)
+	}
+}
+
+// WithStyles sets the styling for the viewport
+func WithStyles[T viewport.Renderable](styles viewport.Styles) Option[T] {
+	return func(m *Model[T]) {
+		m.Viewport.SetStyles(styles)
+	}
+}
+
 type Model[T viewport.Renderable] struct {
 	Viewport *viewport.Model[T]
 
@@ -33,21 +51,28 @@ type Model[T viewport.Renderable] struct {
 	matchingItems int
 }
 
-// New creates a new filterable viewport model
-func New[T viewport.Renderable](width, height int, km KeyMap, styles viewport.Styles) *Model[T] {
+// New creates a new filterable viewport model with default configuration
+func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] {
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
 
+	defaultKeyMap := DefaultKeyMap()
 	viewportHeight := height - filterLineHeight
-	vp := viewport.New[T](width, viewportHeight, km.ViewportKeyMap, styles)
+	vp := viewport.New[T](width, viewportHeight, defaultKeyMap.ViewportKeyMap, viewport.DefaultStyles())
 
-	return &Model[T]{
+	m := &Model[T]{
 		Viewport:   vp,
-		keyMap:     km,
+		keyMap:     defaultKeyMap,
 		filterMode: filterModeOff,
 		textInput:  ti,
 	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	return m
 }
 
 func (m *Model[T]) Init() tea.Cmd {
