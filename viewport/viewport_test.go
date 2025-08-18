@@ -969,6 +969,45 @@ func TestViewport_SelectionOff_WrapOff_SetSelectionEnabled_SetsTopVisibleItem(t 
 }
 
 func TestViewport_SelectionOff_WrapOff_SetSpecificHighlights(t *testing.T) {
+	w, h := 15, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line",
+	})
+	highlights := []linebuffer.Highlight{
+		{
+			ItemIndex:       1,
+			StartByteOffset: 4,
+			EndByteOffset:   10,
+			Style:           lipgloss.NewStyle().Foreground(red),
+		},
+		{
+			ItemIndex:       2,
+			StartByteOffset: 4,
+			EndByteOffset:   9,
+			Style:           lipgloss.NewStyle().Foreground(green),
+		},
+	}
+	vp.SetSpecificHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first line",
+		"the \x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"the \x1b[38;2;0;255;0mthird" + linebuffer.RST + " line",
+		"75% (3/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_SetSpecificHighlightsOverridesRegex(t *testing.T) {
+	// TODO LEO
+}
+
+func TestViewport_SelectionOff_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
 	// TODO LEO
 }
 
@@ -2460,6 +2499,46 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightAnsiUnicode(t *testing.T)
 }
 
 func TestViewport_SelectionOn_WrapOff_SetSpecificHighlights(t *testing.T) {
+	w, h := 15, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line",
+	})
+	highlights := []linebuffer.Highlight{
+		{
+			ItemIndex:       0,
+			StartByteOffset: 4,
+			EndByteOffset:   9,
+			Style:           lipgloss.NewStyle().Foreground(green),
+		},
+		{
+			ItemIndex:       1,
+			StartByteOffset: 4,
+			EndByteOffset:   10,
+			Style:           lipgloss.NewStyle().Foreground(red),
+		},
+	}
+	vp.SetSpecificHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"\x1b[38;2;0;0;255mthe " + linebuffer.RST + "\x1b[38;2;0;255;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
+		"the \x1b[38;2;255;0;0msecond" + linebuffer.RST + " line",
+		"the third line",
+		"25% (1/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_SetSpecificHighlightsOverridesRegex(t *testing.T) {
+	// TODO LEO
+}
+
+func TestViewport_SelectionOn_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
 	// TODO LEO
 }
 
@@ -3531,6 +3610,45 @@ func TestViewport_SelectionOff_WrapOn_EnableSelectionShowsTopLineInItem(t *testi
 }
 
 func TestViewport_SelectionOff_WrapOn_SetSpecificHighlights(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"first",
+		"second line that wraps",
+		"third",
+	})
+	highlights := []linebuffer.Highlight{
+		{
+			ItemIndex:       1,
+			StartByteOffset: 0,
+			EndByteOffset:   6,
+			Style:           lipgloss.NewStyle().Foreground(red),
+		},
+		{
+			ItemIndex:       1,
+			StartByteOffset: 12,
+			EndByteOffset:   16,
+			Style:           lipgloss.NewStyle().Foreground(green),
+		},
+	}
+	vp.SetSpecificHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"\x1b[38;2;255;0;0msecond" + linebuffer.RST + " lin",
+		"e \x1b[38;2;0;255;0mthat" + linebuffer.RST + " wra",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_SetSpecificHighlightsOverridesRegex(t *testing.T) {
+	// TODO LEO
+}
+
+func TestViewport_SelectionOff_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
 	// TODO LEO
 }
 
@@ -5158,6 +5276,46 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightAnsiUnicode(t *testing.T) 
 }
 
 func TestViewport_SelectionOn_WrapOn_SetSpecificHighlights(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"first line that wraps",
+		"second",
+		"third",
+	})
+	highlights := []linebuffer.Highlight{
+		{
+			ItemIndex:       0,
+			StartByteOffset: 0,
+			EndByteOffset:   5,
+			Style:           lipgloss.NewStyle().Foreground(green),
+		},
+		{
+			ItemIndex:       0,
+			StartByteOffset: 11,
+			EndByteOffset:   15,
+			Style:           lipgloss.NewStyle().Foreground(red),
+		},
+	}
+	vp.SetSpecificHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"\x1b[38;2;0;255;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
+		"\x1b[38;2;0;0;255m " + linebuffer.RST + "\x1b[38;2;255;0;0mthat" + linebuffer.RST + "\x1b[38;2;0;0;255m wrap" + linebuffer.RST,
+		"\x1b[38;2;0;0;255ms" + linebuffer.RST,
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_SetSpecificHighlightsOverridesRegex(t *testing.T) {
+	// TODO LEO
+}
+
+func TestViewport_SelectionOn_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
 	// TODO LEO
 }
 
