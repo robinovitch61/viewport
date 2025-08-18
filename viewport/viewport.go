@@ -472,13 +472,6 @@ func (m *Model[T]) SetRegexToHighlight(r *regexp.Regexp) {
 	}
 }
 
-// SetSpecificHighlights sets specific positions to highlight with custom styles in the viewport.
-// These highlights override any string or regex highlighting at the same positions.
-// TODO LEO: test this
-func (m *Model[T]) SetSpecificHighlights(highlights []linebuffer.Highlight) {
-	m.content.ToHighlight.SpecificHighlights = highlights
-}
-
 // SetHeader sets the header, an unselectable set of lines at the top of the viewport
 func (m *Model[T]) SetHeader(header []string) {
 	m.content.Header = header
@@ -535,6 +528,12 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 			m.display.TopItemLineOffset = originalTopItemLineOffset
 		}
 	}
+}
+
+// SetSpecificHighlights sets specific positions to highlight with custom styles in the viewport.
+// These highlights override any string or regex highlighting at the same positions.
+func (m *Model[T]) SetSpecificHighlights(highlights []linebuffer.Highlight) {
+	m.content.ToHighlight.SpecificHighlights = highlights
 }
 
 func (m *Model[T]) maxLineWidth() int {

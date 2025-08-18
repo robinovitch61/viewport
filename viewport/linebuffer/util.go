@@ -206,7 +206,6 @@ func highlightString(
 			return styledSegment // no matches, return as is
 		}
 
-		// TODO LEO: test this
 		for _, match := range matches {
 			startIdx := match[0] + segmentStart
 			endIdx := match[1] + segmentStart

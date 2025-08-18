@@ -968,6 +968,10 @@ func TestViewport_SelectionOff_WrapOff_SetSelectionEnabled_SetsTopVisibleItem(t 
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOff_WrapOff_SetSpecificHighlights(t *testing.T) {
+	// TODO LEO
+}
+
 // # SELECTION ENABLED, WRAP OFF
 
 func TestViewport_SelectionOn_WrapOff_Empty(t *testing.T) {
@@ -2455,6 +2459,10 @@ func TestViewport_SelectionOn_WrapOff_StringToHighlightAnsiUnicode(t *testing.T)
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOn_WrapOff_SetSpecificHighlights(t *testing.T) {
+	// TODO LEO
+}
+
 // # SELECTION DISABLED, WRAP ON
 
 func TestViewport_SelectionOff_WrapOn_Empty(t *testing.T) {
@@ -3520,6 +3528,10 @@ func TestViewport_SelectionOff_WrapOn_EnableSelectionShowsTopLineInItem(t *testi
 		"50% (2/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_SetSpecificHighlights(t *testing.T) {
+	// TODO LEO
 }
 
 // # SELECTION ENABLED, WRAP ON
@@ -5143,6 +5155,10 @@ func TestViewport_SelectionOn_WrapOn_StringToHighlightAnsiUnicode(t *testing.T) 
 		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_SetSpecificHighlights(t *testing.T) {
+	// TODO LEO
 }
 
 // # OTHER
