@@ -229,6 +229,28 @@ func highlightString(
 		}
 	}
 
+	// apply specific highlights that override default highlighting
+	for _, highlight := range toHighlight.SpecificHighlights {
+		// check if this highlight overlaps with the current segment
+		if highlight.StartByteOffset < segmentEnd && highlight.EndByteOffset > segmentStart {
+			// calculate the intersection of the highlight with the current segment
+			highlightStart := max(highlight.StartByteOffset, segmentStart)
+			highlightEnd := min(highlight.EndByteOffset, segmentEnd)
+
+			if highlightStart < highlightEnd {
+				// extract the text to highlight from the plain line
+				textToHighlight := plainLine[highlightStart:highlightEnd]
+
+				// calculate the relative position within the styled segment
+				relativeStart := highlightStart - segmentStart
+				relativeEnd := highlightEnd - segmentStart
+
+				// apply the specific highlight style
+				styledSegment = highlightLine(styledSegment, textToHighlight, highlight.Style, relativeStart, relativeEnd)
+			}
+		}
+	}
+
 	return styledSegment
 }
 

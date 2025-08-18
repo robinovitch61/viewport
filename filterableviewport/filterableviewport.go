@@ -44,10 +44,11 @@ func WithKeyMap[T viewport.Renderable](keyMap KeyMap) Option[T] {
 	}
 }
 
-// WithStyles sets the styling for the viewport
-func WithStyles[T viewport.Renderable](styles viewport.Styles) Option[T] {
+// WithStyles sets the styling for the filterable viewport
+func WithStyles[T viewport.Renderable](styles Styles) Option[T] {
 	return func(m *Model[T]) {
-		m.Viewport.SetStyles(styles)
+		m.styles = styles
+		m.Viewport.SetStyles(styles.Viewport)
 	}
 }
 
@@ -91,12 +92,13 @@ type Model[T viewport.Renderable] struct {
 	emptyText       string
 	items           []T
 	isRegexMode     bool
+	styles          Styles
 
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
 	allMatches                 []Match
 	numMatchingItems           int
-	currentMatchIdx            int
+	focusedMatchIdx            int
 	totalMatchesOnAllItems     int
 }
 
@@ -114,10 +116,11 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 	ti.Prompt = ""
 
 	defaultKeyMap := DefaultKeyMap()
+	defaultStyles := DefaultStyles()
 	viewportHeight := max(0, height-filterLineHeight)
 	vp := viewport.New[T](width, viewportHeight,
 		viewport.WithKeyMap[T](defaultKeyMap.ViewportKeyMap),
-		viewport.WithStyles[T](viewport.DefaultStyles()),
+		viewport.WithStyles[T](defaultStyles.Viewport),
 	)
 
 	m := &Model[T]{
@@ -130,11 +133,12 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 		emptyText:                  "No Filter",
 		items:                      []T{},
 		isRegexMode:                false,
+		styles:                     defaultStyles,
 		matchingItemsOnly:          false,
 		canToggleMatchingItemsOnly: true,
 		allMatches:                 []Match{},
 		numMatchingItems:           0,
-		currentMatchIdx:            -1,
+		focusedMatchIdx:            -1,
 		totalMatchesOnAllItems:     0,
 	}
 
@@ -250,6 +254,7 @@ func (m *Model[T]) updateHighlighting() {
 	filterText := m.filterTextInput.Value()
 	if filterText == "" {
 		m.Viewport.SetStringToHighlight("")
+		m.Viewport.SetSpecificHighlights(nil)
 		return
 	}
 
@@ -257,12 +262,32 @@ func (m *Model[T]) updateHighlighting() {
 		regex, err := regexp.Compile(filterText)
 		if err != nil {
 			m.Viewport.SetStringToHighlight("")
+			m.Viewport.SetSpecificHighlights(nil)
 			return
 		}
 		m.Viewport.SetRegexToHighlight(regex)
 	} else {
 		m.Viewport.SetStringToHighlight(filterText)
 	}
+	m.updateFocusedMatchHighlight()
+}
+
+// updateFocusedMatchHighlight sets a specific highlight for the currently focused match
+func (m *Model[T]) updateFocusedMatchHighlight() {
+	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
+		m.Viewport.SetSpecificHighlights(nil)
+		return
+	}
+
+	focusedMatch := m.allMatches[m.focusedMatchIdx]
+	highlight := linebuffer.Highlight{
+		ItemIndex:       focusedMatch.ItemIndex,
+		StartByteOffset: focusedMatch.Start,
+		EndByteOffset:   focusedMatch.End,
+		Style:           m.styles.FocusedMatchStyle,
+	}
+
+	m.Viewport.SetSpecificHighlights([]linebuffer.Highlight{highlight})
 }
 
 // GetWidth returns the width of the filterable viewport
@@ -385,7 +410,7 @@ func removeEmpty(s []string) []string {
 // updateMatches recalculates all matches and updates match tracking
 func (m *Model[T]) updateMatches() {
 	m.allMatches = []Match{}
-	m.currentMatchIdx = -1
+	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
 
 	filterValue := m.filterTextInput.Value()
@@ -433,7 +458,7 @@ func (m *Model[T]) updateMatches() {
 	m.totalMatchesOnAllItems = len(m.allMatches)
 
 	if m.totalMatchesOnAllItems > 0 {
-		m.currentMatchIdx = 0
+		m.focusedMatchIdx = 0
 	}
 }
 
@@ -450,8 +475,8 @@ func (m *Model[T]) getMatchCountText() string {
 	if m.totalMatchesOnAllItems == 0 {
 		return "(no matches)"
 	}
-	currentMatch := m.currentMatchIdx + 1
-	if m.currentMatchIdx < 0 {
+	currentMatch := m.focusedMatchIdx + 1
+	if m.focusedMatchIdx < 0 {
 		currentMatch = 0
 	}
 	return fmt.Sprintf("(%d/%d matches on %d items)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems)
@@ -462,8 +487,9 @@ func (m *Model[T]) navigateToNextMatch() {
 		return
 	}
 
-	m.currentMatchIdx = (m.currentMatchIdx + 1) % len(m.allMatches)
+	m.focusedMatchIdx = (m.focusedMatchIdx + 1) % len(m.allMatches)
 	m.scrollToCurrentMatch()
+	m.updateFocusedMatchHighlight()
 }
 
 func (m *Model[T]) navigateToPrevMatch() {
@@ -471,19 +497,20 @@ func (m *Model[T]) navigateToPrevMatch() {
 		return
 	}
 
-	m.currentMatchIdx--
-	if m.currentMatchIdx < 0 {
-		m.currentMatchIdx = len(m.allMatches) - 1
+	m.focusedMatchIdx--
+	if m.focusedMatchIdx < 0 {
+		m.focusedMatchIdx = len(m.allMatches) - 1
 	}
 	m.scrollToCurrentMatch()
+	m.updateFocusedMatchHighlight()
 }
 
 func (m *Model[T]) scrollToCurrentMatch() {
-	if m.currentMatchIdx < 0 || m.currentMatchIdx >= len(m.allMatches) {
+	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
 		return
 	}
 
-	currentMatch := m.allMatches[m.currentMatchIdx]
+	currentMatch := m.allMatches[m.focusedMatchIdx]
 	m.Viewport.ScrollSoItemIdxInView(currentMatch.ItemIndex)
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)

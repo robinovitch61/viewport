@@ -231,11 +231,12 @@ func (m *Model[T]) View() string {
 			truncated = visibleContentLines.lines[i].Content()
 		} else {
 			lineBuffer := visibleContentLines.lines[i]
+			highlightData := m.getHighlightDataForItem(visibleContentLines.itemIndexes[i])
 			truncated, _ = lineBuffer.Take(
 				m.display.XOffset,
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
-				m.content.ToHighlight,
+				highlightData,
 				m.highlightStyle(visibleContentLines.itemIndexes[i]),
 			)
 		}
@@ -469,6 +470,13 @@ func (m *Model[T]) SetRegexToHighlight(r *regexp.Regexp) {
 		RegexPatternToHighlight: r,
 		IsRegex:                 true,
 	}
+}
+
+// SetSpecificHighlights sets specific positions to highlight with custom styles in the viewport.
+// These highlights override any string or regex highlighting at the same positions.
+// TODO LEO: test this
+func (m *Model[T]) SetSpecificHighlights(highlights []linebuffer.Highlight) {
+	m.content.ToHighlight.SpecificHighlights = highlights
 }
 
 // SetHeader sets the header, an unselectable set of lines at the top of the viewport
@@ -772,7 +780,8 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 
 	if m.config.WrapText {
 		lb := currItem.Render()
-		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, m.content.ToHighlight, m.highlightStyle(currItemIdx))
+		highlightData := m.getHighlightDataForItem(currItemIdx)
+		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData, m.highlightStyle(currItemIdx))
 		offsetLines := safeSliceFromIdx(itemLines, m.display.TopItemLineOffset)
 		done = addLines(toLineBuffers(offsetLines), currItemIdx)
 
@@ -783,7 +792,8 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 			} else {
 				currItem = items[currItemIdx]
 				lb = currItem.Render()
-				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, m.content.ToHighlight, m.highlightStyle(currItemIdx))
+				highlightData = m.getHighlightDataForItem(currItemIdx)
+				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData, m.highlightStyle(currItemIdx))
 				done = addLines(toLineBuffers(itemLines), currItemIdx)
 			}
 		}
@@ -938,6 +948,22 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 		}
 	}
 	return max(0, maxTopItemIdx), max(0, maxTopItemLineOffset)
+}
+
+// getHighlightDataForItem returns highlight data filtered for the specific item index
+func (m *Model[T]) getHighlightDataForItem(itemIndex int) linebuffer.HighlightData {
+	highlightData := m.content.ToHighlight
+
+	// filter specific highlights to only include those for this item
+	var filteredHighlights []linebuffer.Highlight
+	for _, highlight := range m.content.ToHighlight.SpecificHighlights {
+		if highlight.ItemIndex == itemIndex {
+			filteredHighlights = append(filteredHighlights, highlight)
+		}
+	}
+	highlightData.SpecificHighlights = filteredHighlights
+
+	return highlightData
 }
 
 func (m *Model[T]) getNumVisibleItems() int {
