@@ -202,16 +202,11 @@ func highlightString(
 	// regex case, highlight matches in the specific segment, without consideration for overflow
 	if toHighlight.IsRegex {
 		matches := toHighlight.RegexPatternToHighlight.FindAllStringIndex(plainLine[segmentStart:segmentEnd], -1)
-		if matches == nil {
-			return styledSegment // no matches, return as is
-		}
-
 		for _, match := range matches {
 			startIdx := match[0] + segmentStart
 			endIdx := match[1] + segmentStart
 			styledSegment = highlightLine(styledSegment, plainLine[startIdx:endIdx], highlightStyle, 0, len(styledSegment))
 		}
-		return styledSegment
 	}
 	// non-regex highlighting
 	if toHighlight.StringToHighlight != "" {
