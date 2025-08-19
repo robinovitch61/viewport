@@ -100,6 +100,7 @@ type Model[T viewport.Renderable] struct {
 	numMatchingItems           int
 	focusedMatchIdx            int
 	totalMatchesOnAllItems     int
+	itemIdxToFilteredIdx       map[int]int
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -140,6 +141,7 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 		numMatchingItems:           0,
 		focusedMatchIdx:            -1,
 		totalMatchesOnAllItems:     0,
+		itemIdxToFilteredIdx:       make(map[int]int),
 	}
 
 	for _, opt := range opts {
@@ -239,9 +241,9 @@ func (m *Model[T]) View() string {
 
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
-	matchingItems := m.getMatchingItems()
+	matchingItems := m.getMatchingItemsAndUpdateMatches()
+	m.updateFocusedMatchHighlight()
 	m.numMatchingItems = len(matchingItems)
-	m.updateMatches()
 	if m.matchingItemsOnly {
 		m.Viewport.SetContent(matchingItems)
 	} else {
@@ -280,8 +282,16 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	focusedMatch := m.allMatches[m.focusedMatchIdx]
+	itemIdx := focusedMatch.ItemIndex
+	if m.matchingItemsOnly {
+		if filteredIdx, ok := m.itemIdxToFilteredIdx[itemIdx]; ok {
+			itemIdx = filteredIdx
+		} else {
+			panic("focused match item index not found in filtered items")
+		}
+	}
 	highlight := linebuffer.Highlight{
-		ItemIndex:       focusedMatch.ItemIndex,
+		ItemIndex:       itemIdx,
 		StartByteOffset: focusedMatch.Start,
 		EndByteOffset:   focusedMatch.End,
 		Style:           m.styles.FocusedMatchStyle,
@@ -363,7 +373,15 @@ func (m *Model[T]) getModeIndicator() string {
 	return "[exact]"
 }
 
-func (m *Model[T]) getMatchingItems() []T {
+// getMatchingItemsAndUpdateMatches filters items and updates match tracking
+func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
+	prevFocusedMatchIdx := m.focusedMatchIdx
+
+	m.allMatches = []Match{}
+	m.focusedMatchIdx = -1
+	m.totalMatchesOnAllItems = 0
+	m.itemIdxToFilteredIdx = make(map[int]int)
+
 	filterValue := m.filterTextInput.Value()
 	if m.filterMode == filterModeOff || filterValue == "" {
 		return m.items
@@ -376,72 +394,34 @@ func (m *Model[T]) getMatchingItems() []T {
 			return []T{}
 		}
 		for i := range m.items {
-			if regex.MatchString(m.items[i].Render().Content()) {
-				filteredItems = append(filteredItems, m.items[i])
-			}
-		}
-	} else {
-		for i := range m.items {
-			if strings.Contains(m.items[i].Render().Content(), filterValue) {
-				filteredItems = append(filteredItems, m.items[i])
-			}
-		}
-	}
-	return filteredItems
-}
-
-func matchingItemsOnlyText(matchingItemsOnly bool) string {
-	if matchingItemsOnly {
-		return "showing matches only"
-	}
-	return ""
-}
-
-func removeEmpty(s []string) []string {
-	var result []string
-	for _, str := range s {
-		if str != "" {
-			result = append(result, str)
-		}
-	}
-	return result
-}
-
-// updateMatches recalculates all matches and updates match tracking
-func (m *Model[T]) updateMatches() {
-	m.allMatches = []Match{}
-	m.focusedMatchIdx = -1
-	m.totalMatchesOnAllItems = 0
-
-	filterValue := m.filterTextInput.Value()
-	if m.filterMode == filterModeOff || filterValue == "" {
-		return
-	}
-
-	if m.isRegexMode {
-		regex, err := regexp.Compile(filterValue)
-		if err != nil {
-			return
-		}
-		for i := range m.items {
 			content := m.items[i].Render().Content()
 			matches := regex.FindAllStringIndex(content, -1)
-			for _, match := range matches {
-				m.allMatches = append(m.allMatches, Match{
-					ItemIndex: i,
-					Start:     match[0],
-					End:       match[1],
-				})
+			if len(matches) > 0 {
+				filteredItems = append(filteredItems, m.items[i])
+				m.itemIdxToFilteredIdx[i] = len(filteredItems) - 1
+				for _, match := range matches {
+					m.allMatches = append(m.allMatches, Match{
+						ItemIndex: i,
+						Start:     match[0],
+						End:       match[1],
+					})
+				}
 			}
 		}
 	} else {
 		for i := range m.items {
 			content := m.items[i].Render().Content()
 			start := 0
+			hasMatch := false
 			for {
 				index := strings.Index(content[start:], filterValue)
 				if index == -1 {
 					break
+				}
+				if !hasMatch {
+					filteredItems = append(filteredItems, m.items[i])
+					hasMatch = true
+					m.itemIdxToFilteredIdx[i] = len(filteredItems) - 1
 				}
 				matchStart := start + index
 				matchEnd := matchStart + len(filterValue)
@@ -457,9 +437,34 @@ func (m *Model[T]) updateMatches() {
 
 	m.totalMatchesOnAllItems = len(m.allMatches)
 
-	if m.totalMatchesOnAllItems > 0 {
+	if prevFocusedMatchIdx >= 0 && prevFocusedMatchIdx < len(m.allMatches) {
+		m.focusedMatchIdx = prevFocusedMatchIdx
+	} else if m.totalMatchesOnAllItems > 0 {
 		m.focusedMatchIdx = 0
+	} else {
+		m.focusedMatchIdx = -1
 	}
+
+	return filteredItems
+}
+
+// matchingItemsOnlyText returns the text to display when showing matching items only
+func matchingItemsOnlyText(matchingItemsOnly bool) string {
+	if matchingItemsOnly {
+		return "showing matches only"
+	}
+	return ""
+}
+
+// removeEmpty removes empty strings from a slice
+func removeEmpty(s []string) []string {
+	var result []string
+	for _, str := range s {
+		if str != "" {
+			result = append(result, str)
+		}
+	}
+	return result
 }
 
 // getTextAfterFilter returns the text to display after the filter input

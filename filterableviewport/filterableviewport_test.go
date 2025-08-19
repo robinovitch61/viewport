@@ -482,6 +482,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 
 // TODO LEO: add test for match navigation showing only matches (currently wrong itemIdx for special highlights)
 
+// TODO LEO: test for multiple regex matches in a single line
+
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))
 	for i, s := range vals {
