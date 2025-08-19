@@ -187,6 +187,22 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.updateMatchingItems()
 				return m, nil
 			}
+		case key.Matches(msg, m.keyMap.ToggleMatchingItemsOnlyKey):
+			if m.filterMode != filterModeEditing && m.canToggleMatchingItemsOnly {
+				m.matchingItemsOnly = !m.matchingItemsOnly
+				m.updateMatchingItems()
+				return m, nil
+			}
+		case key.Matches(msg, m.keyMap.NextMatchKey):
+			if m.filterMode != filterModeEditing && m.filterMode != filterModeOff && len(m.allMatches) > 0 {
+				m.navigateToNextMatch()
+				return m, nil
+			}
+		case key.Matches(msg, m.keyMap.PrevMatchKey):
+			if m.filterMode != filterModeEditing && m.filterMode != filterModeOff && len(m.allMatches) > 0 {
+				m.navigateToPrevMatch()
+				return m, nil
+			}
 		case key.Matches(msg, m.keyMap.CancelFilterKey):
 			m.filterMode = filterModeOff
 			m.isRegexMode = false
@@ -195,22 +211,6 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.updateHighlighting()
 			m.updateMatchingItems()
 			return m, nil
-		case key.Matches(msg, m.keyMap.ToggleMatchingItemsOnlyKey):
-			if m.canToggleMatchingItemsOnly {
-				m.matchingItemsOnly = !m.matchingItemsOnly
-				m.updateMatchingItems()
-				return m, nil
-			}
-		case key.Matches(msg, m.keyMap.NextMatchKey):
-			if m.filterMode != filterModeOff && len(m.allMatches) > 0 {
-				m.navigateToNextMatch()
-				return m, nil
-			}
-		case key.Matches(msg, m.keyMap.PrevMatchKey):
-			if m.filterMode != filterModeOff && len(m.allMatches) > 0 {
-				m.navigateToPrevMatch()
-				return m, nil
-			}
 		}
 	}
 

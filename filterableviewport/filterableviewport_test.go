@@ -429,6 +429,34 @@ func TestEditingEmptyFilter_ShowsEditingMessage(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestSpecialKeysWhileFiltering(t *testing.T) {
+	fv := New[viewport.Item](
+		80,
+		4,
+		WithCanToggleMatchingItemsOnly[viewport.Item](true),
+	)
+	fv.SetContent(stringsToItems([]string{
+		"apple",
+		"book",
+		"food",
+		"cherry",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(toggleMatchesKeyMsg) // 'o'
+	fv, _ = fv.Update(nextMatchKeyMsg)     // 'n'
+	fv, _ = fv.Update(prevMatchKeyMsg)     // 'N'
+	fv, _ = fv.Update(filterKeyMsg)        // '/'
+	fv, _ = fv.Update(regexFilterKeyMsg)   // 'r'
+	expectedViewAfterO := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] ponN/r  (no matches)",
+		"apple",
+		"book",
+		"50% (2/4)",
+	})
+	internal.CmpStr(t, expectedViewAfterO, fv.View())
+}
+
 func TestMatchNavigationWithNoMatches(t *testing.T) {
 	fv := New[viewport.Item](50, 4)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
@@ -451,6 +479,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 }
 
 // TODO LEO: add tests for match navigation with matches
+
+// TODO LEO: add test for match navigation showing only matches (currently wrong itemIdx for special highlights)
 
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))
