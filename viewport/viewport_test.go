@@ -783,7 +783,7 @@ func TestViewport_SelectionOff_WrapOff_SetSelectionEnabled_SetsTopVisibleItem(t 
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_SetSpecificHighlights(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -807,7 +807,7 @@ func TestViewport_SelectionOff_WrapOff_SetSpecificHighlights(t *testing.T) {
 			Style:           lipgloss.NewStyle().Foreground(green),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first line",
@@ -818,7 +818,7 @@ func TestViewport_SelectionOff_WrapOff_SetSpecificHighlights(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
@@ -835,7 +835,7 @@ func TestViewport_SelectionOff_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testi
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
 		"A\x1b[38;2;255;0;0m💖中" + linebuffer.RST + "é line",
@@ -2150,7 +2150,7 @@ func TestViewport_SelectionOn_WrapOff_ExtraSlash(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOff_SetSpecificHighlights(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -2175,7 +2175,7 @@ func TestViewport_SelectionOn_WrapOff_SetSpecificHighlights(t *testing.T) {
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"\x1b[38;2;0;0;255mthe " + linebuffer.RST + "\x1b[38;2;0;255;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
@@ -2186,7 +2186,7 @@ func TestViewport_SelectionOn_WrapOff_SetSpecificHighlights(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"A💖中é"})
@@ -2203,7 +2203,7 @@ func TestViewport_SelectionOn_WrapOff_SetSpecificHighlightsAnsiUnicode(t *testin
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
 		"\x1b[38;2;0;0;255mA" + linebuffer.RST + "\x1b[38;2;255;0;0m💖中" + linebuffer.RST + "\x1b[38;2;0;0;255mé line" + linebuffer.RST,
@@ -3024,7 +3024,7 @@ func TestViewport_SelectionOff_WrapOn_EnableSelectionShowsTopLineInItem(t *testi
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOn_SetSpecificHighlights(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -3048,7 +3048,7 @@ func TestViewport_SelectionOff_WrapOn_SetSpecificHighlights(t *testing.T) {
 			Style:           lipgloss.NewStyle().Foreground(green),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
@@ -3059,7 +3059,7 @@ func TestViewport_SelectionOff_WrapOn_SetSpecificHighlights(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"A💖中é"})
@@ -3076,7 +3076,7 @@ func TestViewport_SelectionOff_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testin
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
 		"A\x1b[38;2;255;0;0m💖中" + linebuffer.RST + "é tex",
@@ -4520,7 +4520,7 @@ func TestViewport_SelectionOn_WrapOn_SuperLongWrappedLine(t *testing.T) {
 	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
 }
 
-func TestViewport_SelectionOn_WrapOn_SetSpecificHighlights(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -4545,7 +4545,7 @@ func TestViewport_SelectionOn_WrapOn_SetSpecificHighlights(t *testing.T) {
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"\x1b[38;2;0;255;0mfirst" + linebuffer.RST + "\x1b[38;2;0;0;255m line" + linebuffer.RST,
@@ -4556,7 +4556,7 @@ func TestViewport_SelectionOn_WrapOn_SetSpecificHighlights(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"A💖中é"})
@@ -4574,7 +4574,7 @@ func TestViewport_SelectionOn_WrapOn_SetSpecificHighlightsAnsiUnicode(t *testing
 			Style:           lipgloss.NewStyle().Foreground(red),
 		},
 	}
-	vp.SetSpecificHighlights(highlights)
+	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"A💖中é",
 		"\x1b[38;2;0;0;255mA" + linebuffer.RST + "\x1b[38;2;255;0;0m💖中" + linebuffer.RST + "\x1b[38;2;0;0;255mé tex" + linebuffer.RST,

@@ -513,10 +513,8 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	}
 }
 
-// SetSpecificHighlights sets specific positions to highlight with custom styles in the viewport.
-// These highlights override any string or regex highlighting at the same positions.
-// TODO LEO: rename
-func (m *Model[T]) SetSpecificHighlights(highlights []linebuffer.Highlight) {
+// SetHighlights sets specific positions to highlight with custom styles in the viewport.
+func (m *Model[T]) SetHighlights(highlights []linebuffer.Highlight) {
 	m.content.Highlights = highlights
 }
 

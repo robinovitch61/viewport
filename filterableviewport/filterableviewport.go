@@ -255,14 +255,14 @@ func (m *Model[T]) updateMatchingItems() {
 func (m *Model[T]) updateHighlighting() {
 	filterText := m.filterTextInput.Value()
 	if filterText == "" {
-		m.Viewport.SetSpecificHighlights(nil)
+		m.Viewport.SetHighlights(nil)
 		return
 	}
 
 	if m.isRegexMode {
 		_, err := regexp.Compile(filterText)
 		if err != nil {
-			m.Viewport.SetSpecificHighlights(nil)
+			m.Viewport.SetHighlights(nil)
 			return
 		}
 	}
@@ -272,7 +272,7 @@ func (m *Model[T]) updateHighlighting() {
 // updateFocusedMatchHighlight sets a specific highlight for the currently focused match
 func (m *Model[T]) updateFocusedMatchHighlight() {
 	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
-		m.Viewport.SetSpecificHighlights(nil)
+		m.Viewport.SetHighlights(nil)
 		return
 	}
 
@@ -292,7 +292,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		Style:           m.styles.FocusedMatchStyle,
 	}
 
-	m.Viewport.SetSpecificHighlights([]linebuffer.Highlight{highlight})
+	m.Viewport.SetHighlights([]linebuffer.Highlight{highlight})
 }
 
 // GetWidth returns the width of the filterable viewport
