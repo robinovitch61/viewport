@@ -199,7 +199,8 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "lo ",
 			highlightStyle: redBg,
-			expected:       "...o...", // does not highlight continuation, could in future
+			//expected:       "...o...", // does not highlight continuation, could in future
+			expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
 		},
 		{
 			name:           "ansi start at 0",
@@ -425,12 +426,12 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			toHighlight := HighlightData{
-				StringToHighlight: tt.toHighlight,
-				IsRegex:           false,
-			}
 			for _, eq := range getEquivalentLineBuffers()[tt.key] {
-				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, toHighlight, tt.highlightStyle)
+				var highlights []Highlight
+				if tt.toHighlight != "" {
+					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
+				}
+				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 				if actual != tt.expected {
 					t.Errorf("for %s, expected %q, got %q", eq.Repr(), tt.expected, actual)
 				}
@@ -652,12 +653,12 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			toHighlight := HighlightData{
-				StringToHighlight: tt.toHighlight,
-				IsRegex:           false,
-			}
 			for _, eq := range getEquivalentLineBuffers()[tt.key] {
-				actual := eq.WrappedLines(tt.width, tt.maxLinesEachEnd, toHighlight, tt.highlightStyle)
+				var highlights []Highlight
+				if tt.toHighlight != "" {
+					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
+				}
+				actual := eq.WrappedLines(tt.width, tt.maxLinesEachEnd, highlights)
 
 				if len(actual) != len(tt.expected) {
 					t.Errorf("for %s, expected %d lines, got %d lines", eq.Repr(), len(tt.expected), len(actual))

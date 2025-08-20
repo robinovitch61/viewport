@@ -6,7 +6,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -129,8 +128,7 @@ func (l LineBuffer) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
-	toHighlight HighlightData,
-	highlightStyle lipgloss.Style,
+	highlights []Highlight,
 ) (string, int) {
 	if widthToLeft < 0 {
 		widthToLeft = 0
@@ -214,8 +212,7 @@ func (l LineBuffer) Take(
 	}
 	res = highlightString(
 		res,
-		toHighlight,
-		highlightStyle,
+		highlights,
 		l.lineNoAnsi,
 		int(startByteOffset),
 		endByteOffset,
@@ -229,8 +226,7 @@ func (l LineBuffer) Take(
 func (l LineBuffer) WrappedLines(
 	width int,
 	maxLinesEachEnd int,
-	toHighlight HighlightData,
-	toHighlightStyle lipgloss.Style,
+	highlights []Highlight,
 ) []string {
 	if width == 0 {
 		return []string{}
@@ -248,8 +244,7 @@ func (l LineBuffer) WrappedLines(
 		totalLines,
 		width,
 		maxLinesEachEnd,
-		toHighlight,
-		toHighlightStyle,
+		highlights,
 	)
 }
 

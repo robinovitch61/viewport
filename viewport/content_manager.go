@@ -14,8 +14,8 @@ type ContentManager[T Renderable] struct {
 	// selectedIdx is the index of Items of the current selection (only relevant when selection is enabled)
 	selectedIdx int
 
-	// ToHighlight is what to highlight wherever it shows up within an item, even wrapped between lines
-	ToHighlight linebuffer.HighlightData
+	// Highlights is what to highlight wherever it shows up within an item, even wrapped between lines
+	Highlights []linebuffer.Highlight
 
 	// CompareFn is an optional function to compare items for maintaining the selection when LineBuffer changes
 	// if set, the viewport will try to maintain the previous selected item when LineBuffer changes

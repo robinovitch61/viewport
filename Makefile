@@ -1,4 +1,4 @@
-.PHONY: all test lint build bench fmt goimports
+.PHONY: all test testsum lint build bench fmt goimports
 
 all: goimports lint test build
 
@@ -13,6 +13,10 @@ lint:
 # Run all tests
 test:
 	go test ./...
+
+# Run all tests, show summary
+testsum:
+	go test ./... | grep -E "(FAIL|--- FAIL)"
 
 # Build the project
 build:

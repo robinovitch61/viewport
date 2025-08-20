@@ -255,21 +255,16 @@ func (m *Model[T]) updateMatchingItems() {
 func (m *Model[T]) updateHighlighting() {
 	filterText := m.filterTextInput.Value()
 	if filterText == "" {
-		m.Viewport.SetStringToHighlight("")
 		m.Viewport.SetSpecificHighlights(nil)
 		return
 	}
 
 	if m.isRegexMode {
-		regex, err := regexp.Compile(filterText)
+		_, err := regexp.Compile(filterText)
 		if err != nil {
-			m.Viewport.SetStringToHighlight("")
 			m.Viewport.SetSpecificHighlights(nil)
 			return
 		}
-		m.Viewport.SetRegexToHighlight(regex)
-	} else {
-		m.Viewport.SetStringToHighlight(filterText)
 	}
 	m.updateFocusedMatchHighlight()
 }
@@ -362,7 +357,7 @@ func (m *Model[T]) renderFilterLine() string {
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
 	filterLineBuffer := linebuffer.New(filterLine)
-	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", linebuffer.HighlightData{}, lipgloss.NewStyle())
+	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []linebuffer.Highlight{})
 	return res
 }
 

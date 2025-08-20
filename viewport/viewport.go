@@ -219,7 +219,7 @@ func (m *Model[T]) View() string {
 
 	for i := range visibleHeaderLines {
 		lineBuffer := linebuffer.New(visibleHeaderLines[i])
-		line, _ := lineBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, linebuffer.HighlightData{}, lipgloss.NewStyle())
+		line, _ := lineBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []linebuffer.Highlight{})
 		builder.WriteString(line)
 		builder.WriteByte('\n')
 	}
@@ -236,8 +236,7 @@ func (m *Model[T]) View() string {
 				m.display.XOffset,
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
-				highlightData,
-				m.highlightStyle(visibleContentLines.itemIndexes[i]),
+				highlightData, // TODO LEO: adjust highlightData style based on idx
 			)
 		}
 
@@ -249,7 +248,7 @@ func (m *Model[T]) View() string {
 		if !m.config.WrapText && m.display.XOffset > 0 && lipgloss.Width(truncated) == 0 && visibleContentLines.lines[i].Width() > 0 {
 			// if panned right past where line ends, show continuation indicator
 			lineBuffer := linebuffer.New(m.getLineContinuationIndicator())
-			truncated, _ = lineBuffer.Take(0, m.display.Bounds.Width, "", linebuffer.HighlightData{}, lipgloss.NewStyle())
+			truncated, _ = lineBuffer.Take(0, m.display.Bounds.Width, "", []linebuffer.Highlight{})
 			if isSelection {
 				truncated = m.styleSelection(truncated)
 			}
@@ -456,22 +455,6 @@ func (m *Model[T]) GetSelectedItem() *T {
 	return m.content.GetSelectedItem()
 }
 
-// SetStringToHighlight sets a string to highlight in the viewport. Can only set string or regex, not both.
-func (m *Model[T]) SetStringToHighlight(h string) {
-	m.content.ToHighlight = linebuffer.HighlightData{
-		StringToHighlight: h,
-		IsRegex:           false,
-	}
-}
-
-// SetRegexToHighlight sets a regex to highlight in the viewport. Can only set string or regex, not both.
-func (m *Model[T]) SetRegexToHighlight(r *regexp.Regexp) {
-	m.content.ToHighlight = linebuffer.HighlightData{
-		RegexPatternToHighlight: r,
-		IsRegex:                 true,
-	}
-}
-
 // SetHeader sets the header, an unselectable set of lines at the top of the viewport
 func (m *Model[T]) SetHeader(header []string) {
 	m.content.Header = header
@@ -532,8 +515,9 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 
 // SetSpecificHighlights sets specific positions to highlight with custom styles in the viewport.
 // These highlights override any string or regex highlighting at the same positions.
+// TODO LEO: rename
 func (m *Model[T]) SetSpecificHighlights(highlights []linebuffer.Highlight) {
-	m.content.ToHighlight.SpecificHighlights = highlights
+	m.content.Highlights = highlights
 }
 
 func (m *Model[T]) maxLineWidth() int {
@@ -572,7 +556,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	}
 	items := m.content.Items
 	lb := items[itemIdx].Render()
-	return len(lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, linebuffer.HighlightData{}, lipgloss.NewStyle()))
+	return len(lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{}))
 }
 
 func (m *Model[T]) safelySetXOffset(n int) {
@@ -724,7 +708,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		lb := linebuffer.New(s)
 		wrappedHeaderLines = append(
 			wrappedHeaderLines,
-			lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, linebuffer.HighlightData{}, lipgloss.NewStyle())...,
+			lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{})...,
 		)
 	}
 	return safeSliceUpToIdx(wrappedHeaderLines, m.display.Bounds.Height)
@@ -780,7 +764,7 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	if m.config.WrapText {
 		lb := currItem.Render()
 		highlightData := m.getHighlightDataForItem(currItemIdx)
-		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData, m.highlightStyle(currItemIdx))
+		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData) // TODO LEO: adjust highlightData style based on idx
 		offsetLines := safeSliceFromIdx(itemLines, m.display.TopItemLineOffset)
 		done = addLines(toLineBuffers(offsetLines), currItemIdx)
 
@@ -792,7 +776,7 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 				currItem = items[currItemIdx]
 				lb = currItem.Render()
 				highlightData = m.getHighlightDataForItem(currItemIdx)
-				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData, m.highlightStyle(currItemIdx))
+				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData) // TODO LEO: adjust highlightData style based on idx
 				done = addLines(toLineBuffers(itemLines), currItemIdx)
 			}
 		}
@@ -834,9 +818,10 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	return visibleContentLinesResult{lines: contentLines, itemIndexes: itemIndexes, showFooter: showFooter}
 }
 
-func (m *Model[T]) highlightStyle(itemIdx int) lipgloss.Style {
-	return m.display.GetHighlightStyle(m.navigation.SelectionEnabled && itemIdx == m.content.GetSelectedIdx())
-}
+// TODO LEO: reuse this
+//func (m *Model[T]) highlightStyle(itemIdx int) lipgloss.Style {
+//	return m.display.GetHighlightStyle(m.navigation.SelectionEnabled && itemIdx == m.content.GetSelectedIdx())
+//}
 
 func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentLinesResult) string {
 	numerator := m.content.GetSelectedIdx() + 1 // 0th line is 1st
@@ -861,7 +846,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentLine
 	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 
 	footerBuffer := linebuffer.New(footerString)
-	f, _ := footerBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, linebuffer.HighlightData{}, lipgloss.NewStyle())
+	f, _ := footerBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []linebuffer.Highlight{})
 	return m.display.Styles.FooterStyle.Render(f)
 }
 
@@ -950,19 +935,15 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 }
 
 // getHighlightDataForItem returns highlight data filtered for the specific item index
-func (m *Model[T]) getHighlightDataForItem(itemIndex int) linebuffer.HighlightData {
-	highlightData := m.content.ToHighlight
-
+func (m *Model[T]) getHighlightDataForItem(itemIndex int) []linebuffer.Highlight {
 	// filter specific highlights to only include those for this item
 	var filteredHighlights []linebuffer.Highlight
-	for _, highlight := range m.content.ToHighlight.SpecificHighlights {
+	for _, highlight := range m.content.Highlights {
 		if highlight.ItemIndex == itemIndex {
 			filteredHighlights = append(filteredHighlights, highlight)
 		}
 	}
-	highlightData.SpecificHighlights = filteredHighlights
-
-	return highlightData
+	return filteredHighlights
 }
 
 func (m *Model[T]) getNumVisibleItems() int {

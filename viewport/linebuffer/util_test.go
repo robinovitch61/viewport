@@ -455,7 +455,7 @@ func TestHighlightString(t *testing.T) {
 			plainLine:      "hello world",
 			segmentStart:   1,
 			segmentEnd:     9,
-			expected:       "\x1b[38;2;255;0;0mello wor" + RST,
+			expected:       "\x1b[38;2;0;0;255mello wor" + RST,
 		},
 		{
 			name:           "no match in segment",
@@ -479,145 +479,13 @@ func TestHighlightString(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			toHighlight := HighlightData{
-				StringToHighlight: tt.toHighlight,
-				IsRegex:           false,
+			var highlights []Highlight
+			if tt.toHighlight != "" {
+				highlights = ExtractHighlights([]string{tt.plainLine}, tt.toHighlight, tt.highlightStyle)
 			}
 			result := highlightString(
 				tt.styledSegment,
-				toHighlight,
-				tt.highlightStyle,
-				tt.plainLine,
-				tt.segmentStart,
-				tt.segmentEnd,
-			)
-			internal.CmpStr(t, tt.expected, result)
-		})
-	}
-}
-
-func TestHighlightStringRegex(t *testing.T) {
-	for _, tt := range []struct {
-		name           string
-		styledSegment  string // segment with ANSI codes
-		regexPattern   string
-		highlightStyle lipgloss.Style
-		plainLine      string // full line without ANSI
-		segmentStart   int
-		segmentEnd     int
-		expected       string
-	}{
-		{
-			name:           "simple regex match",
-			styledSegment:  "hello world",
-			regexPattern:   "wo.ld",
-			highlightStyle: redFg,
-			plainLine:      "hello world",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "hello \x1b[38;2;255;0;0mworld" + RST,
-		},
-		{
-			name:           "multiple regex matches",
-			styledSegment:  "foo bar foo",
-			regexPattern:   "foo",
-			highlightStyle: redFg,
-			plainLine:      "foo bar foo",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "\x1b[38;2;255;0;0mfoo" + RST + " bar \x1b[38;2;255;0;0mfoo" + RST,
-		},
-		{
-			name:           "no regex matches",
-			styledSegment:  "hello world",
-			regexPattern:   "xyz",
-			highlightStyle: redFg,
-			plainLine:      "hello world",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "hello world",
-		},
-		{
-			name:           "regex with existing ansi style",
-			styledSegment:  "\x1b[38;2;255;0;0mhello world" + RST,
-			regexPattern:   "world",
-			highlightStyle: lipgloss.NewStyle().Foreground(blue),
-			plainLine:      "hello world",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "\x1b[38;2;255;0;0mhello " + RST + "\x1b[38;2;0;0;255mworld" + RST,
-		},
-		{
-			name:           "regex across ansi styles",
-			styledSegment:  redBg.Render("hello") + " " + blueBg.Render("world"),
-			regexPattern:   "lo wo",
-			highlightStyle: greenBg,
-			plainLine:      "hello world",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       redBg.Render("hel") + greenBg.Render("lo wo") + blueBg.Render("rld"),
-		},
-		{
-			name:           "case sensitive regex",
-			styledSegment:  "Hello World",
-			regexPattern:   "hello",
-			highlightStyle: redFg,
-			plainLine:      "Hello World",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "Hello World",
-		},
-		{
-			name:           "word boundary regex",
-			styledSegment:  "hello world hello",
-			regexPattern:   "\\bhello\\b",
-			highlightStyle: redFg,
-			plainLine:      "hello world hello",
-			segmentStart:   0,
-			segmentEnd:     17,
-			expected:       "\x1b[38;2;255;0;0mhello" + RST + " world \x1b[38;2;255;0;0mhello" + RST,
-		},
-		{
-			name:           "character class regex",
-			styledSegment:  "abc 123 def",
-			regexPattern:   "[0-9]+",
-			highlightStyle: redFg,
-			plainLine:      "abc 123 def",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       "abc \x1b[38;2;255;0;0m123" + RST + " def",
-		},
-		{
-			name:           "partial segment match",
-			styledSegment:  "middle",
-			regexPattern:   "mid",
-			highlightStyle: redFg,
-			plainLine:      "prefix middle suffix",
-			segmentStart:   7,
-			segmentEnd:     13,
-			expected:       "\x1b[38;2;255;0;0mmid" + RST + "dle",
-		},
-		{
-			name:           "empty segment",
-			styledSegment:  "",
-			regexPattern:   "test",
-			highlightStyle: redFg,
-			plainLine:      "",
-			segmentStart:   0,
-			segmentEnd:     0,
-			expected:       "",
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			regex := regexp.MustCompile(tt.regexPattern)
-			toHighlight := HighlightData{
-				RegexPatternToHighlight: regex,
-				IsRegex:                 true,
-			}
-			result := highlightString(
-				tt.styledSegment,
-				toHighlight,
-				tt.highlightStyle,
+				highlights,
 				tt.plainLine,
 				tt.segmentStart,
 				tt.segmentEnd,

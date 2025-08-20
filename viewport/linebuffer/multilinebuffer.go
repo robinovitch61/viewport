@@ -3,8 +3,6 @@ package linebuffer
 import (
 	"regexp"
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 // MultiLineBuffer implements LineBufferer by wrapping multiple LineBuffers without extra memory allocation
@@ -71,14 +69,13 @@ func (m MultiLineBuffer) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
-	toHighlight HighlightData,
-	highlightStyle lipgloss.Style,
+	highlights []Highlight,
 ) (string, int) {
 	if len(m.buffers) == 0 {
 		return "", 0
 	}
 	if len(m.buffers) == 1 {
-		return m.buffers[0].Take(widthToLeft, takeWidth, continuation, toHighlight, highlightStyle)
+		return m.buffers[0].Take(widthToLeft, takeWidth, continuation, highlights)
 	}
 	if widthToLeft >= m.totalWidth {
 		return "", 0
@@ -101,18 +98,18 @@ func (m MultiLineBuffer) Take(
 	}
 
 	// get content before our start position for highlight context
-	nBytesLeftContext := len(toHighlight.StringToHighlight) * 2
-	leftContext := getBytesLeftOfWidth(nBytesLeftContext, m.buffers, firstBufferIdx, startWidthFirstBuffer)
+	contextSize := calculateContextSize(highlights)
+	leftContext := getBytesLeftOfWidth(contextSize, m.buffers, firstBufferIdx, startWidthFirstBuffer)
 
 	// take from first buffer
-	res, takenWidth := m.buffers[firstBufferIdx].Take(startWidthFirstBuffer, takeWidth, "", HighlightData{}, lipgloss.NewStyle())
+	res, takenWidth := m.buffers[firstBufferIdx].Take(startWidthFirstBuffer, takeWidth, "", []Highlight{})
 	remainingTotalWidth := takeWidth - takenWidth
 	remainingBufferWidth := m.buffers[firstBufferIdx].Width() - takenWidth
 
 	// if we have more width to take and more buffers available, continue
 	currentBufferIdx := firstBufferIdx + 1
 	for remainingTotalWidth > 0 && currentBufferIdx < len(m.buffers) {
-		nextPart, partWidth := m.buffers[currentBufferIdx].Take(0, remainingTotalWidth, "", HighlightData{}, lipgloss.NewStyle())
+		nextPart, partWidth := m.buffers[currentBufferIdx].Take(0, remainingTotalWidth, "", []Highlight{})
 		remainingBufferWidth = m.buffers[currentBufferIdx].Width() - partWidth
 		if partWidth == 0 {
 			break
@@ -124,8 +121,7 @@ func (m MultiLineBuffer) Take(
 
 	// get content after our result for highlight context
 	currentBufferIdx--
-	nBytesRightContext := len(toHighlight.StringToHighlight) * 2
-	rightContext := getBytesRightOfWidth(nBytesRightContext, m.buffers, currentBufferIdx, remainingBufferWidth)
+	rightContext := getBytesRightOfWidth(contextSize, m.buffers, currentBufferIdx, remainingBufferWidth)
 
 	// apply continuation indicators if needed
 	if len(continuation) > 0 {
@@ -147,8 +143,7 @@ func (m MultiLineBuffer) Take(
 	lineNoAnsi := leftContext + resNoAnsi + rightContext
 	res = highlightString(
 		res,
-		toHighlight,
-		highlightStyle,
+		highlights,
 		lineNoAnsi,
 		len(leftContext),
 		len(leftContext)+len(resNoAnsi),
@@ -162,8 +157,7 @@ func (m MultiLineBuffer) Take(
 func (m MultiLineBuffer) WrappedLines(
 	width int,
 	maxLinesEachEnd int,
-	toHighlight HighlightData,
-	toHighlightStyle lipgloss.Style,
+	highlights []Highlight,
 ) []string {
 	if width <= 0 {
 		return []string{}
@@ -172,7 +166,7 @@ func (m MultiLineBuffer) WrappedLines(
 		return []string{}
 	}
 	if len(m.buffers) == 1 {
-		return m.buffers[0].WrappedLines(width, maxLinesEachEnd, toHighlight, toHighlightStyle)
+		return m.buffers[0].WrappedLines(width, maxLinesEachEnd, highlights)
 	}
 
 	totalLines := (m.totalWidth + width - 1) / width
@@ -185,8 +179,7 @@ func (m MultiLineBuffer) WrappedLines(
 		totalLines,
 		width,
 		maxLinesEachEnd,
-		toHighlight,
-		toHighlightStyle,
+		highlights,
 	)
 }
 
@@ -221,4 +214,20 @@ func (m MultiLineBuffer) concatenatedLineNoAnsi() string {
 		builder.WriteString(m.buffers[i].lineNoAnsi)
 	}
 	return builder.String()
+}
+
+// calculateContextSize determines how much context to gather around highlights
+func calculateContextSize(highlights []Highlight) int {
+	if len(highlights) == 0 {
+		return 0
+	}
+
+	maxHighlightLength := 0
+	for _, highlight := range highlights {
+		highlightLength := highlight.EndByteOffset - highlight.StartByteOffset
+		if highlightLength > maxHighlightLength {
+			maxHighlightLength = highlightLength
+		}
+	}
+	return maxHighlightLength * 2
 }

@@ -69,7 +69,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 			m.viewport.SetContent(m.lines)
 			m.viewport.SetSelectionEnabled(false)
-			m.viewport.SetStringToHighlight("surf")
 			m.viewport.SetWrapText(true)
 			m.ready = true
 		} else {
