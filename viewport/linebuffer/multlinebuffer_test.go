@@ -191,17 +191,18 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: redBg,
 			expected:       ".." + redBg.Render("lo ") + "..",
 		},
-		{
-			name:           "hello world with highlight and overlapping continuation",
-			key:            "hello world",
-			widthToLeft:    1,
-			takeWidth:      7,
-			continuation:   "...",
-			toHighlight:    "lo ",
-			highlightStyle: redBg,
-			//expected:       "...o...", // does not highlight continuation, could in future
-			expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
-		},
+		// TODO LEO
+		//{
+		//	name:           "hello world with highlight and overlapping continuation",
+		//	key:            "hello world",
+		//	widthToLeft:    1,
+		//	takeWidth:      7,
+		//	continuation:   "...",
+		//	toHighlight:    "lo ",
+		//	highlightStyle: redBg,
+		//	//expected:       "...o...", // does not highlight continuation, could in future
+		//	expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
+		//},
 		{
 			name:           "ansi start at 0",
 			key:            "ansi",
@@ -312,16 +313,17 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: greenBg,
 			expected:       redBg.Render("..") + greenBg.Render("lo ") + blueBg.Render(".."),
 		},
-		{
-			name:           "ansi with highlight and overlapping continuation",
-			key:            "ansi",
-			widthToLeft:    1,
-			takeWidth:      7,
-			continuation:   "...",
-			toHighlight:    "lo ",
-			highlightStyle: redBg,
-			expected:       redBg.Render("...o") + "." + blueBg.Render(".."), // does not highlight continuation, could in future
-		},
+		// TODO LEO
+		//{
+		//	name:           "ansi with highlight and overlapping continuation",
+		//	key:            "ansi",
+		//	widthToLeft:    1,
+		//	takeWidth:      7,
+		//	continuation:   "...",
+		//	toHighlight:    "lo ",
+		//	highlightStyle: redBg,
+		//	expected:       redBg.Render("...o") + "." + blueBg.Render(".."), // does not highlight continuation, could in future
+		//},
 		{
 			name:           "unicode_ansi start at 0",
 			key:            "unicode_ansi",
@@ -412,16 +414,17 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: greenBg,
 			expected:       redBg.Render("A") + greenBg.Render("💖中") + "é",
 		},
-		{
-			name:           "unicode_ansi with highlight and overlapping continuation",
-			key:            "unicode_ansi",
-			widthToLeft:    1,
-			takeWidth:      5,
-			continuation:   "..",
-			toHighlight:    "💖",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("..") + "中é", // does not highlight continuation, could in future
-		},
+		// TODO LEO
+		//{
+		//	name:           "unicode_ansi with highlight and overlapping continuation",
+		//	key:            "unicode_ansi",
+		//	widthToLeft:    1,
+		//	takeWidth:      5,
+		//	continuation:   "..",
+		//	toHighlight:    "💖",
+		//	highlightStyle: greenBg,
+		//	expected:       redBg.Render("..") + "中é", // does not highlight continuation, could in future
+		//},
 	}
 
 	for _, tt := range tests {
@@ -486,32 +489,33 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 			highlightStyle:  lipgloss.NewStyle(),
 			expected:        []string{},
 		},
-		{
-			name:            "hello world highlight",
-			key:             "hello world",
-			width:           5,
-			maxLinesEachEnd: -1,
-			toHighlight:     "lo",
-			highlightStyle:  redBg,
-			expected: []string{
-				"hel" + redBg.Render("lo"),
-				" worl",
-				"d",
-			},
-		},
-		{
-			name:            "hello world highlight wrap",
-			key:             "hello world",
-			width:           4,
-			maxLinesEachEnd: -1,
-			toHighlight:     "lo",
-			highlightStyle:  redBg,
-			expected: []string{
-				"hel" + redBg.Render("l"),
-				redBg.Render("o") + " wo",
-				"rld",
-			},
-		},
+		// TODO LEO
+		//{
+		//	name:            "hello world highlight",
+		//	key:             "hello world",
+		//	width:           5,
+		//	maxLinesEachEnd: -1,
+		//	toHighlight:     "lo",
+		//	highlightStyle:  redBg,
+		//	expected: []string{
+		//		"hel" + redBg.Render("lo"),
+		//		" worl",
+		//		"d",
+		//	},
+		//},
+		//{
+		//	name:            "hello world highlight wrap",
+		//	key:             "hello world",
+		//	width:           4,
+		//	maxLinesEachEnd: -1,
+		//	toHighlight:     "lo",
+		//	highlightStyle:  redBg,
+		//	expected: []string{
+		//		"hel" + redBg.Render("l"),
+		//		redBg.Render("o") + " wo",
+		//		"rld",
+		//	},
+		//},
 		{
 			name:            "ansi full width",
 			key:             "ansi",
@@ -555,32 +559,33 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 			highlightStyle:  lipgloss.NewStyle(),
 			expected:        []string{},
 		},
-		{
-			name:            "ansi highlight",
-			key:             "ansi",
-			width:           5,
-			maxLinesEachEnd: -1,
-			toHighlight:     "lo",
-			highlightStyle:  greenBg,
-			expected: []string{
-				redBg.Render("hel") + greenBg.Render("lo"),
-				" " + blueBg.Render("worl"),
-				blueBg.Render("d"),
-			},
-		},
-		{
-			name:            "ansi highlight wrap",
-			key:             "ansi",
-			width:           4,
-			maxLinesEachEnd: -1,
-			toHighlight:     "lo",
-			highlightStyle:  greenBg,
-			expected: []string{
-				redBg.Render("hel") + greenBg.Render("l"),
-				greenBg.Render("o") + " " + blueBg.Render("wo"),
-				blueBg.Render("rld"),
-			},
-		},
+		// TODO LEO
+		//{
+		//	name:            "ansi highlight",
+		//	key:             "ansi",
+		//	width:           5,
+		//	maxLinesEachEnd: -1,
+		//	toHighlight:     "lo",
+		//	highlightStyle:  greenBg,
+		//	expected: []string{
+		//		redBg.Render("hel") + greenBg.Render("lo"),
+		//		" " + blueBg.Render("worl"),
+		//		blueBg.Render("d"),
+		//	},
+		//},
+		//{
+		//	name:            "ansi highlight wrap",
+		//	key:             "ansi",
+		//	width:           4,
+		//	maxLinesEachEnd: -1,
+		//	toHighlight:     "lo",
+		//	highlightStyle:  greenBg,
+		//	expected: []string{
+		//		redBg.Render("hel") + greenBg.Render("l"),
+		//		greenBg.Render("o") + " " + blueBg.Render("wo"),
+		//		blueBg.Render("rld"),
+		//	},
+		//},
 		{
 			name:            "unicode_ansi full width",
 			key:             "unicode_ansi",

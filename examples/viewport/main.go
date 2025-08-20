@@ -53,8 +53,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		// 2 for border, 5 for content above viewport
-		viewportWidth, viewportHeight := msg.Width-2, msg.Height-5-2
+		// 2 for border, 4 for content above viewport
+		viewportWidth, viewportHeight := msg.Width-2, msg.Height-4-2
 		if !m.ready {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
@@ -116,7 +116,6 @@ func getHeader(wrapped, selectionEnabled bool, bindings []key.Binding) []string 
 	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Viewport (q/ctrl+c/esc to quit)"))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+" (w to toggle)")
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+" (s to toggle)")
-	header = append(header, "- Text to highlight: 'surf'")
 	header = append(header, getShortHelp(bindings))
 	return header
 }
