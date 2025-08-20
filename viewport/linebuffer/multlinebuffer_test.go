@@ -192,17 +192,17 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			expected:       ".." + redBg.Render("lo ") + "..",
 		},
 		// TODO LEO
-		//{
-		//	name:           "hello world with highlight and overlapping continuation",
-		//	key:            "hello world",
-		//	widthToLeft:    1,
-		//	takeWidth:      7,
-		//	continuation:   "...",
-		//	toHighlight:    "lo ",
-		//	highlightStyle: redBg,
-		//	//expected:       "...o...", // does not highlight continuation, could in future
-		//	expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
-		//},
+		{
+			name:           "hello world with highlight and overlapping continuation",
+			key:            "hello world",
+			widthToLeft:    1,
+			takeWidth:      7,
+			continuation:   "...",
+			toHighlight:    "lo ",
+			highlightStyle: redBg,
+			expected:       "...o...", // does not highlight continuation, could in future
+			//expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
+		},
 		{
 			name:           "ansi start at 0",
 			key:            "ansi",
