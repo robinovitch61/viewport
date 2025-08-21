@@ -64,7 +64,7 @@ func (m MultiLineBuffer) Content() string {
 	return builder.String()
 }
 
-// Take extracts a portion of the content from the specified position and width.
+// Take returns a string from the buffer
 func (m MultiLineBuffer) Take(
 	widthToLeft,
 	takeWidth int,

@@ -123,7 +123,7 @@ func (l LineBuffer) Content() string {
 	return l.line
 }
 
-// Take returns a string of the buffer's width from its current left offset
+// Take returns a string from the buffer
 func (l LineBuffer) Take(
 	widthToLeft,
 	takeWidth int,
@@ -188,21 +188,6 @@ func (l LineBuffer) Take(
 		res = reapplyAnsi(l.line, res, int(startByteOffset), l.ansiCodeIndexes)
 	}
 
-	// apply left/right line continuation indicators
-	if len(continuation) > 0 && (startRuneIdx > 0 || leftRuneIdx < l.numNoAnsiRunes) {
-		continuationRunes := []rune(continuation)
-
-		// if more runes to the left of the result, replace start runes with continuation indicator
-		if startRuneIdx > 0 {
-			res = replaceStartWithContinuation(res, continuationRunes)
-		}
-
-		// if more runes to the right, replace final runes in result with continuation indicator
-		if leftRuneIdx < l.numNoAnsiRunes {
-			res = replaceEndWithContinuation(res, continuationRunes)
-		}
-	}
-
 	// highlight the desired string
 	var endByteOffset int
 	if leftRuneIdx < l.numNoAnsiRunes {
@@ -217,6 +202,21 @@ func (l LineBuffer) Take(
 		int(startByteOffset),
 		endByteOffset,
 	)
+
+	// apply left/right line continuation indicators
+	if len(continuation) > 0 && (startRuneIdx > 0 || leftRuneIdx < l.numNoAnsiRunes) {
+		continuationRunes := []rune(continuation)
+
+		// if more runes to the left of the result, replace start runes with continuation indicator
+		if startRuneIdx > 0 {
+			res = replaceStartWithContinuation(res, continuationRunes)
+		}
+
+		// if more runes to the right, replace final runes in result with continuation indicator
+		if leftRuneIdx < l.numNoAnsiRunes {
+			res = replaceEndWithContinuation(res, continuationRunes)
+		}
+	}
 
 	res = removeEmptyAnsiSequences(res)
 	return res, takeWidth - remainingWidth

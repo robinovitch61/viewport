@@ -680,7 +680,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			highlightStyle: redBg,
 			numTakes:       1,
 			expected: []string{
-				"a very norma...", // does not highlight continuation, could in future
+				"a very norma\x1b[48;2;255;0;0m...\x1b[0m",
 			},
 		},
 		{
@@ -693,7 +693,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			startWidth:     1,
 			numTakes:       1,
 			expected: []string{
-				"...ry normal...", // does not highlight continuation, could in future
+				".\x1b[48;2;255;0;0m..ry\x1b[0m normal...",
 			},
 		},
 		{
@@ -820,8 +820,8 @@ func TestLineBuffer_Take(t *testing.T) {
 			highlightStyle: redBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[38;2;0;0;255m世界.." + RST, // does not highlight continuation, could in future
-				"\x1b[38;2;0;0;255m..界🌟" + RST, // does not highlight continuation, could in future
+				"\x1b[48;2;255;0;0m世界..\x1b[0m",
+				"\x1b[48;2;255;0;0m..\x1b[0m\x1b[38;2;0;0;255m界🌟\x1b[0m",
 			},
 		},
 		{

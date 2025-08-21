@@ -191,7 +191,6 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: redBg,
 			expected:       ".." + redBg.Render("lo ") + "..",
 		},
-		// TODO LEO
 		{
 			name:           "hello world with highlight and overlapping continuation",
 			key:            "hello world",
@@ -200,8 +199,7 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "lo ",
 			highlightStyle: redBg,
-			expected:       "...o...", // does not highlight continuation, could in future
-			//expected: "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
+			expected:       "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
 		},
 		{
 			name:           "ansi start at 0",
@@ -313,17 +311,16 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: greenBg,
 			expected:       redBg.Render("..") + greenBg.Render("lo ") + blueBg.Render(".."),
 		},
-		// TODO LEO
-		//{
-		//	name:           "ansi with highlight and overlapping continuation",
-		//	key:            "ansi",
-		//	widthToLeft:    1,
-		//	takeWidth:      7,
-		//	continuation:   "...",
-		//	toHighlight:    "lo ",
-		//	highlightStyle: redBg,
-		//	expected:       redBg.Render("...o") + "." + blueBg.Render(".."), // does not highlight continuation, could in future
-		//},
+		{
+			name:           "ansi with highlight and overlapping continuation",
+			key:            "ansi",
+			widthToLeft:    1,
+			takeWidth:      7,
+			continuation:   "...",
+			toHighlight:    "lo ",
+			highlightStyle: greenBg,
+			expected:       redBg.Render("..") + greenBg.Render(".o.") + blueBg.Render(".."),
+		},
 		{
 			name:           "unicode_ansi start at 0",
 			key:            "unicode_ansi",
@@ -415,16 +412,16 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			expected:       redBg.Render("A") + greenBg.Render("💖中") + "é",
 		},
 		// TODO LEO
-		//{
-		//	name:           "unicode_ansi with highlight and overlapping continuation",
-		//	key:            "unicode_ansi",
-		//	widthToLeft:    1,
-		//	takeWidth:      5,
-		//	continuation:   "..",
-		//	toHighlight:    "💖",
-		//	highlightStyle: greenBg,
-		//	expected:       redBg.Render("..") + "中é", // does not highlight continuation, could in future
-		//},
+		{
+			name:           "unicode_ansi with highlight and overlapping continuation",
+			key:            "unicode_ansi",
+			widthToLeft:    1,
+			takeWidth:      5,
+			continuation:   "..",
+			toHighlight:    "💖",
+			highlightStyle: greenBg,
+			expected:       greenBg.Render("..") + "中é",
+		},
 	}
 
 	for _, tt := range tests {
