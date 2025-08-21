@@ -123,6 +123,17 @@ func (m MultiLineBuffer) Take(
 	currentBufferIdx--
 	rightContext := getBytesRightOfWidth(contextSize, m.buffers, currentBufferIdx, remainingBufferWidth)
 
+	// highlight the desired string
+	resNoAnsi := stripAnsi(res)
+	lineNoAnsi := leftContext + resNoAnsi + rightContext
+	res = highlightString(
+		res,
+		highlights,
+		lineNoAnsi,
+		len(leftContext),
+		len(leftContext)+len(resNoAnsi),
+	)
+
 	// apply continuation indicators if needed
 	if len(continuation) > 0 {
 		contentToLeft := widthToLeft > 0
@@ -137,17 +148,6 @@ func (m MultiLineBuffer) Take(
 			}
 		}
 	}
-
-	// highlight the desired string
-	resNoAnsi := stripAnsi(res)
-	lineNoAnsi := leftContext + resNoAnsi + rightContext
-	res = highlightString(
-		res,
-		highlights,
-		lineNoAnsi,
-		len(leftContext),
-		len(leftContext)+len(resNoAnsi),
-	)
 
 	res = removeEmptyAnsiSequences(res)
 	return res, takeWidth - remainingTotalWidth

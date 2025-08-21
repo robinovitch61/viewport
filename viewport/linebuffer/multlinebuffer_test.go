@@ -1,7 +1,10 @@
 package linebuffer
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/robinovitch61/bubbleo/internal"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -411,7 +414,6 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			highlightStyle: greenBg,
 			expected:       redBg.Render("A") + greenBg.Render("💖中") + "é",
 		},
-		// TODO LEO
 		{
 			name:           "unicode_ansi with highlight and overlapping continuation",
 			key:            "unicode_ansi",
@@ -432,9 +434,7 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
 				}
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
-				if actual != tt.expected {
-					t.Errorf("for %s, expected %q, got %q", eq.Repr(), tt.expected, actual)
-				}
+				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.Repr()))
 			}
 		})
 	}
@@ -487,19 +487,19 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 			expected:        []string{},
 		},
 		// TODO LEO
-		//{
-		//	name:            "hello world highlight",
-		//	key:             "hello world",
-		//	width:           5,
-		//	maxLinesEachEnd: -1,
-		//	toHighlight:     "lo",
-		//	highlightStyle:  redBg,
-		//	expected: []string{
-		//		"hel" + redBg.Render("lo"),
-		//		" worl",
-		//		"d",
-		//	},
-		//},
+		{
+			name:            "hello world highlight",
+			key:             "hello world",
+			width:           5,
+			maxLinesEachEnd: -1,
+			toHighlight:     "lo",
+			highlightStyle:  redBg,
+			expected: []string{
+				"hel" + redBg.Render("lo"),
+				" worl",
+				"d",
+			},
+		},
 		//{
 		//	name:            "hello world highlight wrap",
 		//	key:             "hello world",
@@ -668,9 +668,13 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 				}
 
 				for i := range actual {
-					if actual[i] != tt.expected[i] {
-						t.Errorf("for %s, line %d: expected %q, got %q", eq.Repr(), i, tt.expected[i], actual[i])
-					}
+					internal.CmpStr(
+						t,
+						tt.expected[i],
+						actual[i],
+						fmt.Sprintf("for %s, line %d", eq.Repr(), i),
+						fmt.Sprintf("highlights: %+v", highlights),
+					)
 				}
 			}
 		})

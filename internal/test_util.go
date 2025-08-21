@@ -14,11 +14,11 @@ import (
 )
 
 // CmpStr compares two strings and fails the test if they are not equal
-func CmpStr(t *testing.T, expected, actual string) {
+func CmpStr(t *testing.T, expected, actual string, extra ...string) {
 	_, file, line, _ := runtime.Caller(1)
 	testName := t.Name()
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("\nTest %q failed at %s:%d\nDiff (-expected +actual):\n%s", testName, file, line, diff)
+		t.Errorf("\nTest %q failed at %s:%d\nDiff (-expected +actual):\n%s%s", testName, file, line, diff, strings.Join(extra, "\n"))
 	}
 }
 
