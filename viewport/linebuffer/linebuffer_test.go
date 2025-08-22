@@ -1,6 +1,7 @@
 package linebuffer
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -1068,9 +1069,13 @@ func TestLineBuffer_WrappedLines(t *testing.T) {
 			}
 
 			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("wrap() line %d got %q, expected %q", i, got[i], tt.want[i])
-				}
+				internal.CmpStr(
+					t,
+					tt.want[i],
+					got[i],
+					fmt.Sprintf("on line %d (0-indexed)", i),
+					fmt.Sprintf("for %s", lb.Repr()),
+				)
 			}
 		})
 	}
