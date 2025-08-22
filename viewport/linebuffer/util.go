@@ -651,6 +651,7 @@ func getWrappedLines(
 		}
 	} else {
 		for nLines := 0; nLines < totalLines; nLines++ {
+			// TODO LEO: there is an issue here - the highlights need to be adjusted for the current line
 			line, lineWidth := l.Take(startWidth, width, "", highlights)
 			res = append(res, line)
 			startWidth += lineWidth

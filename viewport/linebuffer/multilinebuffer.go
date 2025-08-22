@@ -130,7 +130,7 @@ func (m MultiLineBuffer) Take(
 		res,
 		highlights,
 		lineNoAnsi,
-		len(leftContext),
+		len(leftContext), // TODO LEO: this could be too small! Could add len(leftContext) to highlights or adjust lineNoAnsi to be bigger or something
 		len(leftContext)+len(resNoAnsi),
 	)
 
