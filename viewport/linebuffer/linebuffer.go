@@ -2,7 +2,6 @@ package linebuffer
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -246,16 +245,6 @@ func (l LineBuffer) WrappedLines(
 		maxLinesEachEnd,
 		highlights,
 	)
-}
-
-// Matches returns true if the content contains the specified string.
-func (l LineBuffer) Matches(s string) bool {
-	return strings.Contains(l.lineNoAnsi, s)
-}
-
-// MatchesRegex returns true if the content matches the specified regular expression.
-func (l LineBuffer) MatchesRegex(r regexp.Regexp) bool {
-	return r.MatchString(l.lineNoAnsi)
 }
 
 // Repr returns a string representation for debugging.

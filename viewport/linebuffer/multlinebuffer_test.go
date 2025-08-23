@@ -12,32 +12,31 @@ import (
 func getEquivalentLineBuffers() map[string][]LineBufferer {
 	return map[string][]LineBufferer{
 		"hello world": {
-			// TODO LEO: uncomment
-			//New("hello world"),
-			//NewMulti(New("hello world")),
+			New("hello world"),
+			NewMulti(New("hello world")),
 			NewMulti(
 				New("hello"),
 				New(" world"),
 			),
-			//NewMulti(
-			//	New("hel"),
-			//	New("lo "),
-			//	New("wo"),
-			//	New("rld"),
-			//),
-			//NewMulti(
-			//	New("h"),
-			//	New("e"),
-			//	New("l"),
-			//	New("l"),
-			//	New("o"),
-			//	New(" "),
-			//	New("w"),
-			//	New("o"),
-			//	New("r"),
-			//	New("l"),
-			//	New("d"),
-			//),
+			NewMulti(
+				New("hel"),
+				New("lo "),
+				New("wo"),
+				New("rld"),
+			),
+			NewMulti(
+				New("h"),
+				New("e"),
+				New("l"),
+				New("l"),
+				New("o"),
+				New(" "),
+				New("w"),
+				New("o"),
+				New("r"),
+				New("l"),
+				New("d"),
+			),
 		},
 		"ansi": {
 			New(redBg.Render("hello") + " " + blueBg.Render("world")),
@@ -487,7 +486,6 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 			highlightStyle:  lipgloss.NewStyle(),
 			expected:        []string{},
 		},
-		// TODO LEO
 		{
 			name:            "hello world highlight",
 			key:             "hello world",
@@ -557,33 +555,32 @@ func TestMultiLineBuffer_WrappedLines(t *testing.T) {
 			highlightStyle:  lipgloss.NewStyle(),
 			expected:        []string{},
 		},
-		// TODO LEO
-		//{
-		//	name:            "ansi highlight",
-		//	key:             "ansi",
-		//	width:           5,
-		//	maxLinesEachEnd: -1,
-		//	toHighlight:     "lo",
-		//	highlightStyle:  greenBg,
-		//	expected: []string{
-		//		redBg.Render("hel") + greenBg.Render("lo"),
-		//		" " + blueBg.Render("worl"),
-		//		blueBg.Render("d"),
-		//	},
-		//},
-		//{
-		//	name:            "ansi highlight wrap",
-		//	key:             "ansi",
-		//	width:           4,
-		//	maxLinesEachEnd: -1,
-		//	toHighlight:     "lo",
-		//	highlightStyle:  greenBg,
-		//	expected: []string{
-		//		redBg.Render("hel") + greenBg.Render("l"),
-		//		greenBg.Render("o") + " " + blueBg.Render("wo"),
-		//		blueBg.Render("rld"),
-		//	},
-		//},
+		{
+			name:            "ansi highlight",
+			key:             "ansi",
+			width:           5,
+			maxLinesEachEnd: -1,
+			toHighlight:     "lo",
+			highlightStyle:  greenBg,
+			expected: []string{
+				redBg.Render("hel") + greenBg.Render("lo"),
+				" " + blueBg.Render("worl"),
+				blueBg.Render("d"),
+			},
+		},
+		{
+			name:            "ansi highlight wrap",
+			key:             "ansi",
+			width:           4,
+			maxLinesEachEnd: -1,
+			toHighlight:     "lo",
+			highlightStyle:  greenBg,
+			expected: []string{
+				redBg.Render("hel") + greenBg.Render("l"),
+				greenBg.Render("o") + " " + blueBg.Render("wo"),
+				blueBg.Render("rld"),
+			},
+		},
 		{
 			name:            "unicode_ansi full width",
 			key:             "unicode_ansi",

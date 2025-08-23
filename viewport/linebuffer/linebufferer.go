@@ -20,8 +20,6 @@ type LineBufferer interface {
 	// maxLinesEachEnd is the maximum number of lines to return from the beginning and end of the content.
 	// highlights are applied to the content
 	WrappedLines(width int, maxLinesEachEnd int, highlights []Highlight) []string
-	// Matches returns true if the content contains the given string, ignoring ansi styling
-	Matches(s string) bool
 	// Repr returns a representation of the Linebufferer as a string for debugging
 	Repr() string
 }

@@ -107,9 +107,9 @@ func getNonAnsiBytes(s string, startIdx, numBytes int) string {
 
 // highlightLine highlights a string in a line that potentially has ansi codes in it without disrupting them
 // start and end are the byte offsets for which highlighting is considered in the line, not counting ansi codes
-func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start, end int) string {
-	if line == "" || highlight == "" {
-		return line
+func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, startByte, endByte int) string {
+	if styledLine == "" || highlight == "" {
+		return styledLine
 	}
 
 	renderedHighlight := highlightStyle.Render(highlight)
@@ -119,14 +119,14 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 	nonAnsiBytes := 0
 
 	i := 0
-	for i < len(line) {
-		if strings.HasPrefix(line[i:], "\x1b[") {
+	for i < len(styledLine) {
+		if strings.HasPrefix(styledLine[i:], "\x1b[") {
 			// found start of ansi
 			inAnsi = true
-			ansiLen := strings.Index(line[i:], "m")
+			ansiLen := strings.Index(styledLine[i:], "m")
 			if ansiLen != -1 {
 				escEnd := i + ansiLen + 1
-				ansi := line[i:escEnd]
+				ansi := styledLine[i:escEnd]
 				if ansi == RST {
 					activeStyles = []string{} // reset
 				} else {
@@ -140,8 +140,8 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 		}
 
 		// check if current position starts a highlight match
-		if !inAnsi && nonAnsiBytes >= start && nonAnsiBytes < end {
-			textToCheck := getNonAnsiBytes(line, i, len(highlight))
+		if !inAnsi && nonAnsiBytes >= startByte && nonAnsiBytes < endByte {
+			textToCheck := getNonAnsiBytes(styledLine, i, len(highlight))
 			if textToCheck == highlight {
 				// reset current styles, if any
 				if len(activeStyles) > 0 {
@@ -159,9 +159,9 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 				// skip to end of matched text
 				count := 0
 				for count < len(highlight) {
-					if strings.HasPrefix(line[i:], "\x1b[") {
-						escEnd := i + strings.Index(line[i:], "m") + 1
-						result.WriteString(line[i:escEnd])
+					if strings.HasPrefix(styledLine[i:], "\x1b[") {
+						escEnd := i + strings.Index(styledLine[i:], "m") + 1
+						result.WriteString(styledLine[i:escEnd])
 						i = escEnd
 						continue
 					}
@@ -172,7 +172,7 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 				continue
 			}
 		}
-		result.WriteByte(line[i])
+		result.WriteByte(styledLine[i])
 		nonAnsiBytes++
 		i++
 	}
@@ -183,43 +183,36 @@ func highlightLine(line, highlight string, highlightStyle lipgloss.Style, start,
 // might overflow the segment boundaries. It preserves any existing ANSI styling in the segment.
 //
 // Parameters:
-//   - styledSegment: the text segment to highlight, which may contain ANSI codes
-//   - toHighlight: the substring to search for and highlight
-//   - highlightStyle: the style to apply to matched substrings
-//   - plainLine: the complete line without any ANSI codes, used for overflow detection
-//   - segmentStart: byte offset where this segment starts in plainLine
-//   - segmentEnd: byte offset where this segment ends in plainLine
+//   - styledLine: the text segment to highlight, which may contain ANSI codes
+//   - highlights: a list of Highlight structs defining the styledLine byte offsets and styles to apply
+//   - plainLine: the complete line without any ANSI codes
+//   - plainStartByte: byte offset where styledLine starts in plainLine
+//   - plainEndByte: byte offset where styledLine ends in plainLine
 //
 // Returns the segment with highlighting applied, preserving original ANSI codes.
 func highlightString(
-	styledSegment string,
+	styledLine string,
 	highlights []Highlight,
 	plainLine string,
-	segmentStart int,
-	segmentEnd int,
+	plainStartByte int,
+	plainEndByte int,
 ) string {
 	for _, highlight := range highlights {
-		// check if this highlight overlaps with the current segment
-		if highlight.StartByteOffset < segmentEnd && highlight.EndByteOffset > segmentStart {
-			// calculate the intersection of the highlight with the current segment
-			highlightStart := max(highlight.StartByteOffset, segmentStart)
-			highlightEnd := min(highlight.EndByteOffset, segmentEnd)
-
-			if highlightStart < highlightEnd {
-				// extract the text to highlight from the plain line
-				textToHighlight := plainLine[highlightStart:highlightEnd]
-
-				// calculate the relative position within the styled segment
-				relativeStart := highlightStart - segmentStart
-				relativeEnd := highlightEnd - segmentStart
-
-				// apply the specific highlight style
-				styledSegment = highlightLine(styledSegment, textToHighlight, highlight.Style, relativeStart, relativeEnd)
-			}
+		if highlight.StartByteOffset < plainEndByte && highlight.EndByteOffset > plainStartByte {
+			startByte := max(highlight.StartByteOffset, plainStartByte)
+			endByte := min(highlight.EndByteOffset, plainEndByte)
+			textToHighlight := plainLine[startByte:endByte]
+			styledLine = highlightLine(
+				styledLine,
+				textToHighlight,
+				highlight.Style,
+				startByte-plainStartByte,
+				endByte-plainStartByte,
+			)
 		}
 	}
 
-	return styledSegment
+	return styledLine
 }
 
 func stripAnsi(input string) string {

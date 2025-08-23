@@ -1,7 +1,6 @@
 package linebuffer
 
 import (
-	"regexp"
 	"strings"
 )
 
@@ -83,7 +82,9 @@ func (m MultiLineBuffer) Take(
 
 	// find which buffer contains our start position
 	skippedWidth := 0
+	skippedBytes := 0
 	firstBufferIdx := 0
+	firstByteIdx := 0
 	startWidthFirstBuffer := widthToLeft
 
 	for i := range m.buffers {
@@ -91,26 +92,30 @@ func (m MultiLineBuffer) Take(
 		if skippedWidth+bufWidth > widthToLeft {
 			firstBufferIdx = i
 			startWidthFirstBuffer = widthToLeft - skippedWidth
+
+			runeIdx := m.buffers[i].findRuneIndexWithWidthToLeft(startWidthFirstBuffer)
+			var firstBufferByteIdx int
+			if runeIdx < m.buffers[i].numNoAnsiRunes {
+				firstBufferByteIdx = int(m.buffers[i].getByteOffsetAtRuneIdx(runeIdx))
+			} else {
+				firstBufferByteIdx = len(m.buffers[i].line)
+			}
+			firstByteIdx = skippedBytes + firstBufferByteIdx
 			break
 		}
 		skippedWidth += bufWidth
+		skippedBytes += len(m.buffers[i].lineNoAnsi)
 		startWidthFirstBuffer -= bufWidth
 	}
-
-	// get content before our start position for highlight context
-	contextSize := calculateContextSize(highlights)
-	leftContext := getBytesLeftOfWidth(contextSize, m.buffers, firstBufferIdx, startWidthFirstBuffer)
 
 	// take from first buffer
 	res, takenWidth := m.buffers[firstBufferIdx].Take(startWidthFirstBuffer, takeWidth, "", []Highlight{})
 	remainingTotalWidth := takeWidth - takenWidth
-	remainingBufferWidth := m.buffers[firstBufferIdx].Width() - takenWidth
 
 	// if we have more width to take and more buffers available, continue
 	currentBufferIdx := firstBufferIdx + 1
 	for remainingTotalWidth > 0 && currentBufferIdx < len(m.buffers) {
 		nextPart, partWidth := m.buffers[currentBufferIdx].Take(0, remainingTotalWidth, "", []Highlight{})
-		remainingBufferWidth = m.buffers[currentBufferIdx].Width() - partWidth
 		if partWidth == 0 {
 			break
 		}
@@ -119,19 +124,12 @@ func (m MultiLineBuffer) Take(
 		currentBufferIdx++
 	}
 
-	// get content after our result for highlight context
-	currentBufferIdx--
-	rightContext := getBytesRightOfWidth(contextSize, m.buffers, currentBufferIdx, remainingBufferWidth)
-
-	// highlight the desired string
-	resNoAnsi := stripAnsi(res)
-	lineNoAnsi := leftContext + resNoAnsi + rightContext
 	res = highlightString(
 		res,
 		highlights,
-		lineNoAnsi,
-		len(leftContext), // TODO LEO: this could be too small! Could add len(leftContext) to highlights or adjust lineNoAnsi to be bigger or something
-		len(leftContext)+len(resNoAnsi),
+		m.concatenatedLineNoAnsi(),
+		firstByteIdx,
+		firstByteIdx+len(stripAnsi(res)),
 	)
 
 	// apply continuation indicators if needed
@@ -183,16 +181,6 @@ func (m MultiLineBuffer) WrappedLines(
 	)
 }
 
-// Matches returns true if the content contains the specified string.
-func (m MultiLineBuffer) Matches(s string) bool {
-	return strings.Contains(m.concatenatedLineNoAnsi(), s)
-}
-
-// MatchesRegex returns true if the content matches the specified regular expression.
-func (m MultiLineBuffer) MatchesRegex(r regexp.Regexp) bool {
-	return r.MatchString(m.concatenatedLineNoAnsi())
-}
-
 // Repr returns a string representation of the MultiLineBuffer for debugging.
 func (m MultiLineBuffer) Repr() string {
 	v := "Multi("
@@ -207,27 +195,9 @@ func (m MultiLineBuffer) Repr() string {
 }
 
 func (m MultiLineBuffer) concatenatedLineNoAnsi() string {
-	// this isn't super efficient - could potentially consider trying to do string matches across
-	// LineBuffer boundaries in the future without allocating new strings every time, but that's tricky
 	var builder strings.Builder
 	for i := range m.buffers {
 		builder.WriteString(m.buffers[i].lineNoAnsi)
 	}
 	return builder.String()
-}
-
-// calculateContextSize determines how much context to gather around highlights
-func calculateContextSize(highlights []Highlight) int {
-	if len(highlights) == 0 {
-		return 0
-	}
-
-	maxHighlightLength := 0
-	for _, highlight := range highlights {
-		highlightLength := highlight.EndByteOffset - highlight.StartByteOffset
-		if highlightLength > maxHighlightLength {
-			maxHighlightLength = highlightLength
-		}
-	}
-	return maxHighlightLength * 2
 }
