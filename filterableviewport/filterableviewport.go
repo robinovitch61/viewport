@@ -276,23 +276,30 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		return
 	}
 
-	focusedMatch := m.allMatches[m.focusedMatchIdx]
-	itemIdx := focusedMatch.ItemIndex
-	if m.matchingItemsOnly {
-		if filteredIdx, ok := m.itemIdxToFilteredIdx[itemIdx]; ok {
-			itemIdx = filteredIdx
-		} else {
-			panic("focused match item index not found in filtered items")
+	var highlights []linebuffer.Highlight
+	for matchIdx, match := range m.allMatches {
+		itemIdx := match.ItemIndex
+		if m.matchingItemsOnly {
+			if filteredIdx, ok := m.itemIdxToFilteredIdx[itemIdx]; ok {
+				itemIdx = filteredIdx
+			} else {
+				panic("focused match item index not found in filtered items")
+			}
 		}
-	}
-	highlight := linebuffer.Highlight{
-		ItemIndex:       itemIdx,
-		StartByteOffset: focusedMatch.Start,
-		EndByteOffset:   focusedMatch.End,
-		Style:           m.styles.FocusedMatchStyle,
+		style := m.styles.Match.Unfocused
+		if matchIdx == m.focusedMatchIdx {
+			style = m.styles.Match.Focused
+		}
+		highlight := linebuffer.Highlight{
+			ItemIndex:       itemIdx,
+			StartByteOffset: match.Start,
+			EndByteOffset:   match.End,
+			Style:           style,
+		}
+		highlights = append(highlights, highlight)
 	}
 
-	m.Viewport.SetHighlights([]linebuffer.Highlight{highlight})
+	m.Viewport.SetHighlights(highlights)
 }
 
 // GetWidth returns the width of the filterable viewport

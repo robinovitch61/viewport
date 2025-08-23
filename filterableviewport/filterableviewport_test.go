@@ -478,6 +478,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+// TODO LEO: add test for 10k character 'a' in a single line and filter is 'a' - very slow right now
+
 // TODO LEO: add tests for match navigation with matches
 
 // TODO LEO: add test for match navigation showing only matches
