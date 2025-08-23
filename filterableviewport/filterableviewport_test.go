@@ -484,6 +484,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 
 // TODO LEO: add test for when wrapped item goes off screen and focused match in the item is off screen (currently shows top lines item and not focused match)
 
+// TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
+
 // TODO LEO: test for multiple regex matches in a single line
 
 func stringsToItems(vals []string) []viewport.Item {
