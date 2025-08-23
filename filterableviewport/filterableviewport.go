@@ -104,29 +104,21 @@ type Model[T viewport.Renderable] struct {
 }
 
 // New creates a new filterable viewport model with default configuration
-func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] {
-	if width < 0 {
-		width = 0
-	}
-	if height < 0 {
-		height = 0
-	}
-
+func New[T viewport.Renderable](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
 
 	defaultKeyMap := DefaultKeyMap()
 	defaultStyles := DefaultStyles()
-	viewportHeight := max(0, height-filterLineHeight)
-	vp := viewport.New[T](width, viewportHeight,
-		viewport.WithKeyMap[T](defaultKeyMap.ViewportKeyMap),
-		viewport.WithStyles[T](defaultStyles.Viewport),
-	)
+
+	// sync the viewport with the filterable viewport
+	vp.SetKeyMap(defaultKeyMap.ViewportKeyMap)
+	vp.SetStyles(defaultStyles.Viewport)
 
 	m := &Model[T]{
 		Viewport:                   vp,
-		height:                     height,
+		height:                     0, // set below in SetHeight
 		keyMap:                     defaultKeyMap,
 		filterTextInput:            ti,
 		filterMode:                 filterModeOff,
@@ -143,6 +135,7 @@ func New[T viewport.Renderable](width, height int, opts ...Option[T]) *Model[T] 
 		totalMatchesOnAllItems:     0,
 		itemIdxToFilteredIdx:       make(map[int]int),
 	}
+	m.SetHeight(vp.GetHeight())
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -332,6 +325,7 @@ func (m *Model[T]) SetWidth(width int) {
 
 // SetHeight updates the height, accounting for the filter line
 func (m *Model[T]) SetHeight(height int) {
+	m.height = height // TODO LEO: test this or remove height
 	m.Viewport.SetHeight(height - filterLineHeight)
 }
 

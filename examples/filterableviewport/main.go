@@ -95,9 +95,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
+			vp := viewport.New[viewport.Item](viewportWidth, viewportHeight)
 			m.fv = filterableviewport.New[viewport.Item](
-				viewportWidth,
-				viewportHeight,
+				vp,
 				filterableviewport.WithKeyMap[viewport.Item](keyMap),
 				filterableviewport.WithStyles[viewport.Item](styles),
 				filterableviewport.WithPrefixText[viewport.Item]("Filter:"),
