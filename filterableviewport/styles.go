@@ -2,13 +2,12 @@ package filterableviewport
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/bubbleo/viewport"
 )
 
 // Styles contains styling configuration for the filterable viewport
 type Styles struct {
-	Viewport viewport.Styles
-	Match    MatchStyles
+	CursorStyle lipgloss.Style
+	Match       MatchStyles
 }
 
 // MatchStyles contains styles for matches in the filterable viewport
@@ -28,7 +27,7 @@ func DefaultMatchStyles() MatchStyles {
 // DefaultStyles returns a set of default styles for the filterable viewport
 func DefaultStyles() Styles {
 	return Styles{
-		Viewport: viewport.DefaultStyles(),
-		Match:    DefaultMatchStyles(),
+		CursorStyle: lipgloss.Style{}, // default to bubbles.textinput cursor style
+		Match:       DefaultMatchStyles(),
 	}
 }

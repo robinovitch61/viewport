@@ -2,12 +2,10 @@ package filterableviewport
 
 import (
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/robinovitch61/bubbleo/viewport"
 )
 
 // KeyMap defines the key bindings for the filterable viewport
 type KeyMap struct {
-	ViewportKeyMap             viewport.KeyMap
 	FilterKey                  key.Binding
 	RegexFilterKey             key.Binding
 	ApplyFilterKey             key.Binding
@@ -20,7 +18,6 @@ type KeyMap struct {
 // DefaultKeyMap returns a default keymap for the filterable viewport
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
-		ViewportKeyMap: viewport.DefaultKeyMap(),
 		FilterKey: key.NewBinding(
 			key.WithKeys("/"),
 			key.WithHelp("/", "filter"),

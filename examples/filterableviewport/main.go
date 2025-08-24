@@ -35,7 +35,8 @@ var appKeyMap = appKeys{
 	),
 }
 
-var keyMap = filterableviewport.DefaultKeyMap()
+var viewportKeyMap = viewport.DefaultKeyMap()
+var filterableViewportKeyMap = filterableviewport.DefaultKeyMap()
 var styles = filterableviewport.DefaultStyles()
 
 type model struct {
@@ -95,10 +96,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			vp := viewport.New[viewport.Item](viewportWidth, viewportHeight)
+			vp := viewport.New[viewport.Item](
+				viewportWidth,
+				viewportHeight,
+				viewport.WithKeyMap[viewport.Item](viewportKeyMap),
+			)
 			m.fv = filterableviewport.New[viewport.Item](
 				vp,
-				filterableviewport.WithKeyMap[viewport.Item](keyMap),
+				filterableviewport.WithKeyMap[viewport.Item](filterableViewportKeyMap),
 				filterableviewport.WithStyles[viewport.Item](styles),
 				filterableviewport.WithPrefixText[viewport.Item]("Filter:"),
 				filterableviewport.WithEmptyText[viewport.Item]("No Current Filter"),
@@ -129,13 +134,13 @@ func (m model) View() string {
 	var header = strings.Join(getHeader(
 		m.fv.Viewport.GetWrapText(),
 		m.fv.Viewport.GetSelectionEnabled(),
-		keyMap.ViewportKeyMap,
+		viewportKeyMap,
 		[]key.Binding{
-			keyMap.FilterKey,
-			keyMap.RegexFilterKey,
-			keyMap.ApplyFilterKey,
-			keyMap.CancelFilterKey,
-			keyMap.ToggleMatchingItemsOnlyKey,
+			filterableViewportKeyMap.FilterKey,
+			filterableViewportKeyMap.RegexFilterKey,
+			filterableViewportKeyMap.ApplyFilterKey,
+			filterableViewportKeyMap.CancelFilterKey,
+			filterableViewportKeyMap.ToggleMatchingItemsOnlyKey,
 		},
 	), "\n")
 	return lipgloss.JoinVertical(

@@ -5,12 +5,15 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 	"github.com/robinovitch61/bubbleo/internal"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
 var (
+	// TODO LEO: replace these with MakeKeyMsg from internal package
 	filterKeyMsg          = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
 	regexFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
 	applyFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyEnter}
@@ -26,14 +29,65 @@ var (
 	typeXKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
 	typeYKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
 	typeZKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'z'}}
+
+	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
+	highlightStyleIfSelected = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Underline(true)
+	selectedItemStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+	viewportStyles           = viewport.Styles{
+		FooterStyle:              footerStyle,
+		HighlightStyle:           highlightStyle,
+		HighlightStyleIfSelected: highlightStyleIfSelected,
+		SelectedItemStyle:        selectedItemStyle,
+	}
+
+	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
+	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
+	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
+	matchStyles    = MatchStyles{
+		Focused:   focusedStyle,
+		Unfocused: unfocusedStyle,
+	}
+	filterableViewportStyles = Styles{
+		CursorStyle: cursorStyle,
+		Match:       matchStyles,
+	}
 )
 
+// Note: this won't be necessary in future charm library versions
+func init() {
+	// Force TrueColor profile for consistent test output
+	lipgloss.SetColorProfile(termenv.TrueColor)
+}
+
+func makeFilterableViewport(
+	width int,
+	height int,
+	vpOptions []viewport.Option[viewport.Item],
+	fvOptions []Option[viewport.Item],
+) *Model[viewport.Item] {
+	// use default viewport test styles, will be overridden by options if passed in
+	defaultTestVpStylesOption := viewport.WithStyles[viewport.Item](viewportStyles)
+	vpOptions = append([]viewport.Option[viewport.Item]{defaultTestVpStylesOption}, vpOptions...)
+
+	// use default filterable viewport test styles, will be overridden by options if passed in
+	defaultTestFvStylesOption := WithStyles[viewport.Item](filterableViewportStyles)
+	fvOptions = append([]Option[viewport.Item]{defaultTestFvStylesOption}, fvOptions...)
+
+	vp := viewport.New[viewport.Item](width, height, vpOptions...)
+	return New[viewport.Item](vp, fvOptions...)
+}
+
 func TestNew(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
-		WithEmptyText[viewport.Item]("No Filter"),
+	// TODO LEO: use this in other tests
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithEmptyText[viewport.Item]("No Filter"),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"Line 1",
@@ -44,17 +98,20 @@ func TestNew(t *testing.T) {
 		"No Filter",
 		"Line 1",
 		"Line 2",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestNewLongText(t *testing.T) {
-	vp := viewport.New[viewport.Item](10, 4) // emptyText is longer than this
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
-		WithEmptyText[viewport.Item]("No Filter Present"),
+	fv := makeFilterableViewport(
+		10, // emptyText is longer than this
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithEmptyText[viewport.Item]("No Filter Present"),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"Line 1",
@@ -65,14 +122,18 @@ func TestNewLongText(t *testing.T) {
 		"No Filt...",
 		"Line 1",
 		"Line 2",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestNewWidthHeight(t *testing.T) {
-	vp := viewport.New[viewport.Item](25, 8)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		25,
+		8,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	if fv.GetWidth() != 25 {
 		t.Errorf("expected width 25, got %d", fv.GetWidth())
 	}
@@ -82,8 +143,12 @@ func TestNewWidthHeight(t *testing.T) {
 }
 
 func TestZeroDimensions(t *testing.T) {
-	vp := viewport.New[viewport.Item](0, 0)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		0,
+		0,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	if fv.GetWidth() != 0 {
 		t.Errorf("expected width 0, got %d", fv.GetWidth())
 	}
@@ -94,8 +159,12 @@ func TestZeroDimensions(t *testing.T) {
 }
 
 func TestNegativeDimensions(t *testing.T) {
-	vp := viewport.New[viewport.Item](-5, -3)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		-5,
+		-3,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	if fv.GetWidth() != 0 {
 		t.Errorf("expected width 0 for negative input, got %d", fv.GetWidth())
 	}
@@ -106,8 +175,12 @@ func TestNegativeDimensions(t *testing.T) {
 }
 
 func TestSetWidth(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetWidth(30)
 	if fv.GetWidth() != 30 {
 		t.Errorf("expected width 30, got %d", fv.GetWidth())
@@ -115,8 +188,12 @@ func TestSetWidth(t *testing.T) {
 }
 
 func TestSetHeight(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetHeight(6)
 	if fv.GetHeight() != 6 {
 		t.Errorf("expected height 6, got %d", fv.GetHeight())
@@ -124,16 +201,27 @@ func TestSetHeight(t *testing.T) {
 }
 
 func TestFilterFocused_Initial(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	if fv.FilterFocused() {
 		t.Error("filter should not be focused initially")
 	}
 }
 
 func TestEmptyContent(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp, WithPrefixText[viewport.Item]("Filter:"), WithEmptyText[viewport.Item]("No filter"))
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithEmptyText[viewport.Item]("No filter"),
+		},
+	)
 	fv.SetContent([]viewport.Item{})
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No filter",
@@ -142,11 +230,14 @@ func TestEmptyContent(t *testing.T) {
 }
 
 func TestWithMatchesOnly_True(t *testing.T) {
-	vp := viewport.New[viewport.Item](80, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
-		WithMatchingItemsOnly[viewport.Item](true),
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithMatchingItemsOnly[viewport.Item](true),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
@@ -156,18 +247,21 @@ func TestWithMatchesOnly_True(t *testing.T) {
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typePKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: p  (1/2 matches on 1 items) showing matches only",
-		"apple",
+		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items) showing matches only",
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestWithMatchesOnly_False(t *testing.T) {
-	vp := viewport.New[viewport.Item](80, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
-		WithMatchingItemsOnly[viewport.Item](false),
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithMatchingItemsOnly[viewport.Item](false),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
@@ -177,18 +271,21 @@ func TestWithMatchesOnly_False(t *testing.T) {
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typePKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: p  (1/2 matches on 1 items)",
-		"apple",
+		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items)",
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 func TestWithCanToggleMatchesOnly_True(t *testing.T) {
-	vp := viewport.New[viewport.Item](80, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithCanToggleMatchingItemsOnly[viewport.Item](true),
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithCanToggleMatchingItemsOnly[viewport.Item](true),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
@@ -200,25 +297,28 @@ func TestWithCanToggleMatchesOnly_True(t *testing.T) {
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items)",
-		"apple",
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
 	fv, _ = fv.Update(toggleMatchesKeyMsg)
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items) showing matches only",
-		"apple",
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestWithCanToggleMatchesOnly_False(t *testing.T) {
-	vp := viewport.New[viewport.Item](80, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithCanToggleMatchingItemsOnly[viewport.Item](false),
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithCanToggleMatchingItemsOnly[viewport.Item](false),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
@@ -230,9 +330,9 @@ func TestWithCanToggleMatchesOnly_False(t *testing.T) {
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items)",
-		"apple",
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
@@ -241,8 +341,15 @@ func TestWithCanToggleMatchesOnly_False(t *testing.T) {
 }
 
 func TestNilContent(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp, WithPrefixText[viewport.Item]("Filter:"), WithEmptyText[viewport.Item]("No Filter"))
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+			WithEmptyText[viewport.Item]("No Filter"),
+		},
+	)
 	fv.SetContent(nil)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
@@ -254,8 +361,12 @@ func TestNilContent(t *testing.T) {
 }
 
 func TestDefaultText(t *testing.T) {
-	vp := viewport.New[viewport.Item](40, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		40,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"test"}))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
@@ -274,8 +385,12 @@ func TestDefaultText(t *testing.T) {
 }
 
 func TestFilterKeyFocus(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	if !fv.FilterFocused() {
@@ -284,8 +399,12 @@ func TestFilterKeyFocus(t *testing.T) {
 }
 
 func TestRegexFilterKeyFocus(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(regexFilterKeyMsg)
 	if !fv.FilterFocused() {
@@ -294,8 +413,12 @@ func TestRegexFilterKeyFocus(t *testing.T) {
 }
 
 func TestApplyFilterKey(t *testing.T) {
-	vp := viewport.New[viewport.Item](40, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		40,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typeAKeyMsg)
@@ -305,16 +428,20 @@ func TestApplyFilterKey(t *testing.T) {
 	}
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] a  (1/4 matches on 2 items)",
-		"apple",
-		"banana",
-		"100% (2/2)",
+		focusedStyle.Render("a") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestCancelFilterKey(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typeAKeyMsg)
@@ -326,16 +453,19 @@ func TestCancelFilterKey(t *testing.T) {
 		"No Filter",
 		"apple",
 		"banana",
-		"100% (2/2)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestRegexFilter_ValidPattern(t *testing.T) {
-	vp := viewport.New[viewport.Item](50, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "apricot"}))
 	fv, _ = fv.Update(regexFilterKeyMsg)
@@ -343,45 +473,52 @@ func TestRegexFilter_ValidPattern(t *testing.T) {
 	fv, _ = fv.Update(typePKeyMsg)
 	fv, _ = fv.Update(typePlusKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[regex] Filter: ap+  (1/2 matches on 2 items)",
-		"apple",
+		"[regex] Filter: ap+" + cursorStyle.Render(" ") + " (1/2 matches on 2 items)",
+		focusedStyle.Render("app") + "le",
 		"banana",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestRegexFilter_InvalidPattern(t *testing.T) {
-	vp := viewport.New[viewport.Item](50, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithPrefixText[viewport.Item]("Filter:"),
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(regexFilterKeyMsg)
 	fv, _ = fv.Update(typeLeftBracketKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[regex] Filter: [  (no matches)",
+		"[regex] Filter: [" + cursorStyle.Render(" ") + " (no matches)",
 		"apple",
 		"banana",
-		"100% (2/2)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
-	vp := viewport.New[viewport.Item](50, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typeXKeyMsg)
 	fv, _ = fv.Update(typeYKeyMsg)
 	fv, _ = fv.Update(typeZKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] xyz  (no matches)",
+		"[exact] xyz" + cursorStyle.Render(" ") + " (no matches)",
 		"apple",
 		"banana",
-		"100% (2/2)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
@@ -389,8 +526,14 @@ func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
 func TestWithKeyMap(t *testing.T) {
 	customKeyMap := DefaultKeyMap()
 	customKeyMap.FilterKey = key.NewBinding(key.WithKeys("g"))
-	vp := viewport.New[viewport.Item](20, 4)
-	fv := New[viewport.Item](vp, WithKeyMap[viewport.Item](customKeyMap))
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithKeyMap[viewport.Item](customKeyMap),
+		},
+	)
 	fv.SetContent(stringsToItems([]string{"test"}))
 	fv, _ = fv.Update(filterKeyMsg) // should not match custom key
 	if fv.FilterFocused() {
@@ -399,13 +542,17 @@ func TestWithKeyMap(t *testing.T) {
 }
 
 func TestViewportControls(t *testing.T) {
-	vp := viewport.New[viewport.Item](20, 3)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		20,
+		3,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"line1", "line2", "line3"}))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
 		"line1",
-		"33% (1/3)",
+		footerStyle.Render("33% (1/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
@@ -413,14 +560,20 @@ func TestViewportControls(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
 		"line2",
-		"66% (2/3)",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestApplyEmptyFilter_ShowsWhenEmptyText(t *testing.T) {
-	vp := viewport.New[viewport.Item](30, 4)
-	fv := New[viewport.Item](vp, WithEmptyText[viewport.Item]("No filter applied"))
+	fv := makeFilterableViewport(
+		30,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithEmptyText[viewport.Item]("No filter applied"),
+		},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(applyFilterKeyMsg)
@@ -428,30 +581,39 @@ func TestApplyEmptyFilter_ShowsWhenEmptyText(t *testing.T) {
 		"No filter applied",
 		"apple",
 		"banana",
-		"100% (2/2)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestEditingEmptyFilter_ShowsEditingMessage(t *testing.T) {
-	vp := viewport.New[viewport.Item](50, 4)
-	fv := New[viewport.Item](vp, WithPrefixText[viewport.Item]("Filter:"))
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithPrefixText[viewport.Item]("Filter:"),
+		},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter:   type to filter                  ",
-		"apple                                             ",
-		"banana                                            ",
-		"100% (2/2)                                        ",
+		"[exact] Filter: " + cursorStyle.Render(" ") + " type to filter",
+		"apple",
+		"banana",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestSpecialKeysWhileFiltering(t *testing.T) {
-	vp := viewport.New[viewport.Item](80, 4)
-	fv := New[viewport.Item](
-		vp,
-		WithCanToggleMatchingItemsOnly[viewport.Item](true),
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{
+			WithCanToggleMatchingItemsOnly[viewport.Item](true),
+		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"apple",
@@ -467,17 +629,21 @@ func TestSpecialKeysWhileFiltering(t *testing.T) {
 	fv, _ = fv.Update(filterKeyMsg)        // '/'
 	fv, _ = fv.Update(regexFilterKeyMsg)   // 'r'
 	expectedViewAfterO := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] ponN/r  (no matches)",
+		"[exact] ponN/r" + cursorStyle.Render(" ") + " (no matches)",
 		"apple",
 		"book",
-		"50% (2/4)",
+		footerStyle.Render("50% (2/4)"),
 	})
 	internal.CmpStr(t, expectedViewAfterO, fv.View())
 }
 
 func TestMatchNavigationWithNoMatches(t *testing.T) {
-	vp := viewport.New[viewport.Item](50, 4)
-	fv := New[viewport.Item](vp)
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{},
+		[]Option[viewport.Item]{},
+	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typeXKeyMsg)
@@ -486,7 +652,7 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 		"[exact] x  (no matches)",
 		"apple",
 		"banana",
-		"100% (2/2)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
@@ -497,11 +663,44 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-//func TestMatchNavigationForwardWrapped(t *testing.T) {
-//	fv := New[viewport.Item](50, 4)
-//	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
-// TODO LEO complete
-//}
+func TestMatchNavigationForwardWrapped(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[viewport.Item]{
+			viewport.WithWrapText[viewport.Item](true),
+		},
+		[]Option[viewport.Item]{
+			WithStyles[viewport.Item](Styles{
+				Match: matchStyles,
+			}),
+		},
+	)
+	fv.SetContent(stringsToItems([]string{
+		"hi there",
+		"hi over there",
+	}))
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"No Filter",
+		"hi there",
+		"hi over there",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "there" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] there  (1/2 matches on 2 items)",
+		"hi " + focusedStyle.Render("there"),
+		"hi over " + unfocusedStyle.Render("there"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
 
 // TODO LEO: add test for 10k character 'a' in a single line and filter is 'a' - very slow right now
 
@@ -514,6 +713,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
 
 // TODO LEO: test for multiple regex matches in a single line
+
+// TODO LEO: test footer style
 
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))

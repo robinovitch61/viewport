@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/google/go-cmp/cmp"
@@ -91,4 +92,9 @@ func Pad(width, height int, lines []string) string {
 		res = append(res, strings.Repeat(" ", width))
 	}
 	return strings.Join(res, "\n")
+}
+
+// MakeKeyMsg creates a tea.KeyMsg for the given rune
+func MakeKeyMsg(k rune) tea.KeyMsg {
+	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{k}}
 }

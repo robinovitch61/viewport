@@ -40,15 +40,14 @@ type Option[T viewport.Renderable] func(*Model[T])
 func WithKeyMap[T viewport.Renderable](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
 		m.keyMap = keyMap
-		m.Viewport.SetKeyMap(keyMap.ViewportKeyMap)
 	}
 }
 
-// WithStyles sets the styling for the filterable viewport
+// WithStyles sets the styles for the filterable viewport
 func WithStyles[T viewport.Renderable](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
-		m.Viewport.SetStyles(styles.Viewport)
+		m.filterTextInput.Cursor.Style = styles.CursorStyle
 	}
 }
 
@@ -111,10 +110,6 @@ func New[T viewport.Renderable](vp *viewport.Model[T], opts ...Option[T]) *Model
 
 	defaultKeyMap := DefaultKeyMap()
 	defaultStyles := DefaultStyles()
-
-	// sync the viewport with the filterable viewport
-	vp.SetKeyMap(defaultKeyMap.ViewportKeyMap)
-	vp.SetStyles(defaultStyles.Viewport)
 
 	m := &Model[T]{
 		Viewport:                   vp,
