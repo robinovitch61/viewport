@@ -1,7 +1,6 @@
 package linebuffer
 
 import (
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -12,8 +11,6 @@ import (
 // RST is the ansi escape sequence for resetting styles
 // note that in future charm library versions this may change to "\x1b[m"
 const RST = "\x1b[0m"
-
-var emptySequenceRegex = regexp.MustCompile("\x1b\\[[0-9;]+m\x1b\\[0?m")
 
 // Test helper colors and styles
 var (
@@ -655,5 +652,53 @@ func getWrappedLines(
 }
 
 func removeEmptyAnsiSequences(s string) string {
-	return emptySequenceRegex.ReplaceAllString(s, "")
+	if len(s) == 0 {
+		return s
+	}
+
+	var result strings.Builder
+	result.Grow(len(s))
+
+	i := 0
+	for i < len(s) {
+		if i < len(s)-4 && s[i:i+2] == "\x1b[" {
+			// find the end of this ansi sequence
+			end := i + 2
+			for end < len(s) && s[end] != 'm' {
+				end++
+			}
+			if end < len(s) {
+				end++ // include the 'm'
+				ansiSeq := s[i:end]
+
+				// check if this is followed immediately by a reset sequence
+				if end < len(s)-2 && s[end:end+2] == "\x1b[" {
+					resetEnd := end + 2
+					for resetEnd < len(s) && s[resetEnd] != 'm' {
+						resetEnd++
+					}
+					if resetEnd < len(s) {
+						resetEnd++ // include the 'm'
+						resetSeq := s[end:resetEnd]
+
+						// if this is a reset sequence (\x1b[0m or \x1b[m), skip both sequences
+						if resetSeq == "\x1b[0m" || resetSeq == "\x1b[m" {
+							i = resetEnd
+							continue
+						}
+					}
+				}
+
+				// not followed by reset, keep the sequence
+				result.WriteString(ansiSeq)
+				i = end
+				continue
+			}
+		}
+
+		result.WriteByte(s[i])
+		i++
+	}
+
+	return result.String()
 }
