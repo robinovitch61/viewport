@@ -663,10 +663,10 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestMatchNavigationForwardWrapped(t *testing.T) {
+func TestMatchNavigationWithAllItemsWrapped(t *testing.T) {
 	fv := makeFilterableViewport(
-		50,
-		4,
+		60,
+		5,
 		[]viewport.Option[viewport.Item]{
 			viewport.WithWrapText[viewport.Item](true),
 		},
@@ -674,17 +674,20 @@ func TestMatchNavigationForwardWrapped(t *testing.T) {
 			WithStyles[viewport.Item](Styles{
 				Match: matchStyles,
 			}),
+			WithMatchingItemsOnly[viewport.Item](false),
 		},
 	)
 	fv.SetContent(stringsToItems([]string{
 		"hi there",
 		"hi over there",
+		"no match",
 	}))
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
 		"hi there",
 		"hi over there",
-		footerStyle.Render("100% (2/2)"),
+		"no match",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -693,13 +696,100 @@ func TestMatchNavigationForwardWrapped(t *testing.T) {
 		fv, _ = fv.Update(internal.MakeKeyMsg(c))
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] there  (1/2 matches on 2 items)",
 		"hi " + focusedStyle.Render("there"),
 		"hi over " + unfocusedStyle.Render("there"),
-		footerStyle.Render("100% (2/2)"),
+		"no match",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] there  (2/2 matches on 2 items)",
+		"hi " + unfocusedStyle.Render("there"),
+		"hi over " + focusedStyle.Render("there"),
+		"no match",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
+
+func TestMatchNavigationWithMatchingItemsOnlyWrapped(t *testing.T) {
+	fv := makeFilterableViewport(
+		60,
+		5,
+		[]viewport.Option[viewport.Item]{
+			viewport.WithWrapText[viewport.Item](true),
+		},
+		[]Option[viewport.Item]{
+			WithStyles[viewport.Item](Styles{
+				Match: matchStyles,
+			}),
+			WithMatchingItemsOnly[viewport.Item](true),
+			WithCanToggleMatchingItemsOnly[viewport.Item](false),
+		},
+	)
+	fv.SetContent(stringsToItems([]string{
+		"hi there",
+		"hi over there",
+		"no match",
+	}))
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"No Filter",
+		"hi there",
+		"hi over there",
+		"no match",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "there" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] there  (1/2 matches on 2 items) showing matches only",
+		"hi " + focusedStyle.Render("there"),
+		"hi over " + unfocusedStyle.Render("there"),
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] there  (2/2 matches on 2 items) showing matches only",
+		"hi " + unfocusedStyle.Render("there"),
+		"hi over " + focusedStyle.Render("there"),
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
+
+func TestMatchNavigationNoWrap(t *testing.T) {
+	// TODO LEO
+}
+
+func TestMatchNavigationSelectionEnabled(t *testing.T) {
+	// TODO LEO
 }
 
 // TODO LEO: add test for 10k character 'a' in a single line and filter is 'a' - very slow right now
@@ -713,8 +803,6 @@ func TestMatchNavigationForwardWrapped(t *testing.T) {
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
 
 // TODO LEO: test for multiple regex matches in a single line
-
-// TODO LEO: test footer style
 
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))
