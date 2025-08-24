@@ -1,6 +1,8 @@
 package filterableviewport
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -44,7 +46,9 @@ var (
 	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
 	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
-	matchStyles    = MatchStyles{
+	//focusedStyle   = lipgloss.NewStyle()
+	//unfocusedStyle = lipgloss.NewStyle()
+	matchStyles = MatchStyles{
 		Focused:   focusedStyle,
 		Unfocused: unfocusedStyle,
 	}
@@ -784,15 +788,44 @@ func TestMatchNavigationWithMatchingItemsOnlyWrapped(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-func TestMatchNavigationNoWrap(t *testing.T) {
-	// TODO LEO
+//func TestMatchNavigationNoWrap(t *testing.T) {
+//	// TODO LEO
+//}
+//
+//func TestMatchNavigationSelectionEnabled(t *testing.T) {
+//	// TODO LEO
+//}
+
+func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
+	fv := makeFilterableViewport(
+		100,
+		50,
+		[]viewport.Option[viewport.Item]{
+			viewport.WithWrapText[viewport.Item](true),
+		},
+		[]Option[viewport.Item]{},
+	)
+	numAs := 10000
+	fv.SetContent(stringsToItems([]string{
+		strings.Repeat("a", numAs),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(typeAKeyMsg)
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	firstRows := []string{
+		fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs),
+		focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth()-1),
+	}
+	rest := make([]string, fv.GetHeight()-3)
+	for i := range rest {
+		rest[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
+	}
+	rest = append(rest, footerStyle.Render("99% (1/1)"))
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
+	internal.CmpStr(t, expected, fv.View())
 }
 
-func TestMatchNavigationSelectionEnabled(t *testing.T) {
-	// TODO LEO
-}
-
-// TODO LEO: add test for 10k character 'a' in a single line and filter is 'a' - very slow right now
+// TODO LEO: add test for 10k character 'a' in a single wrapped line and filter is 'a' - very slow right now
 
 // TODO LEO: add tests for match navigation with matches
 

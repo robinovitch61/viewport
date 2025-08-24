@@ -836,7 +836,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentLine
 		numerator = visibleContentLines.itemIndexes[len(visibleContentLines.itemIndexes)-1] + 1
 		if m.config.WrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
-			return fmt.Sprintf("99%% (%d/%d)", numerator, denominator)
+			return m.display.Styles.FooterStyle.Render(fmt.Sprintf("99%% (%d/%d)", numerator, denominator))
 		}
 	}
 
