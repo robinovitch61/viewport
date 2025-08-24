@@ -515,7 +515,7 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 
 // SetHighlights sets specific positions to highlight with custom styles in the viewport.
 func (m *Model[T]) SetHighlights(highlights []linebuffer.Highlight) {
-	m.content.Highlights = highlights
+	m.content.SetHighlights(highlights)
 }
 
 func (m *Model[T]) maxLineWidth() int {
@@ -934,14 +934,7 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 
 // getHighlightDataForItem returns highlight data filtered for the specific item index
 func (m *Model[T]) getHighlightDataForItem(itemIndex int) []linebuffer.Highlight {
-	// filter specific highlights to only include those for this item
-	var filteredHighlights []linebuffer.Highlight
-	for _, highlight := range m.content.Highlights {
-		if highlight.ItemIndex == itemIndex {
-			filteredHighlights = append(filteredHighlights, highlight)
-		}
-	}
-	return filteredHighlights
+	return m.content.GetHighlightsForItem(itemIndex)
 }
 
 func (m *Model[T]) getNumVisibleItems() int {

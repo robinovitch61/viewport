@@ -17,6 +17,9 @@ type ContentManager[T Renderable] struct {
 	// Highlights is what to highlight wherever it shows up within an item, even wrapped between lines
 	Highlights []linebuffer.Highlight
 
+	// highlightsByItem is a cache of highlights indexed by item index for O(1) lookup
+	highlightsByItem map[int][]linebuffer.Highlight
+
 	// CompareFn is an optional function to compare items for maintaining the selection when LineBuffer changes
 	// if set, the viewport will try to maintain the previous selected item when LineBuffer changes
 	CompareFn CompareFn[T]
@@ -25,9 +28,10 @@ type ContentManager[T Renderable] struct {
 // NewContentManager creates a new ContentManager with empty initial state.
 func NewContentManager[T Renderable]() *ContentManager[T] {
 	return &ContentManager[T]{
-		Items:       []T{},
-		Header:      []string{},
-		selectedIdx: 0,
+		Items:            []T{},
+		Header:           []string{},
+		selectedIdx:      0,
+		highlightsByItem: make(map[int][]linebuffer.Highlight),
 	}
 }
 
@@ -66,4 +70,24 @@ func (cm *ContentManager[T]) ValidateSelectedIdx() {
 		return
 	}
 	cm.selectedIdx = clampValZeroToMax(cm.selectedIdx, len(cm.Items)-1)
+}
+
+// rebuildHighlightsCache rebuilds the highlights-by-item-index cache for O(1) lookup.
+func (cm *ContentManager[T]) rebuildHighlightsCache() {
+	cm.highlightsByItem = make(map[int][]linebuffer.Highlight)
+	for _, highlight := range cm.Highlights {
+		itemIdx := highlight.ItemIndex
+		cm.highlightsByItem[itemIdx] = append(cm.highlightsByItem[itemIdx], highlight)
+	}
+}
+
+// SetHighlights sets the highlights and rebuilds the cache.
+func (cm *ContentManager[T]) SetHighlights(highlights []linebuffer.Highlight) {
+	cm.Highlights = highlights
+	cm.rebuildHighlightsCache()
+}
+
+// GetHighlightsForItem returns highlights for a specific item index in O(1) time.
+func (cm *ContentManager[T]) GetHighlightsForItem(itemIndex int) []linebuffer.Highlight {
+	return cm.highlightsByItem[itemIndex]
 }
