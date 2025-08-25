@@ -63,21 +63,25 @@ func (m MultiLineBuffer) Content() string {
 	return builder.String()
 }
 
+// PlainContent returns the concatenated plain content without ANSI codes.
+func (m MultiLineBuffer) PlainContent() string {
+	return m.concatenatedLineNoAnsi()
+}
+
 // Take returns a string from the buffer
 func (m MultiLineBuffer) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
-	highlights []Highlight,
-) (string, int) {
+) (string, TakenMetaData) {
 	if len(m.buffers) == 0 {
-		return "", 0
+		return "", TakenMetaData{Width: 0, StartByte: 0, EndByte: 0}
 	}
 	if len(m.buffers) == 1 {
-		return m.buffers[0].Take(widthToLeft, takeWidth, continuation, highlights)
+		return m.buffers[0].Take(widthToLeft, takeWidth, continuation)
 	}
 	if widthToLeft >= m.totalWidth {
-		return "", 0
+		return "", TakenMetaData{Width: 0, StartByte: 0, EndByte: 0}
 	}
 
 	// find which buffer contains our start position
@@ -109,28 +113,20 @@ func (m MultiLineBuffer) Take(
 	}
 
 	// take from first buffer
-	res, takenWidth := m.buffers[firstBufferIdx].Take(startWidthFirstBuffer, takeWidth, "", []Highlight{})
-	remainingTotalWidth := takeWidth - takenWidth
+	res, firstMetaData := m.buffers[firstBufferIdx].Take(startWidthFirstBuffer, takeWidth, "")
+	remainingTotalWidth := takeWidth - firstMetaData.Width
 
 	// if we have more width to take and more buffers available, continue
 	currentBufferIdx := firstBufferIdx + 1
 	for remainingTotalWidth > 0 && currentBufferIdx < len(m.buffers) {
-		nextPart, partWidth := m.buffers[currentBufferIdx].Take(0, remainingTotalWidth, "", []Highlight{})
-		if partWidth == 0 {
+		nextPart, nextMetaData := m.buffers[currentBufferIdx].Take(0, remainingTotalWidth, "")
+		if nextMetaData.Width == 0 {
 			break
 		}
 		res += nextPart
-		remainingTotalWidth -= partWidth
+		remainingTotalWidth -= nextMetaData.Width
 		currentBufferIdx++
 	}
-
-	res = highlightString(
-		res,
-		highlights,
-		m.concatenatedLineNoAnsi(),
-		firstByteIdx,
-		firstByteIdx+len(stripAnsi(res)),
-	)
 
 	// apply continuation indicators if needed
 	if len(continuation) > 0 {
@@ -148,10 +144,43 @@ func (m MultiLineBuffer) Take(
 	}
 
 	res = removeEmptyAnsiSequences(res)
-	return res, takeWidth - remainingTotalWidth
+	return res, TakenMetaData{
+		Width:     takeWidth - remainingTotalWidth,
+		StartByte: firstByteIdx,
+		EndByte:   firstByteIdx + len(stripAnsi(res)),
+	}
 }
 
 // WrappedLines returns the content broken into lines that fit within the specified width.
+// WrappedLinesWithoutHighlights returns the content broken into lines without applying highlights.
+// This is optimized for layout calculations that don't need styling.
+func (m MultiLineBuffer) WrappedLinesWithoutHighlights(
+	width int,
+	maxLinesEachEnd int,
+) []string {
+	if width <= 0 {
+		return []string{}
+	}
+	if len(m.buffers) == 0 {
+		return []string{}
+	}
+	if len(m.buffers) == 1 {
+		return m.buffers[0].WrappedLinesWithoutHighlights(width, maxLinesEachEnd)
+	}
+
+	totalLines := (m.totalWidth + width - 1) / width
+	if totalLines == 0 {
+		return []string{""}
+	}
+
+	return getWrappedLinesWithoutHighlights(
+		m,
+		totalLines,
+		width,
+		maxLinesEachEnd,
+	)
+}
+
 func (m MultiLineBuffer) WrappedLines(
 	width int,
 	maxLinesEachEnd int,

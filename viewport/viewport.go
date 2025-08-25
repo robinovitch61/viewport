@@ -219,7 +219,7 @@ func (m *Model[T]) View() string {
 
 	for i := range visibleHeaderLines {
 		lineBuffer := linebuffer.New(visibleHeaderLines[i])
-		line, _ := lineBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []linebuffer.Highlight{})
+		line, _ := lineBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator)
 		builder.WriteString(line)
 		builder.WriteByte('\n')
 	}
@@ -232,12 +232,12 @@ func (m *Model[T]) View() string {
 		} else {
 			lineBuffer := visibleContentLines.lines[i]
 			highlightData := m.getHighlightDataForItem(visibleContentLines.itemIndexes[i])
-			truncated, _ = lineBuffer.Take(
+			truncated, metadata := lineBuffer.Take(
 				m.display.XOffset,
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
-				highlightData, // TODO LEO: adjust highlightData style based on idx
 			)
+			truncated = linebuffer.HighlightString(truncated, highlightData, lineBuffer.PlainContent(), metadata.StartByte, metadata.EndByte)
 		}
 
 		isSelection := m.navigation.SelectionEnabled && visibleContentLines.itemIndexes[i] == m.content.GetSelectedIdx()
@@ -248,7 +248,7 @@ func (m *Model[T]) View() string {
 		if !m.config.WrapText && m.display.XOffset > 0 && lipgloss.Width(truncated) == 0 && visibleContentLines.lines[i].Width() > 0 {
 			// if panned right past where line ends, show continuation indicator
 			lineBuffer := linebuffer.New(m.getLineContinuationIndicator())
-			truncated, _ = lineBuffer.Take(0, m.display.Bounds.Width, "", []linebuffer.Highlight{})
+			truncated, _ = lineBuffer.Take(0, m.display.Bounds.Width, "")
 			if isSelection {
 				truncated = m.styleSelection(truncated)
 			}
@@ -554,7 +554,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	}
 	items := m.content.Items
 	lb := items[itemIdx].Render()
-	return len(lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{}))
+	return len(lb.WrappedLinesWithoutHighlights(m.display.Bounds.Width, m.display.Bounds.Height))
 }
 
 func (m *Model[T]) safelySetXOffset(n int) {
@@ -844,7 +844,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentLine
 	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 
 	footerBuffer := linebuffer.New(footerString)
-	f, _ := footerBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []linebuffer.Highlight{})
+	f, _ := footerBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator)
 	return m.display.Styles.FooterStyle.Render(f)
 }
 

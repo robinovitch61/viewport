@@ -483,7 +483,7 @@ func TestHighlightString(t *testing.T) {
 			if tt.toHighlight != "" {
 				highlights = ExtractHighlights([]string{tt.plainLine}, tt.toHighlight, tt.highlightStyle)
 			}
-			result := highlightString(
+			result := HighlightString(
 				tt.styledSegment,
 				highlights,
 				tt.plainLine,

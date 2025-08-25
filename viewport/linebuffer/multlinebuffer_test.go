@@ -433,7 +433,8 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 				if tt.toHighlight != "" {
 					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
 				}
-				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
+				actual, metadata := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation)
+				actual = HighlightString(actual, highlights, eq.PlainContent(), metadata.StartByte, metadata.EndByte)
 				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.Repr()))
 			}
 		})

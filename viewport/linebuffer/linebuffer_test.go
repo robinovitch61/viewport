@@ -882,9 +882,10 @@ func TestLineBuffer_Take(t *testing.T) {
 				highlights = ExtractHighlights([]string{tt.s}, tt.toHighlight, tt.highlightStyle)
 			}
 			for i := 0; i < tt.numTakes; i++ {
-				actual, actualWidth := lb.Take(startWidth, tt.width, tt.continuation, highlights)
+				actual, metadata := lb.Take(startWidth, tt.width, tt.continuation)
+				actual = HighlightString(actual, highlights, lb.PlainContent(), metadata.StartByte, metadata.EndByte)
 				internal.CmpStr(t, tt.expected[i], actual)
-				startWidth += actualWidth
+				startWidth += metadata.Width
 			}
 		})
 	}

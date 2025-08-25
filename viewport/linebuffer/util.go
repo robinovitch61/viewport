@@ -86,21 +86,38 @@ func reapplyAnsi(original, truncated string, truncByteOffset int, ansiCodeIndexe
 // Returns a string containing bytesToExtract bytes of the input with ANSI sequences removed. If the input text ends
 // before collecting bytesToExtract bytes, returns all available non-ANSI bytes.
 func getNonAnsiBytes(s string, startIdx, numBytes int) string {
-	var result strings.Builder
+	if numBytes <= 0 || startIdx >= len(s) {
+		return ""
+	}
+
+	// Pre-allocate result buffer to avoid reallocations, but cap it at a reasonable size
+	capacity := numBytes
+	if capacity > len(s) {
+		capacity = len(s)
+	}
+	result := make([]byte, 0, capacity)
 	currentPos := startIdx
 	bytesCollected := 0
+
 	for currentPos < len(s) && bytesCollected < numBytes {
-		if strings.HasPrefix(s[currentPos:], "\x1b[") {
-			escEnd := currentPos + strings.Index(s[currentPos:], "m") + 1
-			currentPos = escEnd
+		// Fast byte-level ANSI sequence detection
+		if currentPos+1 < len(s) && s[currentPos] == '\x1b' && s[currentPos+1] == '[' {
+			// Find end of ANSI sequence
+			for escEnd := currentPos + 2; escEnd < len(s); escEnd++ {
+				if s[escEnd] == 'm' {
+					currentPos = escEnd + 1
+					break
+				}
+			}
 			continue
 		}
-		result.WriteByte(s[currentPos])
+		result = append(result, s[currentPos])
 		bytesCollected++
 		currentPos++
 	}
-	return result.String()
+	return string(result)
 }
+
 
 // highlightLine highlights a string in a line that potentially has ansi codes in it without disrupting them
 // start and end are the byte offsets for which highlighting is considered in the line, not counting ansi codes
@@ -110,34 +127,38 @@ func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, 
 	}
 
 	renderedHighlight := highlightStyle.Render(highlight)
+	// Pre-allocate builder with estimated capacity
 	var result strings.Builder
+	result.Grow(len(styledLine) + len(renderedHighlight))
+
 	var activeStyles []string
-	inAnsi := false
 	nonAnsiBytes := 0
 
 	i := 0
 	for i < len(styledLine) {
-		if strings.HasPrefix(styledLine[i:], "\x1b[") {
-			// found start of ansi
-			inAnsi = true
-			ansiLen := strings.Index(styledLine[i:], "m")
-			if ansiLen != -1 {
-				escEnd := i + ansiLen + 1
+		// Fast byte-level ANSI sequence detection
+		if i+1 < len(styledLine) && styledLine[i] == '\x1b' && styledLine[i+1] == '[' {
+			// Find end of ANSI sequence
+			escEnd := i + 2
+			for escEnd < len(styledLine) && styledLine[escEnd] != 'm' {
+				escEnd++
+			}
+			if escEnd < len(styledLine) {
+				escEnd++ // include 'm'
 				ansi := styledLine[i:escEnd]
 				if ansi == RST {
-					activeStyles = []string{} // reset
+					activeStyles = activeStyles[:0] // reset without allocation
 				} else {
-					activeStyles = append(activeStyles, ansi) // add new active style
+					activeStyles = append(activeStyles, ansi)
 				}
 				result.WriteString(ansi)
 				i = escEnd
-				inAnsi = false
 				continue
 			}
 		}
 
 		// check if current position starts a highlight match
-		if !inAnsi && nonAnsiBytes >= startByte && nonAnsiBytes < endByte {
+		if nonAnsiBytes >= startByte && nonAnsiBytes < endByte {
 			textToCheck := getNonAnsiBytes(styledLine, i, len(highlight))
 			if textToCheck == highlight {
 				// reset current styles, if any
@@ -156,10 +177,16 @@ func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, 
 				// skip to end of matched text
 				count := 0
 				for count < len(highlight) {
-					if strings.HasPrefix(styledLine[i:], "\x1b[") {
-						escEnd := i + strings.Index(styledLine[i:], "m") + 1
-						result.WriteString(styledLine[i:escEnd])
-						i = escEnd
+					if i+1 < len(styledLine) && styledLine[i] == '\x1b' && styledLine[i+1] == '[' {
+						escEnd := i + 2
+						for escEnd < len(styledLine) && styledLine[escEnd] != 'm' {
+							escEnd++
+						}
+						if escEnd < len(styledLine) {
+							escEnd++
+							result.WriteString(styledLine[i:escEnd])
+							i = escEnd
+						}
 						continue
 					}
 					i++
@@ -187,7 +214,8 @@ func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, 
 //   - plainEndByte: byte offset where styledLine ends in plainLine
 //
 // Returns the segment with highlighting applied, preserving original ANSI codes.
-func highlightString(
+// HighlightString applies highlights to a styled line based on byte offsets in the plain text
+func HighlightString(
 	styledLine string,
 	highlights []Highlight,
 	plainLine string,
@@ -610,6 +638,47 @@ func getBytesRightOfWidth(nBytes int, buffers []LineBuffer, endBufferIdx int, wi
 
 // getWrappedLines is logic shared by WrappedLines in single and multi LineBuffers
 // it is well-tested as part of the tests of those methods
+// getWrappedLinesWithoutHighlights returns wrapped lines without applying highlights
+// This is used for layout calculations where highlighting is not needed
+func getWrappedLinesWithoutHighlights(
+	l LineBufferer,
+	totalLines int,
+	width int,
+	maxLinesEachEnd int,
+) []string {
+	if width <= 0 {
+		return []string{}
+	}
+	if maxLinesEachEnd <= 0 {
+		maxLinesEachEnd = -1
+	}
+
+	var res []string
+	startWidth := 0
+	if maxLinesEachEnd > 0 && totalLines > maxLinesEachEnd*2 {
+		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
+			line, metadata := l.Take(startWidth, width, "")
+			res = append(res, line)
+			startWidth += metadata.Width
+		}
+
+		startWidth = (totalLines - maxLinesEachEnd) * width
+		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
+			line, metadata := l.Take(startWidth, width, "")
+			res = append(res, line)
+			startWidth += metadata.Width
+		}
+	} else {
+		for nLines := 0; nLines < totalLines; nLines++ {
+			line, metadata := l.Take(startWidth, width, "")
+			res = append(res, line)
+			startWidth += metadata.Width
+		}
+	}
+
+	return res
+}
+
 func getWrappedLines(
 	l LineBufferer,
 	totalLines int,
@@ -628,22 +697,25 @@ func getWrappedLines(
 	startWidth := 0
 	if maxLinesEachEnd > 0 && totalLines > maxLinesEachEnd*2 {
 		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
+			line, metadata := l.Take(startWidth, width, "")
+			line = HighlightString(line, highlights, l.PlainContent(), metadata.StartByte, metadata.EndByte)
 			res = append(res, line)
-			startWidth += lineWidth
+			startWidth += metadata.Width
 		}
 
 		startWidth = (totalLines - maxLinesEachEnd) * width
 		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
+			line, metadata := l.Take(startWidth, width, "")
+			line = HighlightString(line, highlights, l.PlainContent(), metadata.StartByte, metadata.EndByte)
 			res = append(res, line)
-			startWidth += lineWidth
+			startWidth += metadata.Width
 		}
 	} else {
 		for nLines := 0; nLines < totalLines; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
+			line, metadata := l.Take(startWidth, width, "")
+			line = HighlightString(line, highlights, l.PlainContent(), metadata.StartByte, metadata.EndByte)
 			res = append(res, line)
-			startWidth += lineWidth
+			startWidth += metadata.Width
 		}
 	}
 

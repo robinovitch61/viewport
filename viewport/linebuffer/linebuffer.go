@@ -122,13 +122,17 @@ func (l LineBuffer) Content() string {
 	return l.line
 }
 
+// PlainContent returns the content without ANSI codes.
+func (l LineBuffer) PlainContent() string {
+	return l.lineNoAnsi
+}
+
 // Take returns a string from the buffer
 func (l LineBuffer) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
-	highlights []Highlight,
-) (string, int) {
+) (string, TakenMetaData) {
 	if widthToLeft < 0 {
 		widthToLeft = 0
 	}
@@ -137,7 +141,7 @@ func (l LineBuffer) Take(
 	startRuneIdx := l.findRuneIndexWithWidthToLeft(widthToLeft)
 
 	if startRuneIdx >= l.numNoAnsiRunes || takeWidth == 0 {
-		return "", 0
+		return "", TakenMetaData{Width: 0, StartByte: 0, EndByte: 0}
 	}
 
 	var result strings.Builder
@@ -164,7 +168,7 @@ func (l LineBuffer) Take(
 			break
 		}
 		if i == runesWritten-1 {
-			return "", 0
+			return "", TakenMetaData{Width: 0, StartByte: 0, EndByte: 0}
 		}
 	}
 
@@ -187,20 +191,13 @@ func (l LineBuffer) Take(
 		res = reapplyAnsi(l.line, res, int(startByteOffset), l.ansiCodeIndexes)
 	}
 
-	// highlight the desired string
+	// calculate end byte offset for metadata
 	var endByteOffset int
 	if leftRuneIdx < l.numNoAnsiRunes {
 		endByteOffset = int(l.getByteOffsetAtRuneIdx(leftRuneIdx))
 	} else {
 		endByteOffset = len(l.lineNoAnsi)
 	}
-	res = highlightString(
-		res,
-		highlights,
-		l.lineNoAnsi,
-		int(startByteOffset),
-		endByteOffset,
-	)
 
 	// apply left/right line continuation indicators
 	if len(continuation) > 0 && (startRuneIdx > 0 || leftRuneIdx < l.numNoAnsiRunes) {
@@ -218,7 +215,36 @@ func (l LineBuffer) Take(
 	}
 
 	res = removeEmptyAnsiSequences(res)
-	return res, takeWidth - remainingWidth
+	return res, TakenMetaData{
+		Width:     takeWidth - remainingWidth,
+		StartByte: int(startByteOffset),
+		EndByte:   endByteOffset,
+	}
+}
+
+// WrappedLinesWithoutHighlights returns the content broken into lines without applying highlights.
+// This is optimized for layout calculations that don't need styling.
+func (l LineBuffer) WrappedLinesWithoutHighlights(
+	width int,
+	maxLinesEachEnd int,
+) []string {
+	if width == 0 {
+		return []string{}
+	}
+	// preserve empty lines
+	if l.line == "" {
+		return []string{l.line}
+	}
+
+	lastRuneIdx := l.numNoAnsiRunes - 1
+	totalWidth := l.getCumulativeWidthAtRuneIdx(lastRuneIdx)
+	totalLines := (int(totalWidth) + width - 1) / width
+	return getWrappedLinesWithoutHighlights(
+		l,
+		totalLines,
+		width,
+		maxLinesEachEnd,
+	)
 }
 
 // WrappedLines returns the content broken into lines that fit within the specified width.

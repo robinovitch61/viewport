@@ -51,7 +51,8 @@ func main() {
 	for _, lb := range lbs {
 		highlights := linebuffer.ExtractHighlights([]string{lb.Content()}, toHighlight, highlightStyle)
 		//println(fmt.Sprintf("for %s, highlights: %v", lb.Repr(), highlights))
-		actual, _ := lb.Take(widthToLeft, takeWidth, continuation, highlights)
+		actual, metadata := lb.Take(widthToLeft, takeWidth, continuation)
+		actual = linebuffer.HighlightString(actual, highlights, lb.PlainContent(), metadata.StartByte, metadata.EndByte)
 		if actual != expected {
 			println(fmt.Sprintf("for %s, expected %q, got %q", lb.Repr(), expected, actual))
 		} else {
