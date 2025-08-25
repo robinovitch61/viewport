@@ -197,7 +197,6 @@ func (l LineBuffer) Take(
 	res = highlightString(
 		res,
 		highlights,
-		l.lineNoAnsi,
 		int(startByteOffset),
 		endByteOffset,
 	)

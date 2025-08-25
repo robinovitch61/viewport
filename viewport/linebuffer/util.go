@@ -182,34 +182,141 @@ func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, 
 // Parameters:
 //   - styledLine: the text segment to highlight, which may contain ANSI codes
 //   - highlights: a list of Highlight structs defining the styledLine byte offsets and styles to apply
-//   - plainLine: the complete line without any ANSI codes
-//   - plainStartByte: byte offset where styledLine starts in plainLine
-//   - plainEndByte: byte offset where styledLine ends in plainLine
+//   - plainStartByte: byte offset where styledLine starts in fullLine
+//   - plainEndByte: byte offset where styledLine ends in fullLine
 //
 // Returns the segment with highlighting applied, preserving original ANSI codes.
 func highlightString(
 	styledLine string,
 	highlights []Highlight,
-	plainLine string,
 	plainStartByte int,
 	plainEndByte int,
 ) string {
+	if len(highlights) == 0 {
+		return styledLine
+	}
+
+	// Filter and sort highlights that intersect with this segment
+	var applicableHighlights []struct {
+		startByte int
+		endByte   int
+		style     lipgloss.Style
+	}
+
 	for _, highlight := range highlights {
 		if highlight.StartByteOffset < plainEndByte && highlight.EndByteOffset > plainStartByte {
-			startByte := max(highlight.StartByteOffset, plainStartByte)
-			endByte := min(highlight.EndByteOffset, plainEndByte)
-			textToHighlight := plainLine[startByte:endByte]
-			styledLine = highlightLine(
-				styledLine,
-				textToHighlight,
-				highlight.Style,
-				startByte-plainStartByte,
-				endByte-plainStartByte,
-			)
+			startByte := max(highlight.StartByteOffset, plainStartByte) - plainStartByte
+			endByte := min(highlight.EndByteOffset, plainEndByte) - plainStartByte
+			applicableHighlights = append(applicableHighlights, struct {
+				startByte int
+				endByte   int
+				style     lipgloss.Style
+			}{startByte, endByte, highlight.Style})
 		}
 	}
 
-	return styledLine
+	if len(applicableHighlights) == 0 {
+		return styledLine
+	}
+
+	// TODO LEO: check if not sorted and error if so
+	//// Sort highlights by start position
+	//for i := 0; i < len(applicableHighlights); i++ {
+	//	for j := i + 1; j < len(applicableHighlights); j++ {
+	//		if applicableHighlights[j].startByte < applicableHighlights[i].startByte {
+	//			applicableHighlights[i], applicableHighlights[j] = applicableHighlights[j], applicableHighlights[i]
+	//		}
+	//	}
+	//}
+
+	// Build result in single pass
+	var result strings.Builder
+	result.Grow(len(styledLine) * 2) // Pre-allocate with extra space for styling
+
+	var activeStyles []string
+	nonAnsiBytes := 0
+	highlightIdx := 0
+	inAnsi := false
+
+	i := 0
+	for i < len(styledLine) {
+		// Handle ANSI sequences
+		if strings.HasPrefix(styledLine[i:], "\x1b[") {
+			inAnsi = true
+			ansiLen := strings.Index(styledLine[i:], "m")
+			if ansiLen != -1 {
+				escEnd := i + ansiLen + 1
+				ansi := styledLine[i:escEnd]
+				if ansi == RST {
+					activeStyles = []string{} // reset
+				} else {
+					activeStyles = append(activeStyles, ansi) // add new active style
+				}
+				result.WriteString(ansi)
+				i = escEnd
+				inAnsi = false
+				continue
+			}
+		}
+
+		if !inAnsi {
+			// Check if we need to start a highlight at this position
+			for highlightIdx < len(applicableHighlights) &&
+				applicableHighlights[highlightIdx].startByte == nonAnsiBytes {
+				highlight := applicableHighlights[highlightIdx]
+
+				// Reset current styles if any
+				if len(activeStyles) > 0 {
+					result.WriteString(RST)
+				}
+
+				// Extract and apply highlight text
+				plainText := getNonAnsiBytes(styledLine, i, highlight.endByte-highlight.startByte)
+				result.WriteString(highlight.style.Render(plainText))
+
+				// Restore previous styles if any
+				if len(activeStyles) > 0 {
+					for _, style := range activeStyles {
+						result.WriteString(style)
+					}
+				}
+
+				// Skip the highlighted text
+				count := 0
+				for count < len(plainText) && i < len(styledLine) {
+					if strings.HasPrefix(styledLine[i:], "\x1b[") {
+						escEnd := i + strings.Index(styledLine[i:], "m") + 1
+						result.WriteString(styledLine[i:escEnd])
+						i = escEnd
+						continue
+					}
+					i++
+					count++
+				}
+				nonAnsiBytes += len(plainText)
+				highlightIdx++
+
+				// Skip to next highlight that doesn't overlap
+				for highlightIdx < len(applicableHighlights) &&
+					applicableHighlights[highlightIdx].startByte < nonAnsiBytes {
+					highlightIdx++
+				}
+
+				continue
+			}
+		}
+
+		// Regular character - just copy it
+		if i < len(styledLine) {
+			result.WriteByte(styledLine[i])
+			if !inAnsi {
+				nonAnsiBytes++
+			}
+		}
+		i++
+	}
+
+	return removeEmptyAnsiSequences(result.String())
 }
 
 func stripAnsi(input string) string {

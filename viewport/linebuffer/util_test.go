@@ -382,7 +382,7 @@ func TestHighlightString(t *testing.T) {
 		styledSegment  string // segment with ANSI codes
 		toHighlight    string
 		highlightStyle lipgloss.Style
-		plainLine      string // full line without ANSI
+		fullLine       string // full line without ANSI
 		segmentStart   int
 		segmentEnd     int
 		expected       string
@@ -392,7 +392,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "",
 			toHighlight:    "",
 			highlightStyle: redFg,
-			plainLine:      "",
+			fullLine:       "",
 			segmentStart:   0,
 			segmentEnd:     0,
 			expected:       "",
@@ -402,7 +402,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "hello",
 			toHighlight:    "",
 			highlightStyle: redFg,
-			plainLine:      "hello",
+			fullLine:       "hello",
 			segmentStart:   0,
 			segmentEnd:     5,
 			expected:       "hello",
@@ -412,7 +412,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "hello",
 			toHighlight:    "ell",
 			highlightStyle: redFg,
-			plainLine:      "hello",
+			fullLine:       "hello",
 			segmentStart:   0,
 			segmentEnd:     5,
 			expected:       "h\x1b[38;2;255;0;0mell" + RST + "o",
@@ -422,7 +422,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "\x1b[38;2;255;0;0mfirst line" + RST,
 			toHighlight:    "first",
 			highlightStyle: lipgloss.NewStyle().Foreground(blue),
-			plainLine:      "first line",
+			fullLine:       "first line",
 			segmentStart:   0,
 			segmentEnd:     10,
 			expected:       "\x1b[38;2;0;0;255mfirst" + RST + "\x1b[38;2;255;0;0m line" + RST,
@@ -432,7 +432,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "ello world",
 			toHighlight:    "hello",
 			highlightStyle: redFg,
-			plainLine:      "hello world",
+			fullLine:       "hello world",
 			segmentStart:   1,
 			segmentEnd:     11,
 			expected:       "\x1b[38;2;255;0;0mello" + RST + " world",
@@ -442,7 +442,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "hello wo",
 			toHighlight:    "world",
 			highlightStyle: redFg,
-			plainLine:      "hello world",
+			fullLine:       "hello world",
 			segmentStart:   0,
 			segmentEnd:     8,
 			expected:       "hello \x1b[38;2;255;0;0mwo" + RST,
@@ -452,7 +452,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "\x1b[38;2;255;0;0mello wor" + RST,
 			toHighlight:    "hello world",
 			highlightStyle: lipgloss.NewStyle().Foreground(blue),
-			plainLine:      "hello world",
+			fullLine:       "hello world",
 			segmentStart:   1,
 			segmentEnd:     9,
 			expected:       "\x1b[38;2;0;0;255mello wor" + RST,
@@ -462,7 +462,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  "middle",
 			toHighlight:    "outside",
 			highlightStyle: redFg,
-			plainLine:      "outside middle outside",
+			fullLine:       "outside middle outside",
 			segmentStart:   8,
 			segmentEnd:     14,
 			expected:       "middle",
@@ -472,7 +472,7 @@ func TestHighlightString(t *testing.T) {
 			styledSegment:  redBg.Render("hello") + " " + blueBg.Render("world"),
 			toHighlight:    "lo wo",
 			highlightStyle: greenBg,
-			plainLine:      "hello world",
+			fullLine:       "hello world",
 			segmentStart:   0,
 			segmentEnd:     11,
 			expected:       redBg.Render("hel") + greenBg.Render("lo wo") + blueBg.Render("rld"),
@@ -481,12 +481,11 @@ func TestHighlightString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var highlights []Highlight
 			if tt.toHighlight != "" {
-				highlights = ExtractHighlights([]string{tt.plainLine}, tt.toHighlight, tt.highlightStyle)
+				highlights = ExtractHighlights([]string{tt.fullLine}, tt.toHighlight, tt.highlightStyle)
 			}
 			result := highlightString(
 				tt.styledSegment,
 				highlights,
-				tt.plainLine,
 				tt.segmentStart,
 				tt.segmentEnd,
 			)

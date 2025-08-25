@@ -127,7 +127,6 @@ func (m MultiLineBuffer) Take(
 	res = highlightString(
 		res,
 		highlights,
-		m.concatenatedLineNoAnsi(),
 		firstByteIdx,
 		firstByteIdx+len(stripAnsi(res)),
 	)
@@ -192,12 +191,4 @@ func (m MultiLineBuffer) Repr() string {
 	}
 	v += ")"
 	return v
-}
-
-func (m MultiLineBuffer) concatenatedLineNoAnsi() string {
-	var builder strings.Builder
-	for i := range m.buffers {
-		builder.WriteString(m.buffers[i].lineNoAnsi)
-	}
-	return builder.String()
 }
