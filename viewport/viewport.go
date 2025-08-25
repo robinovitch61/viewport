@@ -127,7 +127,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		navCtx := NavigationContext{
 			WrapText:        m.config.WrapText,
 			Dimensions:      m.display.Bounds,
-			NumContentLines: m.getNumContentLines(),
+			NumContentLines: m.getNumContentLinesAssumingFooterVisible(),
 			NumVisibleItems: m.getNumVisibleItems(),
 		}
 		navResult := m.navigation.ProcessKeyMsg(msg, navCtx)
@@ -270,7 +270,7 @@ func (m *Model[T]) View() string {
 	nVisibleLines := len(visibleContentLines.lines)
 	if visibleContentLines.showFooter {
 		// pad so footer shows up at bottom
-		padCount := max(0, m.getNumContentLines()-nVisibleLines-1) // 1 for footer itself
+		padCount := max(0, m.getNumContentLinesAssumingFooterVisible()-nVisibleLines)
 		for i := 0; i < padCount; i++ {
 			builder.WriteByte('\n')
 		}
@@ -496,7 +496,7 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 			m.display.TopItemIdx = itemIdx
 			m.display.TopItemLineOffset = 0
 			// then scroll up so that item is at the bottom, unless it already takes up the whole screen
-			m.scrollUp(max(0, m.getNumContentLines()-numLinesInItem))
+			m.scrollUp(max(0, m.getNumContentLinesAssumingFooterVisible()-numLinesInItem))
 		} else {
 			// if item above, scroll until it's fully in view at the top
 			m.display.TopItemIdx = itemIdx
@@ -518,7 +518,11 @@ func (m *Model[T]) SetHighlights(highlights []linebuffer.Highlight) {
 	m.content.SetHighlights(highlights)
 }
 
-func (m *Model[T]) maxLineWidth() int {
+func (m *Model[T]) maxItemWidth() int {
+	if m.config.WrapText {
+		panic("maxItemWidth should not be called when wrapping is enabled")
+	}
+
 	maxLineWidth := 0
 
 	headerLines := m.getVisibleHeaderLines()
@@ -528,17 +532,21 @@ func (m *Model[T]) maxLineWidth() int {
 		}
 	}
 
-	visibleContentLines := m.getVisibleContentLines()
-	for i := range visibleContentLines.lines {
-		if w := visibleContentLines.lines[i].Width(); w > maxLineWidth {
-			maxLineWidth = w
-		}
-	}
+	// check content line widths without fully rendering all of them
+	if !m.content.IsEmpty() {
+		items := m.content.Items
+		startIdx := clampValZeroToMax(m.display.TopItemIdx, m.content.NumItems()-1)
+		numItemsToCheck := min(m.content.NumItems()-startIdx, m.display.Bounds.Height)
 
-	if visibleContentLines.showFooter {
-		footerLine := m.getTruncatedFooterLine(visibleContentLines)
-		if w := lipgloss.Width(footerLine); w > maxLineWidth {
-			maxLineWidth = w
+		for i := 0; i < numItemsToCheck; i++ {
+			itemIdx := startIdx + i
+			if itemIdx >= m.content.NumItems() {
+				break
+			}
+			lb := items[itemIdx].Render()
+			if w := lb.Width(); w > maxLineWidth {
+				maxLineWidth = w
+			}
 		}
 	}
 
@@ -558,7 +566,10 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 }
 
 func (m *Model[T]) safelySetXOffset(n int) {
-	maxXOffset := m.maxLineWidth() - m.display.Bounds.Width
+	if m.config.WrapText {
+		return
+	}
+	maxXOffset := m.maxItemWidth() - m.display.Bounds.Width
 	m.display.XOffset = max(0, min(maxXOffset, n))
 }
 
@@ -575,10 +586,9 @@ func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset in
 	m.display.SafelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset)
 }
 
-// getNumContentLines returns the number of lines of between the header and footer
-func (m *Model[T]) getNumContentLines() int {
-	visibleContentLines := m.getVisibleContentLines()
-	return m.display.GetNumContentLines(len(m.getVisibleHeaderLines()), visibleContentLines.showFooter)
+// getNumContentLinesAssumingFooterVisible returns the number of lines of between the header and footer
+func (m *Model[T]) getNumContentLinesAssumingFooterVisible() int {
+	return m.display.GetNumContentLines(len(m.getVisibleHeaderLines()), true)
 }
 
 func (m *Model[T]) scrollSoSelectionInView() {
@@ -700,7 +710,6 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 	if !m.config.WrapText {
 		return safeSliceUpToIdx(header, m.display.Bounds.Height)
 	}
-	// wrapped
 	var wrappedHeaderLines []string
 	for _, s := range header {
 		lb := linebuffer.New(s)
@@ -900,12 +909,20 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 		return 0, 0
 	}
 	if !m.config.WrapText {
-		return max(0, lenAllItems-m.getNumContentLines()), 0
+		// TODO LEO: wrap this into a shared func
+		// calculate content lines directly to avoid circular dependency
+		headerLines := len(m.getVisibleHeaderLines())
+		// assume footer will be shown for this calculation
+		numContentLines := max(0, m.display.Bounds.Height-headerLines-1)
+		return max(0, lenAllItems-numContentLines), 0
 	}
 	// wrapped
 	maxTopItemIdx, maxTopItemLineOffset := lenAllItems-1, 0
 	nLinesLastItem := m.numLinesForItem(lenAllItems - 1)
-	numContentLines := m.getNumContentLines()
+	// calculate content lines directly to avoid circular dependency
+	headerLines := len(m.getVisibleHeaderLines())
+	// assume footer will be shown for this calculation
+	numContentLines := max(0, m.display.Bounds.Height-headerLines-1)
 	if numContentLines <= nLinesLastItem {
 		// same item, just change offset
 		maxTopItemLineOffset = nLinesLastItem - numContentLines
@@ -940,7 +957,7 @@ func (m *Model[T]) getHighlightDataForItem(itemIndex int) []linebuffer.Highlight
 
 func (m *Model[T]) getNumVisibleItems() int {
 	if !m.config.WrapText {
-		return m.getNumContentLines()
+		return m.getNumContentLinesAssumingFooterVisible()
 	}
 	visibleContentLines := m.getVisibleContentLines()
 	// return distinct number of items

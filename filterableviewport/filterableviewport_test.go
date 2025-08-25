@@ -43,6 +43,7 @@ var (
 		SelectedItemStyle:        selectedItemStyle,
 	}
 
+	red            = lipgloss.NewStyle().Foreground(lipgloss.Color("FF0000"))
 	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
 	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
@@ -807,7 +808,7 @@ func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
 	)
 	numAs := 10000
 	fv.SetContent(stringsToItems([]string{
-		strings.Repeat("a", numAs),
+		red.Render(strings.Repeat("a", numAs)),
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(typeAKeyMsg)
