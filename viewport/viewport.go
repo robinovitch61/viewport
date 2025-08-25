@@ -905,12 +905,13 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	// wrapped
 	maxTopItemIdx, maxTopItemLineOffset := lenAllItems-1, 0
 	nLinesLastItem := m.numLinesForItem(lenAllItems - 1)
-	if m.getNumContentLines() <= nLinesLastItem {
+	numContentLines := m.getNumContentLines()
+	if numContentLines <= nLinesLastItem {
 		// same item, just change offset
-		maxTopItemLineOffset = nLinesLastItem - m.getNumContentLines()
+		maxTopItemLineOffset = nLinesLastItem - numContentLines
 	} else {
 		// take lines from items until scrolled up desired amount
-		n := m.getNumContentLines() - nLinesLastItem
+		n := numContentLines - nLinesLastItem
 		for n > 0 {
 			maxTopItemIdx--
 			if maxTopItemIdx < 0 {
