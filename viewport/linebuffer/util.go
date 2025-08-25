@@ -8,6 +8,13 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// highlightRange represents a highlight with start/end positions and style
+type highlightRange struct {
+	startByte int
+	endByte   int
+	style     lipgloss.Style
+}
+
 // RST is the ansi escape sequence for resetting styles
 // note that in future charm library versions this may change to "\x1b[m"
 const RST = "\x1b[0m"
@@ -196,22 +203,18 @@ func highlightString(
 		return styledLine
 	}
 
-	// Filter and sort highlights that intersect with this segment
-	var applicableHighlights []struct {
-		startByte int
-		endByte   int
-		style     lipgloss.Style
-	}
+	// Filter highlights that intersect with this segment
+	var applicableHighlights []highlightRange
 
 	for _, highlight := range highlights {
 		if highlight.StartByteOffset < plainEndByte && highlight.EndByteOffset > plainStartByte {
 			startByte := max(highlight.StartByteOffset, plainStartByte) - plainStartByte
 			endByte := min(highlight.EndByteOffset, plainEndByte) - plainStartByte
-			applicableHighlights = append(applicableHighlights, struct {
-				startByte int
-				endByte   int
-				style     lipgloss.Style
-			}{startByte, endByte, highlight.Style})
+			applicableHighlights = append(applicableHighlights, highlightRange{
+				startByte: startByte,
+				endByte:   endByte,
+				style:     highlight.Style,
+			})
 		}
 	}
 
@@ -231,7 +234,9 @@ func highlightString(
 
 	// Build result in single pass
 	var result strings.Builder
-	result.Grow(len(styledLine) * 2) // Pre-allocate with extra space for styling
+	// More accurate pre-allocation based on highlight density (~50 bytes per highlight for styling)
+	estimatedSize := len(styledLine) + len(applicableHighlights)*50
+	result.Grow(estimatedSize)
 
 	var activeStyles []string
 	nonAnsiBytes := 0
