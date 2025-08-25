@@ -432,7 +432,7 @@ func (m *Model[T]) SetHeight(height int) {
 
 // SetSelectedItemIdx sets the selected context index. Automatically puts selection in view as necessary
 func (m *Model[T]) SetSelectedItemIdx(selectedItemIdx int) {
-	if !m.navigation.SelectionEnabled || m.getNumContentLines() == 0 {
+	if !m.navigation.SelectionEnabled {
 		return
 	}
 	m.content.SetSelectedIdx(selectedItemIdx)
