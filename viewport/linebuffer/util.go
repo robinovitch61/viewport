@@ -203,9 +203,7 @@ func highlightString(
 		return styledLine
 	}
 
-	// Filter highlights that intersect with this segment
 	var applicableHighlights []highlightRange
-
 	for _, highlight := range highlights {
 		if highlight.StartByteOffset < plainEndByte && highlight.EndByteOffset > plainStartByte {
 			startByte := max(highlight.StartByteOffset, plainStartByte) - plainStartByte
@@ -222,19 +220,17 @@ func highlightString(
 		return styledLine
 	}
 
-	// TODO LEO: check if not sorted and error if so
-	//// Sort highlights by start position
-	//for i := 0; i < len(applicableHighlights); i++ {
-	//	for j := i + 1; j < len(applicableHighlights); j++ {
-	//		if applicableHighlights[j].startByte < applicableHighlights[i].startByte {
-	//			applicableHighlights[i], applicableHighlights[j] = applicableHighlights[j], applicableHighlights[i]
-	//		}
-	//	}
-	//}
+	// sort highlights by start position
+	for i := 0; i < len(applicableHighlights); i++ {
+		for j := i + 1; j < len(applicableHighlights); j++ {
+			if applicableHighlights[j].startByte < applicableHighlights[i].startByte {
+				applicableHighlights[i], applicableHighlights[j] = applicableHighlights[j], applicableHighlights[i]
+			}
+		}
+	}
 
-	// Build result in single pass
 	var result strings.Builder
-	// More accurate pre-allocation based on highlight density (~50 bytes per highlight for styling)
+	// pre-allocation based on highlight density (~50 bytes per highlight for styling)
 	estimatedSize := len(styledLine) + len(applicableHighlights)*50
 	result.Grow(estimatedSize)
 
@@ -245,7 +241,7 @@ func highlightString(
 
 	i := 0
 	for i < len(styledLine) {
-		// Handle ANSI sequences
+		// handle ansi sequences
 		if strings.HasPrefix(styledLine[i:], "\x1b[") {
 			inAnsi = true
 			ansiLen := strings.Index(styledLine[i:], "m")
@@ -265,28 +261,28 @@ func highlightString(
 		}
 
 		if !inAnsi {
-			// Check if we need to start a highlight at this position
+			// check if need to start a highlight at this position
 			for highlightIdx < len(applicableHighlights) &&
 				applicableHighlights[highlightIdx].startByte == nonAnsiBytes {
 				highlight := applicableHighlights[highlightIdx]
 
-				// Reset current styles if any
+				// reset current styles if any
 				if len(activeStyles) > 0 {
 					result.WriteString(RST)
 				}
 
-				// Extract and apply highlight text
+				// extract and apply highlight text
 				plainText := getNonAnsiBytes(styledLine, i, highlight.endByte-highlight.startByte)
 				result.WriteString(highlight.style.Render(plainText))
 
-				// Restore previous styles if any
+				// restore previous styles if any
 				if len(activeStyles) > 0 {
 					for _, style := range activeStyles {
 						result.WriteString(style)
 					}
 				}
 
-				// Skip the highlighted text
+				// skip highlighted text
 				count := 0
 				for count < len(plainText) && i < len(styledLine) {
 					if strings.HasPrefix(styledLine[i:], "\x1b[") {
@@ -301,7 +297,7 @@ func highlightString(
 				nonAnsiBytes += len(plainText)
 				highlightIdx++
 
-				// Skip to next highlight that doesn't overlap
+				// skip to next highlight that doesn't overlap
 				for highlightIdx < len(applicableHighlights) &&
 					applicableHighlights[highlightIdx].startByte < nonAnsiBytes {
 					highlightIdx++
@@ -311,7 +307,7 @@ func highlightString(
 			}
 		}
 
-		// Regular character - just copy it
+		// regular character
 		if i < len(styledLine) {
 			result.WriteByte(styledLine[i])
 			if !inAnsi {

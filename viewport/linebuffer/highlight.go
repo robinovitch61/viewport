@@ -7,8 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// TODO LEO: index-agnostic highlights
-
 // Highlight represents a specific position and style to highlight
 type Highlight struct {
 	ItemIndex       int            // index of the item containing the highlight

@@ -231,12 +231,12 @@ func (m *Model[T]) View() string {
 			truncated = visibleContentLines.lines[i].Content()
 		} else {
 			lineBuffer := visibleContentLines.lines[i]
-			highlightData := m.getHighlightDataForItem(visibleContentLines.itemIndexes[i])
+			highlightData := m.getHighlightsForItem(visibleContentLines.itemIndexes[i])
 			truncated, _ = lineBuffer.Take(
 				m.display.XOffset,
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
-				highlightData, // TODO LEO: adjust highlightData style based on idx
+				highlightData,
 			)
 		}
 
@@ -775,8 +775,8 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 
 	if m.config.WrapText {
 		lb := currItem.Render()
-		highlightData := m.getHighlightDataForItem(currItemIdx)
-		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData) // TODO LEO: adjust highlightData style based on idx
+		highlightData := m.getHighlightsForItem(currItemIdx)
+		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData)
 		offsetLines := safeSliceFromIdx(itemLines, m.display.TopItemLineOffset)
 		done = addLines(toLineBuffers(offsetLines), currItemIdx)
 
@@ -787,8 +787,8 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 			} else {
 				currItem = items[currItemIdx]
 				lb = currItem.Render()
-				highlightData = m.getHighlightDataForItem(currItemIdx)
-				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData) // TODO LEO: adjust highlightData style based on idx
+				highlightData = m.getHighlightsForItem(currItemIdx)
+				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData)
 				done = addLines(toLineBuffers(itemLines), currItemIdx)
 			}
 		}
@@ -955,8 +955,8 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	return max(0, maxTopItemIdx), max(0, maxTopItemLineOffset)
 }
 
-// getHighlightDataForItem returns highlight data filtered for the specific item index
-func (m *Model[T]) getHighlightDataForItem(itemIndex int) []linebuffer.Highlight {
+// getHighlightsForItem returns highlights for the specific item index
+func (m *Model[T]) getHighlightsForItem(itemIndex int) []linebuffer.Highlight {
 	return m.content.GetHighlightsForItem(itemIndex)
 }
 

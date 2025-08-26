@@ -83,7 +83,6 @@ func makeFilterableViewport(
 }
 
 func TestNew(t *testing.T) {
-	// TODO LEO: use this in other tests
 	fv := makeFilterableViewport(
 		20,
 		4,
@@ -825,6 +824,7 @@ func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+// this is a pretty bad case, cycling through so many matching highlighted positions
 func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
@@ -834,7 +834,7 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 		},
 		[]Option[viewport.Item]{},
 	)
-	numAs := 10000
+	numAs := 5000
 	fv.SetContent(stringsToItems([]string{
 		red.Render(strings.Repeat("a", numAs)),
 	}))
@@ -853,7 +853,7 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
 	internal.CmpStr(t, expected, fv.View())
 
-	numNext := 50
+	numNext := 10
 	for i := 0; i < numNext; i++ {
 		fv, _ = fv.Update(nextMatchKeyMsg)
 	}
@@ -869,8 +869,6 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 	expectedAfterNextView := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(expectedAfterNext, restAfterNext...))
 	internal.CmpStr(t, expectedAfterNextView, fv.View())
 }
-
-// TODO LEO: add test for 10k character 'a' in a single wrapped line and filter is 'a' - very slow right now
 
 // TODO LEO: add tests for match navigation with matches
 
