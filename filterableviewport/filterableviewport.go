@@ -98,6 +98,7 @@ type Model[T viewport.Renderable] struct {
 	allMatches                 []Match
 	numMatchingItems           int
 	focusedMatchIdx            int
+	previousFocusedMatchIdx    int
 	totalMatchesOnAllItems     int
 	itemIdxToFilteredIdx       map[int]int
 }
@@ -127,6 +128,7 @@ func New[T viewport.Renderable](vp *viewport.Model[T], opts ...Option[T]) *Model
 		allMatches:                 []Match{},
 		numMatchingItems:           0,
 		focusedMatchIdx:            -1,
+		previousFocusedMatchIdx:    -1,
 		totalMatchesOnAllItems:     0,
 		itemIdxToFilteredIdx:       make(map[int]int),
 	}
@@ -264,6 +266,25 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		return
 	}
 
+	// if only focus changed, update only the affected highlights
+	if m.previousFocusedMatchIdx >= 0 && m.previousFocusedMatchIdx < len(m.allMatches) &&
+		m.focusedMatchIdx != m.previousFocusedMatchIdx &&
+		len(m.allMatches) > 0 {
+		currentHighlights := m.Viewport.GetHighlights()
+		if len(currentHighlights) == len(m.allMatches) {
+			if m.previousFocusedMatchIdx < len(currentHighlights) {
+				currentHighlights[m.previousFocusedMatchIdx].Style = m.styles.Match.Unfocused
+			}
+			if m.focusedMatchIdx < len(currentHighlights) {
+				currentHighlights[m.focusedMatchIdx].Style = m.styles.Match.Focused
+			}
+			m.Viewport.SetHighlights(currentHighlights)
+			m.previousFocusedMatchIdx = m.focusedMatchIdx
+			return
+		}
+	}
+
+	// otherwise, rebuild all highlights
 	var highlights []linebuffer.Highlight
 	for matchIdx, match := range m.allMatches {
 		itemIdx := match.ItemIndex
@@ -288,6 +309,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	m.Viewport.SetHighlights(highlights)
+	m.previousFocusedMatchIdx = m.focusedMatchIdx
 }
 
 // GetWidth returns the width of the filterable viewport

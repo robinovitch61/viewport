@@ -87,6 +87,11 @@ func (cm *ContentManager[T]) SetHighlights(highlights []linebuffer.Highlight) {
 	cm.rebuildHighlightsCache()
 }
 
+// GetHighlights returns all highlights.
+func (cm *ContentManager[T]) GetHighlights() []linebuffer.Highlight {
+	return cm.Highlights
+}
+
 // GetHighlightsForItem returns highlights for a specific item index in O(1) time.
 func (cm *ContentManager[T]) GetHighlightsForItem(itemIndex int) []linebuffer.Highlight {
 	return cm.highlightsByItem[itemIndex]

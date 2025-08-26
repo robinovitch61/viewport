@@ -518,6 +518,11 @@ func (m *Model[T]) SetHighlights(highlights []linebuffer.Highlight) {
 	m.content.SetHighlights(highlights)
 }
 
+// GetHighlights returns all highlights.
+func (m *Model[T]) GetHighlights() []linebuffer.Highlight {
+	return m.content.GetHighlights()
+}
+
 func (m *Model[T]) maxItemWidth() int {
 	if m.config.WrapText {
 		panic("maxItemWidth should not be called when wrapping is enabled")
