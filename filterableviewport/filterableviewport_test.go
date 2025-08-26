@@ -15,22 +15,21 @@ import (
 )
 
 var (
-	// TODO LEO: replace these with MakeKeyMsg from internal package
-	filterKeyMsg          = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
-	regexFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	filterKeyMsg          = internal.MakeKeyMsg('/')
+	regexFilterKeyMsg     = internal.MakeKeyMsg('r')
 	applyFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyEnter}
 	cancelFilterKeyMsg    = tea.KeyMsg{Type: tea.KeyEsc}
-	toggleMatchesKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}}
-	nextMatchKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
-	prevMatchKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'N'}}
+	toggleMatchesKeyMsg   = internal.MakeKeyMsg('o')
+	nextMatchKeyMsg       = internal.MakeKeyMsg('n')
+	prevMatchKeyMsg       = internal.MakeKeyMsg('N')
 	downKeyMsg            = tea.KeyMsg{Type: tea.KeyDown}
-	typeAKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
-	typePKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
-	typePlusKeyMsg        = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}}
-	typeLeftBracketKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'['}}
-	typeXKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
-	typeYKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
-	typeZKeyMsg           = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'z'}}
+	typeAKeyMsg           = internal.MakeKeyMsg('a')
+	typePKeyMsg           = internal.MakeKeyMsg('p')
+	typePlusKeyMsg        = internal.MakeKeyMsg('+')
+	typeLeftBracketKeyMsg = internal.MakeKeyMsg('[')
+	typeXKeyMsg           = internal.MakeKeyMsg('x')
+	typeYKeyMsg           = internal.MakeKeyMsg('y')
+	typeZKeyMsg           = internal.MakeKeyMsg('z')
 
 	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)

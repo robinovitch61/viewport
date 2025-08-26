@@ -9,7 +9,6 @@ import (
 
 	"github.com/muesli/termenv"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
@@ -21,14 +20,14 @@ func init() {
 }
 
 var (
-	downKeyMsg       = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
-	halfPgDownKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}}
-	fullPgDownKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}
-	upKeyMsg         = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
-	halfPgUpKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
-	fullPgUpKeyMsg   = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}}
-	goToTopKeyMsg    = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}}
-	goToBottomKeyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}}
+	downKeyMsg       = internal.MakeKeyMsg('j')
+	halfPgDownKeyMsg = internal.MakeKeyMsg('d')
+	fullPgDownKeyMsg = internal.MakeKeyMsg('f')
+	upKeyMsg         = internal.MakeKeyMsg('k')
+	halfPgUpKeyMsg   = internal.MakeKeyMsg('u')
+	fullPgUpKeyMsg   = internal.MakeKeyMsg('b')
+	goToTopKeyMsg    = internal.MakeKeyMsg('g')
+	goToBottomKeyMsg = internal.MakeKeyMsg('G')
 	red              = lipgloss.Color("#ff0000")
 	blue             = lipgloss.Color("#0000ff")
 	green            = lipgloss.Color("#00ff00")
