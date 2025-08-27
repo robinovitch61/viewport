@@ -627,6 +627,45 @@ func (m *Model[T]) viewRight(n int) {
 	m.safelySetXOffset(m.display.XOffset + n)
 }
 
+// getItemIdxAbove consumes n lines by moving up through items, returning the final item index and line offset
+func (m *Model[T]) getItemIdxAbove(startItemIdx, startLineOffset, linesToConsume int) (finalItemIdx, finalLineOffset int) {
+	itemIdx := startItemIdx
+	lineOffset := startLineOffset
+	remaining := linesToConsume
+
+	for remaining > 0 {
+		itemIdx--
+		if itemIdx < 0 {
+			return 0, 0
+		}
+		numLinesInItem := m.numLinesForItem(itemIdx)
+		if remaining <= numLinesInItem {
+			return itemIdx, numLinesInItem - remaining
+		}
+		remaining -= numLinesInItem
+	}
+	return itemIdx, lineOffset
+}
+
+// getItemIdxBelow consumes n lines by moving down through items, returning the final item index and line offset
+func (m *Model[T]) getItemIdxBelow(startItemIdx, linesToConsume int) (finalItemIdx, finalLineOffset int) {
+	itemIdx := startItemIdx
+	remaining := linesToConsume
+
+	for remaining > 0 {
+		itemIdx++
+		if itemIdx >= m.content.NumItems() {
+			return m.content.NumItems() - 1, 0
+		}
+		numLinesInItem := m.numLinesForItem(itemIdx)
+		if remaining <= numLinesInItem {
+			return itemIdx, remaining - 1
+		}
+		remaining -= numLinesInItem
+	}
+	return itemIdx, 0
+}
+
 // scrollByNLines edits topItemIdx and topItemLineOffset to scroll the viewport by n lines (negative for up, positive for down)
 func (m *Model[T]) scrollByNLines(n int) {
 	if n == 0 {
@@ -649,30 +688,13 @@ func (m *Model[T]) scrollByNLines(n int) {
 	} else {
 		// wrapped
 		if n < 0 { // negative n, scrolling up
-			// up
 			if newTopItemLineOffset >= -n {
 				// same item, just change offset
 				newTopItemLineOffset += n
 			} else {
-				// take lines from items until scrolled up desired amount
-				n += newTopItemLineOffset
-				for n < 0 {
-					newTopItemIdx--
-					if newTopItemIdx < 0 {
-						// scrolled up past top - stay at top
-						newTopItemIdx = 0
-						newTopItemLineOffset = 0
-						break
-					}
-					numLinesInTopItem := m.numLinesForItem(newTopItemIdx)
-					for i := range numLinesInTopItem {
-						n++
-						if n == 0 {
-							newTopItemLineOffset = numLinesInTopItem - (i + 1)
-							break
-						}
-					}
-				}
+				// need to scroll up through multiple items
+				linesToConsume := -n - newTopItemLineOffset
+				newTopItemIdx, newTopItemLineOffset = m.getItemIdxAbove(newTopItemIdx, newTopItemLineOffset, linesToConsume)
 			}
 		} else { // positive n, scrolling down
 			numLinesInTopItem := m.numLinesForItem(newTopItemIdx)
@@ -680,23 +702,9 @@ func (m *Model[T]) scrollByNLines(n int) {
 				// same item, just change offset
 				newTopItemLineOffset += n
 			} else {
-				// take lines from items until scrolled down desired amount
-				n -= numLinesInTopItem - (newTopItemLineOffset + 1)
-				for n > 0 {
-					newTopItemIdx++
-					if newTopItemIdx >= m.content.NumItems() {
-						newTopItemIdx = m.content.NumItems() - 1
-						break
-					}
-					numLinesInTopItem = m.numLinesForItem(newTopItemIdx)
-					for i := range numLinesInTopItem {
-						n--
-						if n == 0 {
-							newTopItemLineOffset = i
-							break
-						}
-					}
-				}
+				// need to scroll down through multiple items
+				linesToConsume := n - (numLinesInTopItem - (newTopItemLineOffset + 1))
+				newTopItemIdx, newTopItemLineOffset = m.getItemIdxBelow(newTopItemIdx, linesToConsume)
 			}
 		}
 	}
@@ -830,7 +838,7 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	return visibleContentLinesResult{lines: contentLines, itemIndexes: itemIndexes, showFooter: showFooter}
 }
 
-// TODO LEO: reuse this
+// TODO LEO: reuse this for selection styling
 //func (m *Model[T]) highlightStyle(itemIdx int) lipgloss.Style {
 //	return m.display.GetHighlightStyle(m.navigation.SelectionEnabled && itemIdx == m.content.GetSelectedIdx())
 //}
@@ -909,48 +917,29 @@ func (m *Model[T]) selectionInViewInfo() selectionInViewInfoResult {
 }
 
 func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
-	lenAllItems := m.content.NumItems()
-	if lenAllItems == 0 {
+	numItems := m.content.NumItems()
+	if numItems == 0 {
 		return 0, 0
 	}
-	if !m.config.WrapText {
-		// TODO LEO: wrap this into a shared func
-		// calculate content lines directly to avoid circular dependency
-		headerLines := len(m.getVisibleHeaderLines())
-		// assume footer will be shown for this calculation
-		numContentLines := max(0, m.display.Bounds.Height-headerLines-1)
-		return max(0, lenAllItems-numContentLines), 0
-	}
-	// wrapped
-	maxTopItemIdx, maxTopItemLineOffset := lenAllItems-1, 0
-	nLinesLastItem := m.numLinesForItem(lenAllItems - 1)
-	// calculate content lines directly to avoid circular dependency
+
 	headerLines := len(m.getVisibleHeaderLines())
-	// assume footer will be shown for this calculation
+	// assume footer will be shown - if it isn't, max item idx and offset will both be 0
 	numContentLines := max(0, m.display.Bounds.Height-headerLines-1)
-	if numContentLines <= nLinesLastItem {
-		// same item, just change offset
-		maxTopItemLineOffset = nLinesLastItem - numContentLines
+
+	if !m.config.WrapText {
+		return max(0, numItems-numContentLines), 0
+	}
+
+	// wrapped
+	maxTopItemIdx, maxTopItemLineOffset := numItems-1, 0
+	numLinesLastItem := m.numLinesForItem(numItems - 1)
+	if numContentLines <= numLinesLastItem {
+		// last item takes up whole screen or more, adjust offset accordingly
+		maxTopItemLineOffset = numLinesLastItem - numContentLines
 	} else {
-		// take lines from items until scrolled up desired amount
-		n := numContentLines - nLinesLastItem
-		for n > 0 {
-			maxTopItemIdx--
-			if maxTopItemIdx < 0 {
-				// scrolled up past top - stay at top
-				maxTopItemIdx = 0
-				maxTopItemLineOffset = 0
-				break
-			}
-			numLinesInTopItem := m.numLinesForItem(maxTopItemIdx)
-			for i := range numLinesInTopItem {
-				n--
-				if n == 0 {
-					maxTopItemLineOffset = numLinesInTopItem - (i + 1)
-					break
-				}
-			}
-		}
+		// need to scroll up through multiple items to fill the screen
+		linesToConsume := numContentLines - numLinesLastItem
+		maxTopItemIdx, maxTopItemLineOffset = m.getItemIdxAbove(maxTopItemIdx, maxTopItemLineOffset, linesToConsume)
 	}
 	return max(0, maxTopItemIdx), max(0, maxTopItemLineOffset)
 }
