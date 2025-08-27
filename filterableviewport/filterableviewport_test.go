@@ -780,10 +780,34 @@ func TestMatchNavigationWithMatchingItemsOnlyWrapped(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-//func TestMatchNavigationNoWrap(t *testing.T) {
-//	// TODO LEO
-//}
-//
+func TestMatchNavigationNoWrap(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		10,
+		[]viewport.Option[viewport.Item]{
+			viewport.WithWrapText[viewport.Item](false),
+		},
+		[]Option[viewport.Item]{},
+	)
+	fv.SetContent(stringsToItems([]string{
+		"duck duck duck duck duck duck duck duck duck duck goose",
+		"duck duck duck duck duck goose duck duck duck duck duck",
+		"goose duck duck duck duck duck duck duck duck duck duck",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "goose" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] goose  (1/3 matches...",
+		"...k duck duck duck duck " + focusedStyle.Render("goose"),
+		"...duck duck " + unfocusedStyle.Render("goose") + " duck duc...",
+		unfocusedStyle.Render("goose") + " duck duck duck duck d...",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
+
 //func TestMatchNavigationSelectionEnabled(t *testing.T) {
 //	// TODO LEO
 //}
