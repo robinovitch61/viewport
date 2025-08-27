@@ -15,21 +15,14 @@ import (
 )
 
 var (
-	filterKeyMsg          = internal.MakeKeyMsg('/')
-	regexFilterKeyMsg     = internal.MakeKeyMsg('r')
-	applyFilterKeyMsg     = tea.KeyMsg{Type: tea.KeyEnter}
-	cancelFilterKeyMsg    = tea.KeyMsg{Type: tea.KeyEsc}
-	toggleMatchesKeyMsg   = internal.MakeKeyMsg('o')
-	nextMatchKeyMsg       = internal.MakeKeyMsg('n')
-	prevMatchKeyMsg       = internal.MakeKeyMsg('N')
-	downKeyMsg            = tea.KeyMsg{Type: tea.KeyDown}
-	typeAKeyMsg           = internal.MakeKeyMsg('a')
-	typePKeyMsg           = internal.MakeKeyMsg('p')
-	typePlusKeyMsg        = internal.MakeKeyMsg('+')
-	typeLeftBracketKeyMsg = internal.MakeKeyMsg('[')
-	typeXKeyMsg           = internal.MakeKeyMsg('x')
-	typeYKeyMsg           = internal.MakeKeyMsg('y')
-	typeZKeyMsg           = internal.MakeKeyMsg('z')
+	filterKeyMsg        = internal.MakeKeyMsg('/')
+	regexFilterKeyMsg   = internal.MakeKeyMsg('r')
+	applyFilterKeyMsg   = tea.KeyMsg{Type: tea.KeyEnter}
+	cancelFilterKeyMsg  = tea.KeyMsg{Type: tea.KeyEsc}
+	toggleMatchesKeyMsg = internal.MakeKeyMsg('o')
+	nextMatchKeyMsg     = internal.MakeKeyMsg('n')
+	prevMatchKeyMsg     = internal.MakeKeyMsg('N')
+	downKeyMsg          = tea.KeyMsg{Type: tea.KeyDown}
 
 	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
@@ -248,7 +241,7 @@ func TestWithMatchesOnly_True(t *testing.T) {
 		"cherry",
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items) showing matches only",
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
@@ -272,7 +265,7 @@ func TestWithMatchesOnly_False(t *testing.T) {
 		"cherry",
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items)",
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
@@ -296,7 +289,7 @@ func TestWithCanToggleMatchesOnly_True(t *testing.T) {
 		"cherry",
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items)",
@@ -329,7 +322,7 @@ func TestWithCanToggleMatchesOnly_False(t *testing.T) {
 		"cherry",
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items)",
@@ -378,7 +371,7 @@ func TestDefaultText(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (no matches)",
@@ -424,7 +417,7 @@ func TestApplyFilterKey(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeAKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	if fv.FilterFocused() {
 		t.Error("filter should not be focused after applying filter")
@@ -447,7 +440,7 @@ func TestCancelFilterKey(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeAKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(cancelFilterKeyMsg)
 	if fv.FilterFocused() {
 		t.Error("filter should not be focused after canceling")
@@ -472,9 +465,9 @@ func TestRegexFilter_ValidPattern(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana", "apricot"}))
 	fv, _ = fv.Update(regexFilterKeyMsg)
-	fv, _ = fv.Update(typeAKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
-	fv, _ = fv.Update(typePlusKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
+	fv, _ = fv.Update(internal.MakeKeyMsg('+'))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[regex] Filter: ap+" + cursorStyle.Render(" ") + " (1/2 matches on 2 items)",
 		focusedStyle.Render("app") + "le",
@@ -495,7 +488,7 @@ func TestRegexFilter_InvalidPattern(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(regexFilterKeyMsg)
-	fv, _ = fv.Update(typeLeftBracketKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('['))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[regex] Filter: [" + cursorStyle.Render(" ") + " (no matches)",
 		"apple",
@@ -514,9 +507,9 @@ func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeXKeyMsg)
-	fv, _ = fv.Update(typeYKeyMsg)
-	fv, _ = fv.Update(typeZKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('x'))
+	fv, _ = fv.Update(internal.MakeKeyMsg('y'))
+	fv, _ = fv.Update(internal.MakeKeyMsg('z'))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] xyz" + cursorStyle.Render(" ") + " (no matches)",
 		"apple",
@@ -625,7 +618,7 @@ func TestSpecialKeysWhileFiltering(t *testing.T) {
 		"cherry",
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typePKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
 	fv, _ = fv.Update(toggleMatchesKeyMsg) // 'o'
 	fv, _ = fv.Update(nextMatchKeyMsg)     // 'n'
 	fv, _ = fv.Update(prevMatchKeyMsg)     // 'N'
@@ -649,7 +642,7 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	)
 	fv.SetContent(stringsToItems([]string{"apple", "banana"}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeXKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('x'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] x  (no matches)",
@@ -809,7 +802,7 @@ func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
 		red.Render(strings.Repeat("a", numAs)),
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeAKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	firstRows := []string{
 		fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs),
@@ -839,7 +832,7 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 		red.Render(strings.Repeat("a", numAs)),
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(typeAKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	firstRows := []string{
 		fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs),
