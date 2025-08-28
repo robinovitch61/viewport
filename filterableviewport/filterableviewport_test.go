@@ -659,7 +659,7 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestMatchNavigationWithAllItemsWrapped(t *testing.T) {
+func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		60,
 		5,
@@ -721,7 +721,7 @@ func TestMatchNavigationWithAllItemsWrapped(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-func TestMatchNavigationWithMatchingItemsOnlyWrapped(t *testing.T) {
+func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		60,
 		5,
@@ -780,6 +780,34 @@ func TestMatchNavigationWithMatchingItemsOnlyWrapped(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
+// TODO LEO: implement scrolling to fix this
+func TestMatchNavigationWrap_Overflow(t *testing.T) {
+	fv := makeFilterableViewport(
+		20,
+		5,
+		[]viewport.Option[viewport.Item]{
+			viewport.WithWrapText[viewport.Item](true),
+		},
+		[]Option[viewport.Item]{},
+	)
+	fv.SetContent(stringsToItems([]string{
+		strings.Repeat("a", 100) + "goose" + strings.Repeat("a", 100),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "goose" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] goose  (1...",
+		strings.Repeat("a", 20),
+		focusedStyle.Render("goose") + strings.Repeat("a", 15),
+		strings.Repeat("a", 20),
+		footerStyle.Render("99% (1/1)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestMatchNavigationNoWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		30,
@@ -807,14 +835,33 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
-	// TODO LEO: continue with next/prev matches
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] goose  (2/3 matches...",
+		"...duck duck duck duck duck...",
+		"...duck duck " + focusedStyle.Render("goose") + " duck duc...",
+		"... duck duck duck duck duc...",
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedThirdMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] goose  (3/3 matches...",
+		"duck duck duck duck duck du...",
+		"duck duck duck duck duck " + unfocusedStyle.Render("go..."),
+		focusedStyle.Render("goose") + " duck duck duck duck d...",
+	})
+	internal.CmpStr(t, expectedThirdMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
 //func TestMatchNavigationSelectionEnabled(t *testing.T) {
 //	// TODO LEO
 //}
 
-func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
+func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
 		50,
@@ -844,7 +891,7 @@ func TestMatchNavigationManyMatchesWrapped(t *testing.T) {
 }
 
 // this is a pretty bad case, cycling through so many matching highlighted positions
-func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
+func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
 		50,
@@ -900,6 +947,8 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 // TODO LEO: test for multiple regex matches in a single line
 
 // TODO LEO: test for when toggling wrap, current match should still be visible
+
+// TODO LEO: with a huge block of sequential matches and wrapping on, highlighting disappears near the middle...
 
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))
