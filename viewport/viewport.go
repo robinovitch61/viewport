@@ -320,7 +320,7 @@ func (m *Model[T]) SetContent(content []T) {
 	m.safelySetTopItemIdxAndOffset(m.display.TopItemIdx, m.display.TopItemLineOffset)
 
 	// ensure xOffset is valid given new LineBuffer
-	m.safelySetXOffset(m.display.XOffset)
+	m.SetXOffset(m.display.XOffset)
 
 	if m.navigation.SelectionEnabled {
 		if stayAtTop {
@@ -570,7 +570,9 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	return len(lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{}))
 }
 
-func (m *Model[T]) safelySetXOffset(n int) {
+// SetXOffset sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
+// TODO LEO: test this function
+func (m *Model[T]) SetXOffset(n int) {
 	if m.config.WrapText {
 		return
 	}
@@ -620,11 +622,11 @@ func (m *Model[T]) scrollUp(n int) {
 }
 
 func (m *Model[T]) viewLeft(n int) {
-	m.safelySetXOffset(m.display.XOffset - n)
+	m.SetXOffset(m.display.XOffset - n)
 }
 
 func (m *Model[T]) viewRight(n int) {
-	m.safelySetXOffset(m.display.XOffset + n)
+	m.SetXOffset(m.display.XOffset + n)
 }
 
 // getItemIdxAbove consumes n lines by moving up through items, returning the final item index and line offset
@@ -709,7 +711,7 @@ func (m *Model[T]) scrollByNLines(n int) {
 		}
 	}
 	m.safelySetTopItemIdxAndOffset(newTopItemIdx, newTopItemLineOffset)
-	m.safelySetXOffset(m.display.XOffset)
+	m.SetXOffset(m.display.XOffset)
 }
 
 // getVisibleHeaderLines returns the lines of header that are visible in the viewport

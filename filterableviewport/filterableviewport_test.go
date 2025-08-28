@@ -802,10 +802,12 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] goose  (1/3 matches...",
 		"...k duck duck duck duck " + focusedStyle.Render("goose"),
-		"...duck duck " + unfocusedStyle.Render("goose") + " duck duc...",
-		unfocusedStyle.Render("goose") + " duck duck duck duck d...",
+		unfocusedStyle.Render("...se") + " duck duck duck duck duck",
+		"...ck duck duck duck duck duck",
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	// TODO LEO: continue with next/prev matches
 }
 
 //func TestMatchNavigationSelectionEnabled(t *testing.T) {
@@ -896,6 +898,8 @@ func TestMatchNavigationManyMatchesWrappedTwoItems(t *testing.T) {
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
 
 // TODO LEO: test for multiple regex matches in a single line
+
+// TODO LEO: test for when toggling wrap, current match should still be visible
 
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))

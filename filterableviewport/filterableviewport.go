@@ -232,6 +232,7 @@ func (m *Model[T]) View() string {
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingItems := m.getMatchingItemsAndUpdateMatches()
+	m.ensureCurrentMatchInView()
 	m.updateFocusedMatchHighlight()
 	m.numMatchingItems = len(matchingItems)
 	if m.matchingItemsOnly {
@@ -506,7 +507,7 @@ func (m *Model[T]) navigateToNextMatch() {
 	}
 
 	m.focusedMatchIdx = (m.focusedMatchIdx + 1) % len(m.allMatches)
-	m.scrollToCurrentMatch()
+	m.ensureCurrentMatchInView()
 	m.updateFocusedMatchHighlight()
 }
 
@@ -519,11 +520,11 @@ func (m *Model[T]) navigateToPrevMatch() {
 	if m.focusedMatchIdx < 0 {
 		m.focusedMatchIdx = len(m.allMatches) - 1
 	}
-	m.scrollToCurrentMatch()
+	m.ensureCurrentMatchInView()
 	m.updateFocusedMatchHighlight()
 }
 
-func (m *Model[T]) scrollToCurrentMatch() {
+func (m *Model[T]) ensureCurrentMatchInView() {
 	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
 		return
 	}
@@ -533,4 +534,15 @@ func (m *Model[T]) scrollToCurrentMatch() {
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
+
+	if !m.Viewport.GetWrapText() {
+		m.panToCurrentMatch(currentMatch)
+	}
+}
+
+func (m *Model[T]) panToCurrentMatch(match Match) {
+	matchCenter := match.Start + (match.End-match.Start)/2
+	viewportWidth := m.Viewport.GetWidth()
+	centeredXOffset := matchCenter - viewportWidth/2
+	m.Viewport.SetXOffset(centeredXOffset)
 }
