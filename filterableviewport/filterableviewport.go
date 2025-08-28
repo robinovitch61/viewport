@@ -541,8 +541,9 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 }
 
 func (m *Model[T]) panToCurrentMatch(match Match) {
+	// TODO LEO: use widths, not byte offsets here
 	matchCenter := match.Start + (match.End-match.Start)/2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
-	m.Viewport.SetXOffset(centeredXOffset)
+	m.Viewport.SetXOffsetWidth(centeredXOffset)
 }

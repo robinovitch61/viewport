@@ -579,7 +579,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffset(5)
+	vp.SetXOffsetWidth(5)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...ne t...",
@@ -603,7 +603,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffset(41)
+	vp.SetXOffsetWidth(41)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...e first",
@@ -1420,7 +1420,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffset(5)
+	vp.SetXOffsetWidth(5)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"\x1b[38;2;0;0;255m...ne t..." + linebuffer.RST,
@@ -1444,7 +1444,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffset(41)
+	vp.SetXOffsetWidth(41)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...",
@@ -2767,7 +2767,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffset(5)
+	vp.SetXOffsetWidth(5)
 	validate(expectedView)
 
 	// scroll down
@@ -2784,7 +2784,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffset(41)
+	vp.SetXOffsetWidth(41)
 	validate(expectedView)
 
 	// scroll down
@@ -3687,7 +3687,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffset(5)
+	vp.SetXOffsetWidth(5)
 	validate(expectedView)
 
 	// scroll down
@@ -3704,7 +3704,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffset(41)
+	vp.SetXOffsetWidth(41)
 	validate(expectedView)
 
 	// scroll down
