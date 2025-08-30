@@ -127,7 +127,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		navCtx := NavigationContext{
 			WrapText:        m.config.WrapText,
 			Dimensions:      m.display.Bounds,
-			NumContentLines: m.getNumContentLinesAssumingFooterVisible(),
+			NumContentLines: m.getNumContentLinesWithFooterVisible(),
 			NumVisibleItems: m.getNumVisibleItems(),
 		}
 		navResult := m.navigation.ProcessKeyMsg(msg, navCtx)
@@ -270,7 +270,7 @@ func (m *Model[T]) View() string {
 	nVisibleLines := len(visibleContentLines.lines)
 	if visibleContentLines.showFooter {
 		// pad so footer shows up at bottom
-		padCount := max(0, m.getNumContentLinesAssumingFooterVisible()-nVisibleLines)
+		padCount := max(0, m.getNumContentLinesWithFooterVisible()-nVisibleLines)
 		for i := 0; i < padCount; i++ {
 			builder.WriteByte('\n')
 		}
@@ -478,26 +478,23 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	}
 	originalTopItemIdx, originalTopItemLineOffset := m.display.TopItemIdx, m.display.TopItemLineOffset
 
-	numLinesInItem := 1
-	if m.config.WrapText {
-		numLinesInItem = m.numLinesForItem(itemIdx)
-	}
-
 	// TODO LEO: only need itemIndexes here, so break out functionality to avoid expensive rendering
-	visibleLines := m.getVisibleContentLines()
-	numItemLinesInView := 0
-	for i := range visibleLines.itemIndexes {
-		if visibleLines.itemIndexes[i] == itemIdx {
-			numItemLinesInView++
+	visibleContentLines := m.getVisibleContentLines()
+	numLinesInViewForItem := 0
+	for i := range visibleContentLines.itemIndexes {
+		if visibleContentLines.itemIndexes[i] == itemIdx {
+			numLinesInViewForItem++
 		}
 	}
-	if numLinesInItem != numItemLinesInView {
+
+	numLinesInItem := m.numLinesForItem(itemIdx)
+	if numLinesInItem != numLinesInViewForItem {
 		if m.display.TopItemIdx < itemIdx {
-			// if item is below, scroll until it's fully in view at the bottom
+			// if item is below, scroll until it's fully in view at the top
 			m.display.TopItemIdx = itemIdx
 			m.display.TopItemLineOffset = 0
 			// then scroll up so that item is at the bottom, unless it already takes up the whole screen
-			m.scrollUp(max(0, m.getNumContentLinesAssumingFooterVisible()-numLinesInItem))
+			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesInItem))
 		} else {
 			// if item above, scroll until it's fully in view at the top
 			m.display.TopItemIdx = itemIdx
@@ -560,6 +557,9 @@ func (m *Model[T]) maxItemWidth() int {
 }
 
 func (m *Model[T]) numLinesForItem(itemIdx int) int {
+	if !m.config.WrapText {
+		return 1
+	}
 	if m.display.Bounds.Width == 0 {
 		return 0
 	}
@@ -594,8 +594,8 @@ func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset in
 	m.display.SafelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset)
 }
 
-// getNumContentLinesAssumingFooterVisible returns the number of lines of between the header and footer
-func (m *Model[T]) getNumContentLinesAssumingFooterVisible() int {
+// getNumContentLinesWithFooterVisible returns the number of lines of between the header and footer
+func (m *Model[T]) getNumContentLinesWithFooterVisible() int {
 	return m.display.GetNumContentLines(len(m.getVisibleHeaderLines()), true)
 }
 
@@ -900,6 +900,7 @@ func (m *Model[T]) selectionInViewInfo() selectionInViewInfoResult {
 	if !m.navigation.SelectionEnabled {
 		panic("selectionInViewInfo called when selection is disabled")
 	}
+	// TODO LEO: only need itemIndexes here, so break out functionality to avoid expensive rendering
 	visibleContentLines := m.getVisibleContentLines()
 	numLinesSelectionInView := 0
 	numLinesAboveSelection := 0
@@ -954,7 +955,7 @@ func (m *Model[T]) getHighlightsForItem(itemIndex int) []linebuffer.Highlight {
 
 func (m *Model[T]) getNumVisibleItems() int {
 	if !m.config.WrapText {
-		return m.getNumContentLinesAssumingFooterVisible()
+		return m.getNumContentLinesWithFooterVisible()
 	}
 	visibleContentLines := m.getVisibleContentLines()
 	// return distinct number of items
