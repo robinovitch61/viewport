@@ -953,6 +953,8 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 
 // TODO LEO: with a huge block of sequential matches and wrapping on, highlighting disappears near the middle...
 
+// TODO LEO: add timing test for scrolling through a large number of highlighted matches
+
 func stringsToItems(vals []string) []viewport.Item {
 	items := make([]viewport.Item, len(vals))
 	for i, s := range vals {
