@@ -180,6 +180,15 @@ func (m MultiLineBuffer) WrappedLines(
 	)
 }
 
+// NumWrappedLines TODO
+// TODO LEO: test
+func (m MultiLineBuffer) NumWrappedLines(wrapWidth int) int {
+	if m.totalWidth == 0 && wrapWidth > 0 {
+		return 1
+	}
+	return (m.totalWidth + wrapWidth - 1) / wrapWidth
+}
+
 // Repr returns a string representation of the MultiLineBuffer for debugging.
 func (m MultiLineBuffer) Repr() string {
 	v := "Multi("

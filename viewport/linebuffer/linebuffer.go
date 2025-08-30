@@ -244,6 +244,15 @@ func (l LineBuffer) WrappedLines(
 	)
 }
 
+// NumWrappedLines TODO
+// TODO LEO: test
+func (l LineBuffer) NumWrappedLines(wrapWidth int) int {
+	if l.totalWidth == 0 && wrapWidth > 0 {
+		return 1
+	}
+	return (l.totalWidth + wrapWidth - 1) / wrapWidth
+}
+
 // Repr returns a string representation for debugging.
 func (l LineBuffer) Repr() string {
 	return fmt.Sprintf("LB(%q)", l.line)
