@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -890,50 +891,52 @@ func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
-// this is a pretty bad case, cycling through so many matching highlighted positions
 func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
-	fv := makeFilterableViewport(
-		100,
-		50,
-		[]viewport.Option[viewport.Item]{
-			viewport.WithWrapText[viewport.Item](true),
-		},
-		[]Option[viewport.Item]{},
-	)
-	numAs := 5000
-	fv.SetContent(stringsToItems([]string{
-		red.Render(strings.Repeat("a", numAs)),
-	}))
-	fv, _ = fv.Update(filterKeyMsg)
-	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
-	fv, _ = fv.Update(applyFilterKeyMsg)
-	firstRows := []string{
-		fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs),
-		focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth()-1),
-	}
-	rest := make([]string, fv.GetHeight()-3)
-	for i := range rest {
-		rest[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
-	}
-	rest = append(rest, footerStyle.Render("99% (1/1)"))
-	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
-	internal.CmpStr(t, expected, fv.View())
+	runTest := func(t *testing.T) {
+		fv := makeFilterableViewport(
+			100,
+			50,
+			[]viewport.Option[viewport.Item]{
+				viewport.WithWrapText[viewport.Item](true),
+			},
+			[]Option[viewport.Item]{},
+		)
+		numAs := 5000
+		fv.SetContent(stringsToItems([]string{
+			red.Render(strings.Repeat("a", numAs)),
+		}))
+		fv, _ = fv.Update(filterKeyMsg)
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+		fv, _ = fv.Update(applyFilterKeyMsg)
+		firstRows := []string{
+			fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs),
+			focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth()-1),
+		}
+		rest := make([]string, fv.GetHeight()-3)
+		for i := range rest {
+			rest[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
+		}
+		rest = append(rest, footerStyle.Render("99% (1/1)"))
+		expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
+		internal.CmpStr(t, expected, fv.View())
 
-	numNext := 10
-	for i := 0; i < numNext; i++ {
-		fv, _ = fv.Update(nextMatchKeyMsg)
+		numNext := 40
+		for i := 0; i < numNext; i++ {
+			fv, _ = fv.Update(nextMatchKeyMsg)
+		}
+		expectedAfterNext := []string{
+			fmt.Sprintf("[exact] a  (%d/%d matches on 1 items)", numNext+1, numAs),
+			strings.Repeat(unfocusedStyle.Render("a"), numNext) + focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth()-numNext-1),
+		}
+		restAfterNext := make([]string, fv.GetHeight()-3)
+		for i := range restAfterNext {
+			restAfterNext[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
+		}
+		restAfterNext = append(restAfterNext, footerStyle.Render("99% (1/1)"))
+		expectedAfterNextView := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(expectedAfterNext, restAfterNext...))
+		internal.CmpStr(t, expectedAfterNextView, fv.View())
 	}
-	expectedAfterNext := []string{
-		fmt.Sprintf("[exact] a  (%d/%d matches on 1 items)", numNext+1, numAs),
-		strings.Repeat(unfocusedStyle.Render("a"), numNext) + focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth()-numNext-1),
-	}
-	restAfterNext := make([]string, fv.GetHeight()-3)
-	for i := range restAfterNext {
-		restAfterNext[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
-	}
-	restAfterNext = append(restAfterNext, footerStyle.Render("99% (1/1)"))
-	expectedAfterNextView := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(expectedAfterNext, restAfterNext...))
-	internal.CmpStr(t, expectedAfterNextView, fv.View())
+	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
 }
 
 // TODO LEO: add tests for match navigation with matches
