@@ -471,6 +471,7 @@ func (m *Model[T]) GetHeight() int {
 }
 
 // ScrollSoItemIdxInView scrolls the viewport to ensure the specified item index is visible.
+// If the desired item is above the current content, this scrolls so that
 func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	if m.content.IsEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
@@ -489,21 +490,21 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 
 	numLinesInItem := m.numLinesForItem(itemIdx)
 	if numLinesInItem != numLinesInViewForItem {
-		if m.display.TopItemIdx < itemIdx {
-			// if item is below, scroll until it's fully in view at the top
-			m.display.TopItemIdx = itemIdx
-			m.display.TopItemLineOffset = 0
-			// then scroll up so that item is at the bottom, unless it already takes up the whole screen
+		priorTopItemIdx := m.display.TopItemIdx
+
+		// scroll so item is at the top of the content
+		m.display.TopItemIdx = itemIdx
+		m.display.TopItemLineOffset = 0
+
+		if priorTopItemIdx < itemIdx {
+			// if the desired visible item is below the content previously on screen,
+			// scroll up so that item is at the bottom
 			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesInItem))
-		} else {
-			// if item above, scroll until it's fully in view at the top
-			m.display.TopItemIdx = itemIdx
-			m.display.TopItemLineOffset = 0
 		}
 	}
 
 	if m.navigation.SelectionEnabled {
-		// if scrolled such that selection is fully out of view, undo it
+		// if scrolled such that selection is now fully out of view, undo it
 		if m.selectionInViewInfo().numLinesSelectionInView == 0 {
 			m.display.TopItemIdx = originalTopItemIdx
 			m.display.TopItemLineOffset = originalTopItemLineOffset
