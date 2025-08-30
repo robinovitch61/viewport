@@ -479,11 +479,10 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	}
 	originalTopItemIdx, originalTopItemLineOffset := m.display.TopItemIdx, m.display.TopItemLineOffset
 
-	// TODO LEO: only need itemIndexes here, so break out functionality to avoid expensive rendering
-	visibleContentLines := m.getVisibleContentLines()
+	itemIndexes := m.getVisibleContentLineItemIndexes()
 	numLinesInViewForItem := 0
-	for i := range visibleContentLines.itemIndexes {
-		if visibleContentLines.itemIndexes[i] == itemIdx {
+	for i := range itemIndexes {
+		if itemIndexes[i] == itemIdx {
 			numLinesInViewForItem++
 		}
 	}
@@ -747,6 +746,93 @@ type visibleContentLinesResult struct {
 	showFooter bool
 }
 
+// getVisibleContentLineItemIndexes returns a slice of item indexes for each visible line in the content on screen
+// TODO LEO: consolidate the shared logic with getVisibleContentLines
+func (m *Model[T]) getVisibleContentLineItemIndexes() []int {
+	var numContentLinesAdded int
+	var itemIndexes []int
+
+	numLinesAfterHeader := max(0, m.display.Bounds.Height-len(m.getVisibleHeaderLines()))
+
+	addLine := func(itemIndex int) bool {
+		itemIndexes = append(itemIndexes, itemIndex)
+		numContentLinesAdded++
+		return numContentLinesAdded == numLinesAfterHeader
+	}
+	addLines := func(numLines int, itemIndex int) bool {
+		for range numLines {
+			if addLine(itemIndex) {
+				return true
+			}
+		}
+		return false
+	}
+
+	items := m.content.Items
+	if len(items) == 0 {
+		return itemIndexes
+	}
+	currItemIdx := clampValZeroToMax(m.display.TopItemIdx, m.content.NumItems()-1)
+
+	currItem := items[currItemIdx]
+	done := numLinesAfterHeader == 0
+	if done {
+		return itemIndexes
+	}
+
+	if m.config.WrapText {
+		lb := currItem.Render()
+		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{})
+		offsetLines := safeSliceFromIdx(itemLines, m.display.TopItemLineOffset)
+		done = addLines(len(offsetLines), currItemIdx)
+
+		for !done {
+			currItemIdx++
+			if currItemIdx >= m.content.NumItems() {
+				done = true
+			} else {
+				currItem = items[currItemIdx]
+				lb = currItem.Render()
+				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{})
+				done = addLines(len(itemLines), currItemIdx)
+			}
+		}
+	} else {
+		done = addLine(currItemIdx)
+		for !done {
+			currItemIdx++
+			if currItemIdx >= m.content.NumItems() {
+				done = true
+			} else {
+				done = addLine(currItemIdx)
+			}
+		}
+	}
+
+	scrolledToTop := m.display.TopItemIdx == 0 && m.display.TopItemLineOffset == 0
+	var showFooter bool
+	if scrolledToTop && numContentLinesAdded+1 >= numLinesAfterHeader {
+		// if seeing all the LineBuffer on screen, show footer
+		// if one blank line at bottom, still show footer
+		// if two blank lines at bottom, do not show footer
+		showFooter = true
+	}
+	if !scrolledToTop {
+		// if scrolled at all, should be showing footer
+		showFooter = true
+	}
+
+	if !m.config.FooterEnabled {
+		showFooter = false
+	}
+
+	if showFooter {
+		// num visible lines exceeds vertical space, leave one line for the footer
+		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
+	}
+	return itemIndexes
+}
+
 // getVisibleContentLines returns the lines of content that are visible in the viewport given vertical scroll position
 // and the content. It also returns the item index for each associated visible line and whether or not to show the footer
 func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
@@ -756,20 +842,19 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	if m.content.IsEmpty() {
 		return visibleContentLinesResult{lines: nil, itemIndexes: nil, showFooter: false}
 	}
+	itemIndexes := m.getVisibleContentLineItemIndexes()
 
 	var contentLines []linebuffer.LineBufferer
-	var itemIndexes []int
 
 	numLinesAfterHeader := max(0, m.display.Bounds.Height-len(m.getVisibleHeaderLines()))
 
-	addLine := func(l linebuffer.LineBufferer, itemIndex int) bool {
+	addLine := func(l linebuffer.LineBufferer) bool {
 		contentLines = append(contentLines, l)
-		itemIndexes = append(itemIndexes, itemIndex)
 		return len(contentLines) == numLinesAfterHeader
 	}
-	addLines := func(ls []linebuffer.LineBufferer, itemIndex int) bool {
+	addLines := func(ls []linebuffer.LineBufferer) bool {
 		for i := range ls {
-			if addLine(ls[i], itemIndex) {
+			if addLine(ls[i]) {
 				return true
 			}
 		}
@@ -790,7 +875,7 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 		highlightData := m.getHighlightsForItem(currItemIdx)
 		itemLines := lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData)
 		offsetLines := safeSliceFromIdx(itemLines, m.display.TopItemLineOffset)
-		done = addLines(toLineBuffers(offsetLines), currItemIdx)
+		done = addLines(toLineBuffers(offsetLines))
 
 		for !done {
 			currItemIdx++
@@ -801,18 +886,18 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 				lb = currItem.Render()
 				highlightData = m.getHighlightsForItem(currItemIdx)
 				itemLines = lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, highlightData)
-				done = addLines(toLineBuffers(itemLines), currItemIdx)
+				done = addLines(toLineBuffers(itemLines))
 			}
 		}
 	} else {
-		done = addLine(currItem.Render(), currItemIdx)
+		done = addLine(currItem.Render())
 		for !done {
 			currItemIdx++
 			if currItemIdx >= m.content.NumItems() {
 				done = true
 			} else {
 				currItem = items[currItemIdx]
-				done = addLine(currItem.Render(), currItemIdx)
+				done = addLine(currItem.Render())
 			}
 		}
 	}
@@ -837,7 +922,6 @@ func (m *Model[T]) getVisibleContentLines() visibleContentLinesResult {
 	if showFooter {
 		// num visible lines exceeds vertical space, leave one line for the footer
 		contentLines = safeSliceUpToIdx(contentLines, numLinesAfterHeader-1)
-		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
 	}
 	return visibleContentLinesResult{lines: contentLines, itemIndexes: itemIndexes, showFooter: showFooter}
 }
@@ -901,13 +985,12 @@ func (m *Model[T]) selectionInViewInfo() selectionInViewInfoResult {
 	if !m.navigation.SelectionEnabled {
 		panic("selectionInViewInfo called when selection is disabled")
 	}
-	// TODO LEO: only need itemIndexes here, so break out functionality to avoid expensive rendering
-	visibleContentLines := m.getVisibleContentLines()
+	itemIndexes := m.getVisibleContentLineItemIndexes()
 	numLinesSelectionInView := 0
 	numLinesAboveSelection := 0
 	assignedNumLinesAboveSelection := false
-	for i := range visibleContentLines.itemIndexes {
-		if visibleContentLines.itemIndexes[i] == m.content.GetSelectedIdx() {
+	for i := range itemIndexes {
+		if itemIndexes[i] == m.content.GetSelectedIdx() {
 			if !assignedNumLinesAboveSelection {
 				numLinesAboveSelection = i
 				assignedNumLinesAboveSelection = true
@@ -958,10 +1041,10 @@ func (m *Model[T]) getNumVisibleItems() int {
 	if !m.config.WrapText {
 		return m.getNumContentLinesWithFooterVisible()
 	}
-	visibleContentLines := m.getVisibleContentLines()
+	itemIndexes := m.getVisibleContentLineItemIndexes()
 	// return distinct number of items
 	itemIndexSet := make(map[int]struct{})
-	for _, i := range visibleContentLines.itemIndexes {
+	for _, i := range itemIndexes {
 		itemIndexSet[i] = struct{}{}
 	}
 	return len(itemIndexSet)
