@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"strings"
@@ -631,27 +631,27 @@ func findAnsiRuneRanges(s string) [][]uint32 {
 	return ranges[:rangeIdx]
 }
 
-// getBytesLeftOfWidth returns nBytes of content to the left of startBufferIdx while excluding ANSI codes
-func getBytesLeftOfWidth(nBytes int, buffers []LineBuffer, startBufferIdx int, widthToLeft int) string {
+// getBytesLeftOfWidth returns nBytes of content to the left of startItemIdx while excluding ANSI codes
+func getBytesLeftOfWidth(nBytes int, items []SingleItem, startItemIdx int, widthToLeft int) string {
 	if nBytes < 0 {
 		panic("nBytes must be greater than 0")
 	}
-	if nBytes == 0 || len(buffers) == 0 || startBufferIdx >= len(buffers) {
+	if nBytes == 0 || len(items) == 0 || startItemIdx >= len(items) {
 		return ""
 	}
 
-	// first try to get bytes from the current buffer
+	// first try to get bytes from the current item
 	var result string
-	currentBuffer := buffers[startBufferIdx]
-	runeIdx := currentBuffer.findRuneIndexWithWidthToLeft(widthToLeft)
+	currentItem := items[startItemIdx]
+	runeIdx := currentItem.findRuneIndexWithWidthToLeft(widthToLeft)
 	if runeIdx > 0 {
 		var startByteOffset uint32
-		if runeIdx >= currentBuffer.numNoAnsiRunes {
-			startByteOffset = clampIntToUint32(len(currentBuffer.lineNoAnsi))
+		if runeIdx >= currentItem.numNoAnsiRunes {
+			startByteOffset = clampIntToUint32(len(currentItem.lineNoAnsi))
 		} else {
-			startByteOffset = currentBuffer.getByteOffsetAtRuneIdx(runeIdx)
+			startByteOffset = currentItem.getByteOffsetAtRuneIdx(runeIdx)
 		}
-		noAnsiContent := currentBuffer.lineNoAnsi[:startByteOffset]
+		noAnsiContent := currentItem.lineNoAnsi[:startByteOffset]
 		if len(noAnsiContent) >= nBytes {
 			return noAnsiContent[len(noAnsiContent)-nBytes:]
 		}
@@ -659,10 +659,10 @@ func getBytesLeftOfWidth(nBytes int, buffers []LineBuffer, startBufferIdx int, w
 		nBytes -= len(noAnsiContent)
 	}
 
-	// if we need more bytes, look in previous buffers
-	for i := startBufferIdx - 1; i >= 0 && nBytes > 0; i-- {
-		prevBuffer := buffers[i]
-		noAnsiContent := prevBuffer.lineNoAnsi
+	// if we need more bytes, look in previous items
+	for i := startItemIdx - 1; i >= 0 && nBytes > 0; i-- {
+		prevItem := items[i]
+		noAnsiContent := prevItem.lineNoAnsi
 		if len(noAnsiContent) >= nBytes {
 			result = noAnsiContent[len(noAnsiContent)-nBytes:] + result
 			break
@@ -674,25 +674,25 @@ func getBytesLeftOfWidth(nBytes int, buffers []LineBuffer, startBufferIdx int, w
 	return result
 }
 
-// getBytesRightOfWidth returns nBytes of content to the right of endBufferIdx while excluding ANSI codes
-func getBytesRightOfWidth(nBytes int, buffers []LineBuffer, endBufferIdx int, widthToRight int) string {
+// getBytesRightOfWidth returns nBytes of content to the right of endItemIdx while excluding ANSI codes
+func getBytesRightOfWidth(nBytes int, items []SingleItem, endItemIdx int, widthToRight int) string {
 	if nBytes < 0 {
 		panic("nBytes must be greater than 0")
 	}
-	if nBytes == 0 || len(buffers) == 0 || endBufferIdx >= len(buffers) {
+	if nBytes == 0 || len(items) == 0 || endItemIdx >= len(items) {
 		return ""
 	}
 
-	// first try to get bytes from the current buffer
+	// first try to get bytes from the current item
 	var result string
-	currentBuffer := buffers[endBufferIdx]
+	currentItem := items[endItemIdx]
 	if widthToRight > 0 {
-		currentBufferWidth := currentBuffer.Width()
-		widthToLeft := currentBufferWidth - widthToRight
-		startRuneIdx := currentBuffer.findRuneIndexWithWidthToLeft(widthToLeft)
-		if startRuneIdx < currentBuffer.numNoAnsiRunes {
-			startByteOffset := currentBuffer.getByteOffsetAtRuneIdx(startRuneIdx)
-			noAnsiContent := currentBuffer.lineNoAnsi[startByteOffset:]
+		currentItemWidth := currentItem.Width()
+		widthToLeft := currentItemWidth - widthToRight
+		startRuneIdx := currentItem.findRuneIndexWithWidthToLeft(widthToLeft)
+		if startRuneIdx < currentItem.numNoAnsiRunes {
+			startByteOffset := currentItem.getByteOffsetAtRuneIdx(startRuneIdx)
+			noAnsiContent := currentItem.lineNoAnsi[startByteOffset:]
 			if len(noAnsiContent) >= nBytes {
 				return noAnsiContent[:nBytes]
 			}
@@ -701,10 +701,10 @@ func getBytesRightOfWidth(nBytes int, buffers []LineBuffer, endBufferIdx int, wi
 		}
 	}
 
-	// if we need more bytes, look in subsequent buffers
-	for i := endBufferIdx + 1; i < len(buffers) && nBytes > 0; i++ {
-		nextBuffer := buffers[i]
-		noAnsiContent := nextBuffer.lineNoAnsi
+	// if we need more bytes, look in subsequent items
+	for i := endItemIdx + 1; i < len(items) && nBytes > 0; i++ {
+		nextItem := items[i]
+		noAnsiContent := nextItem.lineNoAnsi
 		if len(noAnsiContent) >= nBytes {
 			result += noAnsiContent[:nBytes]
 			break

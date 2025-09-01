@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func getEquivalentLineBuffers() map[string][]LineBufferer {
-	return map[string][]LineBufferer{
+func getEquivalentItems() map[string][]Item {
+	return map[string][]Item{
 		"none": {},
 		"hello world": {
 			New("hello world"),
@@ -64,27 +64,27 @@ func getEquivalentLineBuffers() map[string][]LineBufferer {
 		}}
 }
 
-func TestMultiLineBuffer_Width(t *testing.T) {
-	for _, eq := range getEquivalentLineBuffers() {
-		for _, lb := range eq {
-			if lb.Width() != eq[0].Width() {
-				t.Errorf("expected %d, got %d for line buffer %s", eq[0].Width(), lb.Width(), lb.Repr())
+func TestMultiItem_Width(t *testing.T) {
+	for _, eq := range getEquivalentItems() {
+		for _, item := range eq {
+			if item.Width() != eq[0].Width() {
+				t.Errorf("expected %d, got %d for item %s", eq[0].Width(), item.Width(), item.repr())
 			}
 		}
 	}
 }
 
-func TestMultiLineBuffer_Content(t *testing.T) {
-	for _, eq := range getEquivalentLineBuffers() {
-		for _, lb := range eq {
-			if lb.Content() != eq[0].Content() {
-				t.Errorf("expected %q, got %q for line buffer %s", eq[0].Content(), lb.Content(), lb.Repr())
+func TestMultiItem_Content(t *testing.T) {
+	for _, eq := range getEquivalentItems() {
+		for _, item := range eq {
+			if item.Content() != eq[0].Content() {
+				t.Errorf("expected %q, got %q for item %s", eq[0].Content(), item.Content(), item.repr())
 			}
 		}
 	}
 }
 
-func TestMultiLineBuffer_Take(t *testing.T) {
+func TestMultiItem_Take(t *testing.T) {
 	tests := []struct {
 		name           string
 		key            string
@@ -176,7 +176,7 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			expected:       redBg.Render("hello") + " world",
 		},
 		{
-			name:           "hello world with highlight across buffer boundary",
+			name:           "hello world with highlight across boundary",
 			key:            "hello world",
 			widthToLeft:    3,
 			takeWidth:      6,
@@ -296,7 +296,7 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			expected:       redBg.Render("h") + greenBg.Render("ell") + redBg.Render("o") + " " + blueBg.Render("world"),
 		},
 		{
-			name:           "ansi with highlight across buffer boundary",
+			name:           "ansi with highlight across boundary",
 			key:            "ansi",
 			widthToLeft:    0,
 			takeWidth:      11,
@@ -406,7 +406,7 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 			expected:       greenBg.Render("A") + redBg.Render("💖") + "中é",
 		},
 		{
-			name:           "unicode_ansi with highlight across buffer boundary",
+			name:           "unicode_ansi with highlight across boundary",
 			key:            "unicode_ansi",
 			widthToLeft:    0,
 			takeWidth:      6,
@@ -429,19 +429,19 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, eq := range getEquivalentLineBuffers()[tt.key] {
+			for _, eq := range getEquivalentItems()[tt.key] {
 				var highlights []Highlight
 				if tt.toHighlight != "" {
 					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
 				}
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
-				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.Repr()))
+				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.repr()))
 			}
 		})
 	}
 }
 
-func TestMultiLineBuffer_NumWrappedLines(t *testing.T) {
+func TestMultiItem_NumWrappedLines(t *testing.T) {
 	tests := []struct {
 		name      string
 		key       string
@@ -524,10 +524,10 @@ func TestMultiLineBuffer_NumWrappedLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, eq := range getEquivalentLineBuffers()[tt.key] {
+			for _, eq := range getEquivalentItems()[tt.key] {
 				actual := eq.NumWrappedLines(tt.wrapWidth)
 				if actual != tt.expected {
-					t.Errorf("expected %d, got %d for line buffer %s with wrap width %d", tt.expected, actual, eq.Repr(), tt.wrapWidth)
+					t.Errorf("expected %d, got %d for item %s with wrap width %d", tt.expected, actual, eq.repr(), tt.wrapWidth)
 				}
 			}
 		})

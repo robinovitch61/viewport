@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"regexp"
@@ -18,7 +18,7 @@ func init() {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 }
 
-func TestLineBuffer_reapplyAnsi(t *testing.T) {
+func TestUtil_reapplyAnsi(t *testing.T) {
 	tests := []struct {
 		name            string
 		original        string
@@ -264,7 +264,7 @@ func TestLineBuffer_reapplyAnsi(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_highlightLine(t *testing.T) {
+func TestUtil_highlightLine(t *testing.T) {
 	for _, tt := range []struct {
 		name           string
 		line           string
@@ -494,7 +494,7 @@ func TestHighlightString(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_overflowsLeft(t *testing.T) {
+func TestUtil_overflowsLeft(t *testing.T) {
 	tests := []struct {
 		name         string
 		str          string
@@ -656,7 +656,7 @@ func TestLineBuffer_overflowsLeft(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_overflowsRight(t *testing.T) {
+func TestUtil_overflowsRight(t *testing.T) {
 	tests := []struct {
 		name       string
 		s          string
@@ -809,7 +809,7 @@ func TestLineBuffer_overflowsRight(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_replaceStartWithContinuation(t *testing.T) {
+func TestUtil_replaceStartWithContinuation(t *testing.T) {
 	tests := []struct {
 		name         string
 		s            string
@@ -905,7 +905,7 @@ func TestLineBuffer_replaceStartWithContinuation(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_replaceEndWithContinuation(t *testing.T) {
+func TestUtil_replaceEndWithContinuation(t *testing.T) {
 	tests := []struct {
 		name         string
 		s            string
@@ -1001,7 +1001,7 @@ func TestLineBuffer_replaceEndWithContinuation(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_getNonAnsiBytes(t *testing.T) {
+func TestUtil_getNonAnsiBytes(t *testing.T) {
 	tests := []struct {
 		name         string
 		s            string
@@ -1106,226 +1106,226 @@ func TestLineBuffer_getNonAnsiBytes(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
+func TestUtil_getBytesLeftOfWidth(t *testing.T) {
 	tests := []struct {
-		name           string
-		buffers        []LineBuffer
-		nBytes         int
-		startBufferIdx int
-		widthToLeft    int
-		expected       string
-		shouldPanic    bool
+		name         string
+		items        []SingleItem
+		nBytes       int
+		startItemIdx int
+		widthToLeft  int
+		expected     string
+		shouldPanic  bool
 	}{
 		{
-			name:           "empty buffers",
-			buffers:        nil,
-			nBytes:         1,
-			startBufferIdx: 0,
-			widthToLeft:    0,
-			expected:       "",
+			name:         "empty items",
+			items:        nil,
+			nBytes:       1,
+			startItemIdx: 0,
+			widthToLeft:  0,
+			expected:     "",
 		},
 		{
-			name:           "negative bytes",
-			buffers:        []LineBuffer{New("abc")},
-			nBytes:         -1,
-			startBufferIdx: 0,
-			widthToLeft:    1,
-			shouldPanic:    true,
+			name:         "negative bytes",
+			items:        []SingleItem{New("abc")},
+			nBytes:       -1,
+			startItemIdx: 0,
+			widthToLeft:  1,
+			shouldPanic:  true,
 		},
 		{
-			name:           "zero bytes",
-			buffers:        []LineBuffer{New("abc")},
-			nBytes:         0,
-			startBufferIdx: 0,
-			widthToLeft:    1,
-			expected:       "",
+			name:         "zero bytes",
+			items:        []SingleItem{New("abc")},
+			nBytes:       0,
+			startItemIdx: 0,
+			widthToLeft:  1,
+			expected:     "",
 		},
 		{
-			name:           "buffer index out of bounds",
-			buffers:        []LineBuffer{New("abc")},
-			nBytes:         1,
-			startBufferIdx: 1,
-			widthToLeft:    0,
-			expected:       "",
+			name:         "item index out of bounds",
+			items:        []SingleItem{New("abc")},
+			nBytes:       1,
+			startItemIdx: 1,
+			widthToLeft:  0,
+			expected:     "",
 		},
 		{
-			name:           "single buffer full content",
-			buffers:        []LineBuffer{New("abc")},
-			nBytes:         3,
-			startBufferIdx: 0,
-			widthToLeft:    3,
-			expected:       "abc",
+			name:         "single item full content",
+			items:        []SingleItem{New("abc")},
+			nBytes:       3,
+			startItemIdx: 0,
+			widthToLeft:  3,
+			expected:     "abc",
 		},
 		{
-			name:           "single buffer partial content",
-			buffers:        []LineBuffer{New("abc")},
-			nBytes:         2,
-			startBufferIdx: 0,
-			widthToLeft:    2,
-			expected:       "ab",
+			name:         "single item partial content",
+			items:        []SingleItem{New("abc")},
+			nBytes:       2,
+			startItemIdx: 0,
+			widthToLeft:  2,
+			expected:     "ab",
 		},
 		{
-			name: "multiple buffers full content",
-			buffers: []LineBuffer{
+			name: "multiple items full content",
+			items: []SingleItem{
 				New("abc"),
 				New("def"),
 			},
-			nBytes:         6,
-			startBufferIdx: 1,
-			widthToLeft:    3,
-			expected:       "abcdef",
+			nBytes:       6,
+			startItemIdx: 1,
+			widthToLeft:  3,
+			expected:     "abcdef",
 		},
 		{
-			name: "multiple buffers partial content",
-			buffers: []LineBuffer{
+			name: "multiple items partial content",
+			items: []SingleItem{
 				New("abc"),
 				New("def"),
 			},
-			nBytes:         4,
-			startBufferIdx: 1,
-			widthToLeft:    2,
-			expected:       "bcde",
+			nBytes:       4,
+			startItemIdx: 1,
+			widthToLeft:  2,
+			expected:     "bcde",
 		},
 		{
 			name: "ignore ansi codes",
-			buffers: []LineBuffer{
+			items: []SingleItem{
 				New("a" + redBg.Render("b") + "c"),
 				New(redBg.Render("def")),
 			},
-			nBytes:         5,
-			startBufferIdx: 1,
-			widthToLeft:    3,
-			expected:       "bcdef",
+			nBytes:       5,
+			startItemIdx: 1,
+			widthToLeft:  3,
+			expected:     "bcdef",
 		},
 		// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
 		{
 			name: "unicode characters",
-			buffers: []LineBuffer{
+			items: []SingleItem{
 				New("A💖中"),
 				New("é"),
 			},
-			nBytes:         10,
-			startBufferIdx: 1,
-			widthToLeft:    1,
-			expected:       "💖中é",
+			nBytes:       10,
+			startItemIdx: 1,
+			widthToLeft:  1,
+			expected:     "💖中é",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					getBytesLeftOfWidth(tt.nBytes, tt.buffers, tt.startBufferIdx, tt.widthToLeft)
+					getBytesLeftOfWidth(tt.nBytes, tt.items, tt.startItemIdx, tt.widthToLeft)
 				})
 				return
 			}
 
-			if got := getBytesLeftOfWidth(tt.nBytes, tt.buffers, tt.startBufferIdx, tt.widthToLeft); got != tt.expected {
+			if got := getBytesLeftOfWidth(tt.nBytes, tt.items, tt.startItemIdx, tt.widthToLeft); got != tt.expected {
 				t.Errorf("getBytesLeftOfWidth() = %v, want %v", []byte(got), []byte(tt.expected))
 			}
 		})
 	}
 }
 
-func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
+func TestUtil_getBytesRightOfWidth(t *testing.T) {
 	tests := []struct {
 		name         string
-		buffers      []LineBuffer
+		items        []SingleItem
 		nBytes       int
-		endBufferIdx int
+		endItemIdx   int
 		widthToRight int
 		expected     string
 		shouldPanic  bool
 	}{
 		{
-			name:         "empty buffers",
-			buffers:      nil,
+			name:         "empty items",
+			items:        nil,
 			nBytes:       1,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 0,
 			expected:     "",
 		},
 		{
 			name:         "negative bytes",
-			buffers:      []LineBuffer{New("abc")},
+			items:        []SingleItem{New("abc")},
 			nBytes:       -1,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 1,
 			shouldPanic:  true,
 		},
 		{
 			name:         "zero bytes",
-			buffers:      []LineBuffer{New("abc")},
+			items:        []SingleItem{New("abc")},
 			nBytes:       0,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 1,
 			expected:     "",
 		},
 		{
-			name:         "buffer index out of bounds",
-			buffers:      []LineBuffer{New("abc")},
+			name:         "item index out of bounds",
+			items:        []SingleItem{New("abc")},
 			nBytes:       1,
-			endBufferIdx: 1,
+			endItemIdx:   1,
 			widthToRight: 0,
 			expected:     "",
 		},
 		{
-			name:         "single buffer full content",
-			buffers:      []LineBuffer{New("abc")},
+			name:         "single item full content",
+			items:        []SingleItem{New("abc")},
 			nBytes:       3,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 3,
 			expected:     "abc",
 		},
 		{
-			name:         "single buffer partial content",
-			buffers:      []LineBuffer{New("abc")},
+			name:         "single item partial content",
+			items:        []SingleItem{New("abc")},
 			nBytes:       2,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 2,
 			expected:     "bc",
 		},
 		{
-			name: "multiple buffers full content",
-			buffers: []LineBuffer{
+			name: "multiple items full content",
+			items: []SingleItem{
 				New("abc"),
 				New("def"),
 			},
 			nBytes:       6,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 3,
 			expected:     "abcdef",
 		},
 		{
-			name: "multiple buffers partial content",
-			buffers: []LineBuffer{
+			name: "multiple items partial content",
+			items: []SingleItem{
 				New("abc"),
 				New("def"),
 			},
 			nBytes:       4,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 2,
 			expected:     "bcde",
 		},
 		{
 			name: "ignore ansi codes",
-			buffers: []LineBuffer{
+			items: []SingleItem{
 				New("a" + redBg.Render("b") + "c"),
 				New(redBg.Render("def")),
 			},
 			nBytes:       5,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 2,
 			expected:     "bcdef",
 		},
 		// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
 		{
 			name: "unicode characters",
-			buffers: []LineBuffer{
+			items: []SingleItem{
 				New("A💖中"),
 				New("é"),
 			},
 			nBytes:       10,
-			endBufferIdx: 0,
+			endItemIdx:   0,
 			widthToRight: 4,
 			expected:     "💖中é",
 		},
@@ -1334,12 +1334,12 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					getBytesRightOfWidth(tt.nBytes, tt.buffers, tt.endBufferIdx, tt.widthToRight)
+					getBytesRightOfWidth(tt.nBytes, tt.items, tt.endItemIdx, tt.widthToRight)
 				})
 				return
 			}
 
-			if got := getBytesRightOfWidth(tt.nBytes, tt.buffers, tt.endBufferIdx, tt.widthToRight); got != tt.expected {
+			if got := getBytesRightOfWidth(tt.nBytes, tt.items, tt.endItemIdx, tt.widthToRight); got != tt.expected {
 				t.Errorf("getBytesRightOfWidth() = %v, want %v", []byte(got), []byte(tt.expected))
 			}
 		})

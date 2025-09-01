@@ -1,9 +1,9 @@
 package viewport
 
-import "github.com/robinovitch61/bubbleo/viewport/linebuffer"
+import "github.com/robinovitch61/bubbleo/viewport/item"
 
-// ContentManager manages the actual LineBuffer and selection state
-type ContentManager[T Renderable] struct {
+// ContentManager manages the actual Item and selection state
+type ContentManager[T item.Getter] struct {
 	// Items is the complete list of items to be rendered in the viewport
 	Items []T
 
@@ -15,23 +15,23 @@ type ContentManager[T Renderable] struct {
 	selectedIdx int
 
 	// Highlights is what to highlight wherever it shows up within an item, even wrapped between lines
-	Highlights []linebuffer.Highlight
+	Highlights []item.Highlight
 
 	// highlightsByItem is a cache of highlights indexed by item index for O(1) lookup
-	highlightsByItem map[int][]linebuffer.Highlight
+	highlightsByItem map[int][]item.Highlight
 
-	// CompareFn is an optional function to compare items for maintaining the selection when LineBuffer changes
-	// if set, the viewport will try to maintain the previous selected item when LineBuffer changes
+	// CompareFn is an optional function to compare items for maintaining the selection when Item changes
+	// if set, the viewport will try to maintain the previous selected item when Item changes
 	CompareFn CompareFn[T]
 }
 
 // NewContentManager creates a new ContentManager with empty initial state.
-func NewContentManager[T Renderable]() *ContentManager[T] {
+func NewContentManager[T item.Getter]() *ContentManager[T] {
 	return &ContentManager[T]{
 		Items:            []T{},
 		Header:           []string{},
 		selectedIdx:      0,
-		highlightsByItem: make(map[int][]linebuffer.Highlight),
+		highlightsByItem: make(map[int][]item.Highlight),
 	}
 }
 
@@ -74,7 +74,7 @@ func (cm *ContentManager[T]) ValidateSelectedIdx() {
 
 // rebuildHighlightsCache rebuilds the highlights-by-item-index cache for O(1) lookup.
 func (cm *ContentManager[T]) rebuildHighlightsCache() {
-	cm.highlightsByItem = make(map[int][]linebuffer.Highlight)
+	cm.highlightsByItem = make(map[int][]item.Highlight)
 	for _, highlight := range cm.Highlights {
 		itemIdx := highlight.ItemIndex
 		cm.highlightsByItem[itemIdx] = append(cm.highlightsByItem[itemIdx], highlight)
@@ -82,17 +82,17 @@ func (cm *ContentManager[T]) rebuildHighlightsCache() {
 }
 
 // SetHighlights sets the highlights and rebuilds the cache.
-func (cm *ContentManager[T]) SetHighlights(highlights []linebuffer.Highlight) {
+func (cm *ContentManager[T]) SetHighlights(highlights []item.Highlight) {
 	cm.Highlights = highlights
 	cm.rebuildHighlightsCache()
 }
 
 // GetHighlights returns all highlights.
-func (cm *ContentManager[T]) GetHighlights() []linebuffer.Highlight {
+func (cm *ContentManager[T]) GetHighlights() []item.Highlight {
 	return cm.Highlights
 }
 
 // GetHighlightsForItem returns highlights for a specific item index in O(1) time.
-func (cm *ContentManager[T]) GetHighlightsForItem(itemIndex int) []linebuffer.Highlight {
+func (cm *ContentManager[T]) GetHighlightsForItem(itemIndex int) []item.Highlight {
 	return cm.highlightsByItem[itemIndex]
 }

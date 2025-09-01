@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"strings"
@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func TestLineBuffer_Width(t *testing.T) {
+func TestSingle_Width(t *testing.T) {
 	tests := []struct {
 		name     string
 		s        string
@@ -39,15 +39,15 @@ func TestLineBuffer_Width(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			if actual := lb.Width(); actual != tt.expected {
+			item := New(tt.s)
+			if actual := item.Width(); actual != tt.expected {
 				t.Errorf("expected %d, got %d", tt.expected, actual)
 			}
 		})
 	}
 }
 
-func TestLineBuffer_Content(t *testing.T) {
+func TestSingle_Content(t *testing.T) {
 	tests := []struct {
 		name     string
 		s        string
@@ -72,15 +72,15 @@ func TestLineBuffer_Content(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			if actual := lb.Content(); actual != tt.expected {
+			item := New(tt.s)
+			if actual := item.Content(); actual != tt.expected {
 				t.Errorf("expected %s, got %s", tt.expected, actual)
 			}
 		})
 	}
 }
 
-func TestLineBuffer_Take(t *testing.T) {
+func TestSingle_Take(t *testing.T) {
 	tests := []struct {
 		name           string
 		s              string
@@ -873,7 +873,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			if len(tt.expected) != tt.numTakes {
 				t.Fatalf("num expected != num popLefts")
 			}
-			lb := New(tt.s)
+			item := New(tt.s)
 			startWidth := tt.startWidth
 
 			var highlights []Highlight
@@ -881,7 +881,7 @@ func TestLineBuffer_Take(t *testing.T) {
 				highlights = ExtractHighlights([]string{tt.s}, tt.toHighlight, tt.highlightStyle)
 			}
 			for i := 0; i < tt.numTakes; i++ {
-				actual, actualWidth := lb.Take(startWidth, tt.width, tt.continuation, highlights)
+				actual, actualWidth := item.Take(startWidth, tt.width, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected[i], actual)
 				startWidth += actualWidth
 			}
@@ -889,7 +889,7 @@ func TestLineBuffer_Take(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_NumWrappedLines(t *testing.T) {
+func TestSingle_NumWrappedLines(t *testing.T) {
 	tests := []struct {
 		name      string
 		s         string
@@ -972,16 +972,16 @@ func TestLineBuffer_NumWrappedLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			actual := lb.NumWrappedLines(tt.wrapWidth)
+			item := New(tt.s)
+			actual := item.NumWrappedLines(tt.wrapWidth)
 			if actual != tt.expected {
-				t.Errorf("expected %d, got %d for line buffer %s with wrap width %d", tt.expected, actual, lb.Repr(), tt.wrapWidth)
+				t.Errorf("expected %d, got %d for item %s with wrap width %d", tt.expected, actual, item.repr(), tt.wrapWidth)
 			}
 		})
 	}
 }
 
-func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
+func TestSingle_findRuneIndexWithWidthToLeft(t *testing.T) {
 	tests := []struct {
 		name            string
 		s               string
@@ -1055,16 +1055,16 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			item := New(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					lb.findRuneIndexWithWidthToLeft(tt.widthToLeft)
+					item.findRuneIndexWithWidthToLeft(tt.widthToLeft)
 				})
 				return
 			}
 
-			actual := lb.findRuneIndexWithWidthToLeft(tt.widthToLeft)
+			actual := item.findRuneIndexWithWidthToLeft(tt.widthToLeft)
 			if actual != tt.expectedRuneIdx {
 				t.Errorf("findRuneIndexWithWidthToLeft() got %d, expected %d", actual, tt.expectedRuneIdx)
 			}
@@ -1072,7 +1072,7 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
+func TestSingle_getByteOffsetAtRuneIdx(t *testing.T) {
 	tests := []struct {
 		name               string
 		s                  string
@@ -1140,16 +1140,16 @@ func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			item := New(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					lb.getByteOffsetAtRuneIdx(tt.runeIdx)
+					item.getByteOffsetAtRuneIdx(tt.runeIdx)
 				})
 				return
 			}
 
-			actual := lb.getByteOffsetAtRuneIdx(tt.runeIdx)
+			actual := item.getByteOffsetAtRuneIdx(tt.runeIdx)
 			if int(actual) != tt.expectedByteOffset {
 				t.Errorf("getByteOffsetAtRuneIdx() got %d, expected %d", actual, tt.expectedByteOffset)
 			}

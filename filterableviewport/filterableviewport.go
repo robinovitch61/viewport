@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
+	"github.com/robinovitch61/bubbleo/viewport/item"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -34,17 +34,17 @@ type Match struct {
 }
 
 // Option is a functional option for configuring the filterable viewport
-type Option[T viewport.Renderable] func(*Model[T])
+type Option[T item.Getter] func(*Model[T])
 
 // WithKeyMap sets the key mapping for the viewport
-func WithKeyMap[T viewport.Renderable](keyMap KeyMap) Option[T] {
+func WithKeyMap[T item.Getter](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
 		m.keyMap = keyMap
 	}
 }
 
 // WithStyles sets the styles for the filterable viewport
-func WithStyles[T viewport.Renderable](styles Styles) Option[T] {
+func WithStyles[T item.Getter](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
 		m.filterTextInput.Cursor.Style = styles.CursorStyle
@@ -52,35 +52,35 @@ func WithStyles[T viewport.Renderable](styles Styles) Option[T] {
 }
 
 // WithPrefixText sets the prefix text for the filter line
-func WithPrefixText[T viewport.Renderable](prefix string) Option[T] {
+func WithPrefixText[T item.Getter](prefix string) Option[T] {
 	return func(m *Model[T]) {
 		m.prefixText = prefix
 	}
 }
 
 // WithEmptyText sets the text to display when the filter is empty
-func WithEmptyText[T viewport.Renderable](whenEmpty string) Option[T] {
+func WithEmptyText[T item.Getter](whenEmpty string) Option[T] {
 	return func(m *Model[T]) {
 		m.emptyText = whenEmpty
 	}
 }
 
 // WithMatchingItemsOnly sets whether to show only the matching items
-func WithMatchingItemsOnly[T viewport.Renderable](matchingItemsOnly bool) Option[T] {
+func WithMatchingItemsOnly[T item.Getter](matchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
 		m.matchingItemsOnly = matchingItemsOnly
 	}
 }
 
 // WithCanToggleMatchingItemsOnly sets whether this viewport can toggle matching items only mode
-func WithCanToggleMatchingItemsOnly[T viewport.Renderable](canToggleMatchingItemsOnly bool) Option[T] {
+func WithCanToggleMatchingItemsOnly[T item.Getter](canToggleMatchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
 		m.canToggleMatchingItemsOnly = canToggleMatchingItemsOnly
 	}
 }
 
 // Model is the state and logic for a filterable viewport
-type Model[T viewport.Renderable] struct {
+type Model[T item.Getter] struct {
 	Viewport *viewport.Model[T]
 
 	height          int
@@ -104,7 +104,7 @@ type Model[T viewport.Renderable] struct {
 }
 
 // New creates a new filterable viewport model with default configuration
-func New[T viewport.Renderable](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
+func New[T item.Getter](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
@@ -286,7 +286,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	// otherwise, rebuild all highlights
-	var highlights []linebuffer.Highlight
+	var highlights []item.Highlight
 	for matchIdx, match := range m.allMatches {
 		itemIdx := match.ItemIndex
 		if m.matchingItemsOnly {
@@ -300,7 +300,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		if matchIdx == m.focusedMatchIdx {
 			style = m.styles.Match.Focused
 		}
-		highlight := linebuffer.Highlight{
+		highlight := item.Highlight{
 			ItemIndex:       itemIdx,
 			StartByteOffset: match.Start,
 			EndByteOffset:   match.End,
@@ -375,8 +375,8 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
-	filterLineBuffer := linebuffer.New(filterLine)
-	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []linebuffer.Highlight{})
+	filterLineBuffer := item.New(filterLine)
+	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
 }
 
@@ -408,7 +408,7 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 			return []T{}
 		}
 		for i := range m.items {
-			content := m.items[i].Render().Content()
+			content := m.items[i].Get().Content()
 			matches := regex.FindAllStringIndex(content, -1)
 			if len(matches) > 0 {
 				filteredItems = append(filteredItems, m.items[i])
@@ -424,7 +424,7 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 		}
 	} else {
 		for i := range m.items {
-			content := m.items[i].Render().Content()
+			content := m.items[i].Get().Content()
 			start := 0
 			hasMatch := false
 			for {

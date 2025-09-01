@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"strings"
@@ -6,10 +6,10 @@ import (
 )
 
 // To run benchmarks:
-// - All: go test -bench=. -benchmem -run=^$ ./viewport/linebuffer
-// - Plain text only: go test -bench=BenchmarkNew_Plain -benchmem -run=^$ ./viewport/linebuffer
-// - ANSI only: go test -bench=BenchmarkNew_ANSI -benchmem -run=^$ ./viewport/linebuffer
-// - Unicode only: go test -bench=BenchmarkNew_Unicode -benchmem -run=^$ ./viewport/linebuffer
+// - All: go test -bench=. -benchmem -run=^$ ./viewport/item
+// - Plain text only: go test -bench=BenchmarkNew_Plain -benchmem -run=^$ ./viewport/item
+// - ANSI only: go test -bench=BenchmarkNew_ANSI -benchmem -run=^$ ./viewport/item
+// - Unicode only: go test -bench=BenchmarkNew_Unicode -benchmem -run=^$ ./viewport/item
 //
 // Example of interpreting benchmark output:
 // BenchmarkNew_Plain_1000-8    156124	      7883 ns/op	    8448 B/op	       3 allocs/op
