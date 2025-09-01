@@ -825,23 +825,8 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 	}
 
 	scrolledToTop := m.display.TopItemIdx == 0 && m.display.TopItemLineOffset == 0
-	var showFooter bool
-	// TODO LEO: simplify
 	contentFillsScreen := len(lbs.lineBuffers)+1 >= numLinesAfterHeader
-	if scrolledToTop && contentFillsScreen {
-		// if seeing all the LineBuffer on screen, show footer
-		// if one blank line at bottom, still show footer
-		// if two blank lines at bottom, do not show footer
-		showFooter = true
-	}
-	if !scrolledToTop {
-		// if scrolled at all, should be showing footer
-		showFooter = true
-	}
-	if !m.config.FooterEnabled {
-		showFooter = false
-	}
-
+	showFooter := m.config.FooterEnabled && (!scrolledToTop || contentFillsScreen)
 	if showFooter {
 		// leave one line for the footer
 		lbs.lineBuffers = safeSliceUpToIdx(lbs.lineBuffers, numLinesAfterHeader-1)
