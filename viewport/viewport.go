@@ -787,11 +787,11 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 
 	numLinesAfterHeader := max(0, m.display.Bounds.Height-len(m.getVisibleHeaderLines()))
 
-	lbs := getLineBuffersFromItems[T](
+	lbs := getLineBuffersFromItems(
 		m.display.TopItemIdx,
 		m.display.TopItemLineOffset,
 		numLinesAfterHeader,
-		m.content.Items,
+		renderAll(m.content.Items),
 		m.config.WrapText,
 		m.display.Bounds.Width,
 	)
@@ -825,7 +825,15 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 	return visibleContent{linebuffers: lbs.lineBuffers, itemIndexes: lbs.itemIndexes, showFooter: showFooter}
 }
 
-type contentLineBuffers struct {
+func renderAll[T Renderable](items []T) []linebuffer.LineBufferer {
+	lineBuffers := make([]linebuffer.LineBufferer, len(items))
+	for i := range items {
+		lineBuffers[i] = items[i].Render()
+	}
+	return lineBuffers
+}
+
+type lineBuffersAndItemIndexes struct {
 	// lineBuffers contains the lineBuffers that have at least one line currently visible in the content
 	lineBuffers []linebuffer.LineBufferer
 	// itemIndexes is the index of the item that corresponds to each linebuffer. len(itemIndexes) == len(lineBuffers)
@@ -833,14 +841,14 @@ type contentLineBuffers struct {
 }
 
 // getLineBuffersFromItems returns the lineBuffers and associated item indexes for the offset and num lines specified
-func getLineBuffersFromItems[T Renderable](
+func getLineBuffersFromItems(
 	topItemIdx int,
 	topItemLineOffset int,
 	totalNumLines int,
-	items []T,
+	allLineBuffers []linebuffer.LineBufferer,
 	wrapText bool,
 	width int,
-) contentLineBuffers {
+) lineBuffersAndItemIndexes {
 	var lineBuffers []linebuffer.LineBufferer
 	var itemIndexes []int
 
@@ -850,37 +858,35 @@ func getLineBuffersFromItems[T Renderable](
 		return len(lineBuffers) == totalNumLines
 	}
 
-	currItemIdx := clampValZeroToMax(topItemIdx, len(items)-1)
+	currLineBufferIdx := clampValZeroToMax(topItemIdx, len(allLineBuffers)-1)
 
-	currItem := items[currItemIdx]
+	currLineBuffer := allLineBuffers[currLineBufferIdx]
 	done := totalNumLines == 0
 	if done {
-		return contentLineBuffers{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
+		return lineBuffersAndItemIndexes{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
 	}
 
 	if wrapText {
-		lb := currItem.Render()
 		// first item has potentially fewer lines depending on the line offset
-		numLines := max(0, lb.NumWrappedLines(width)-topItemLineOffset)
+		numLines := max(0, currLineBuffer.NumWrappedLines(width)-topItemLineOffset)
 		for range numLines {
 			// adding untruncated, unstyled lineBuffers
-			done = addLine(lb, currItemIdx)
+			done = addLine(currLineBuffer, currLineBufferIdx)
 			if done {
 				break
 			}
 		}
 
 		for !done {
-			currItemIdx++
-			if currItemIdx >= len(items) {
+			currLineBufferIdx++
+			if currLineBufferIdx >= len(allLineBuffers) {
 				done = true
 			} else {
-				currItem = items[currItemIdx]
-				lb = currItem.Render()
-				numLines = lb.NumWrappedLines(width)
+				currLineBuffer = allLineBuffers[currLineBufferIdx]
+				numLines = currLineBuffer.NumWrappedLines(width)
 				for range numLines {
 					// adding untruncated, unstyled lineBuffers
-					done = addLine(lb, currItemIdx)
+					done = addLine(currLineBuffer, currLineBufferIdx)
 					if done {
 						break
 					}
@@ -888,18 +894,18 @@ func getLineBuffersFromItems[T Renderable](
 			}
 		}
 	} else {
-		done = addLine(currItem.Render(), currItemIdx)
+		done = addLine(currLineBuffer, currLineBufferIdx)
 		for !done {
-			currItemIdx++
-			if currItemIdx >= len(items) {
+			currLineBufferIdx++
+			if currLineBufferIdx >= len(allLineBuffers) {
 				done = true
 			} else {
-				currItem = items[currItemIdx]
-				done = addLine(currItem.Render(), currItemIdx)
+				currLineBuffer = allLineBuffers[currLineBufferIdx]
+				done = addLine(currLineBuffer, currLineBufferIdx)
 			}
 		}
 	}
-	return contentLineBuffers{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
+	return lineBuffersAndItemIndexes{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
 }
 
 // TODO LEO: reuse this for selection styling
