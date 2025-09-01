@@ -65,23 +65,23 @@ func TestViewport_SelectionOff_WrapOff_SmolDimensions(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{"hi"})
-	//expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{""})
-	//internal.CmpStr(t, expectedView, vp.View())
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{""})
+	internal.CmpStr(t, expectedView, vp.View())
 
 	vp.SetWidth(1)
 	vp.SetHeight(1)
-	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"."})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"."})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	//vp.SetWidth(2)
-	//vp.SetHeight(2)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"..", ""})
-	//internal.CmpStr(t, expectedView, vp.View())
+	vp.SetWidth(2)
+	vp.SetHeight(2)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"..", ""})
+	internal.CmpStr(t, expectedView, vp.View())
 
-	//vp.SetWidth(3)
-	//vp.SetHeight(3)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"...", "hi", "..."})
-	//internal.CmpStr(t, expectedView, vp.View())
+	vp.SetWidth(3)
+	vp.SetHeight(3)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{"...", "hi", "..."})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOff_WrapOff_Basic(t *testing.T) {

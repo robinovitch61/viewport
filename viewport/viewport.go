@@ -226,7 +226,7 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
-	// NEXT: truncate and style linebuffers if wrapped
+	// NEXT: truncate and style lineBuffers if wrapped
 	truncatedVisibleContentLines := make([]string, len(content.linebuffers))
 	currentItemIdxWidthToLeft := m.display.Bounds.Width * m.display.TopItemLineOffset
 	for lbIdx := range content.linebuffers {
@@ -248,10 +248,10 @@ func (m *Model[T]) View() string {
 					currentItemIdxWidthToLeft += widthTaken
 				}
 			}
-			// if wrapped, linebuffers are already truncated and highlighted
-			//truncated = content.linebuffers[lbIdx].Content()
+			// if wrapped, lineBuffers are already truncated and highlighted
+			//truncated = content.lineBuffers[lbIdx].Content()
 		} else {
-			// if not wrapped, linebuffers are not yet truncated or highlighted
+			// if not wrapped, lineBuffers are not yet truncated or highlighted
 			truncated, _ = content.linebuffers[lbIdx].Take(
 				m.display.XOffset,
 				m.display.Bounds.Width,
@@ -774,9 +774,9 @@ type visibleContent struct {
 
 // getVisibleContent returns the info about the visible content in the viewport given vertical scroll position. It also
 // returns the item index for each associated visible linebuffer and whether to show the footer.
-// If highlightIfWrapped is true, it applies highlighting to the truncated linebuffers,
+// If highlightIfWrapped is true, it applies highlighting to the truncated lineBuffers,
 // an expensive operation that isn't always necessary.
-// It never applies highlights to linebuffers when wrapping is off.
+// It never applies highlights to lineBuffers when wrapping is off.
 func (m *Model[T]) getVisibleContent() visibleContent {
 	if m.display.Bounds.Width == 0 {
 		return visibleContent{linebuffers: nil, itemIndexes: nil, showFooter: false}
@@ -785,72 +785,24 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 		return visibleContent{linebuffers: nil, itemIndexes: nil, showFooter: false}
 	}
 
-	var contentLines []linebuffer.LineBufferer
-	var itemIndexes []int
-
 	numLinesAfterHeader := max(0, m.display.Bounds.Height-len(m.getVisibleHeaderLines()))
 
-	addLine := func(l linebuffer.LineBufferer, itemIndex int) bool {
-		contentLines = append(contentLines, l)
-		itemIndexes = append(itemIndexes, itemIndex)
-		return len(contentLines) == numLinesAfterHeader
-	}
-
-	items := m.content.Items
-	currItemIdx := clampValZeroToMax(m.display.TopItemIdx, m.content.NumItems()-1)
-
-	currItem := items[currItemIdx]
-	done := numLinesAfterHeader == 0
-	if done {
-		return visibleContent{linebuffers: contentLines, itemIndexes: itemIndexes, showFooter: false}
-	}
-
-	if m.config.WrapText {
-		lb := currItem.Render()
-		// first item has potentially fewer lines depending on the line offset
-		numLines := max(0, lb.NumWrappedLines(m.display.Bounds.Width)-m.display.TopItemLineOffset)
-		for range numLines {
-			// adding untruncated, unstyled linebuffers
-			done = addLine(lb, currItemIdx)
-			if done {
-				break
-			}
-		}
-
-		for !done {
-			currItemIdx++
-			if currItemIdx >= m.content.NumItems() {
-				done = true
-			} else {
-				currItem = items[currItemIdx]
-				lb = currItem.Render()
-				numLines = lb.NumWrappedLines(m.display.Bounds.Width)
-				for range numLines {
-					// adding untruncated, unstyled linebuffers
-					done = addLine(lb, currItemIdx)
-					if done {
-						break
-					}
-				}
-			}
-		}
-	} else {
-		done = addLine(currItem.Render(), currItemIdx)
-		for !done {
-			currItemIdx++
-			if currItemIdx >= m.content.NumItems() {
-				done = true
-			} else {
-				currItem = items[currItemIdx]
-				done = addLine(currItem.Render(), currItemIdx)
-			}
-		}
+	lbs := getLineBuffersFromItems[T](
+		m.display.TopItemIdx,
+		m.display.TopItemLineOffset,
+		numLinesAfterHeader,
+		m.content.Items,
+		m.config.WrapText,
+		m.display.Bounds.Width,
+	)
+	if len(lbs.lineBuffers) == 0 {
+		return visibleContent{linebuffers: nil, itemIndexes: nil, showFooter: false}
 	}
 
 	scrolledToTop := m.display.TopItemIdx == 0 && m.display.TopItemLineOffset == 0
 	var showFooter bool
 	// TODO LEO: simplify
-	contentFillsScreen := len(contentLines)+1 >= numLinesAfterHeader
+	contentFillsScreen := len(lbs.lineBuffers)+1 >= numLinesAfterHeader
 	if scrolledToTop && contentFillsScreen {
 		// if seeing all the LineBuffer on screen, show footer
 		// if one blank line at bottom, still show footer
@@ -867,10 +819,87 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 
 	if showFooter {
 		// leave one line for the footer
-		contentLines = safeSliceUpToIdx(contentLines, numLinesAfterHeader-1)
-		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
+		lbs.lineBuffers = safeSliceUpToIdx(lbs.lineBuffers, numLinesAfterHeader-1)
+		lbs.itemIndexes = safeSliceUpToIdx(lbs.itemIndexes, numLinesAfterHeader-1)
 	}
-	return visibleContent{linebuffers: contentLines, itemIndexes: itemIndexes, showFooter: showFooter}
+	return visibleContent{linebuffers: lbs.lineBuffers, itemIndexes: lbs.itemIndexes, showFooter: showFooter}
+}
+
+type contentLineBuffers struct {
+	// lineBuffers contains the lineBuffers that have at least one line currently visible in the content
+	lineBuffers []linebuffer.LineBufferer
+	// itemIndexes is the index of the item that corresponds to each linebuffer. len(itemIndexes) == len(lineBuffers)
+	itemIndexes []int
+}
+
+// getLineBuffersFromItems returns the lineBuffers and associated item indexes for the offset and num lines specified
+func getLineBuffersFromItems[T Renderable](
+	topItemIdx int,
+	topItemLineOffset int,
+	totalNumLines int,
+	items []T,
+	wrapText bool,
+	width int,
+) contentLineBuffers {
+	var lineBuffers []linebuffer.LineBufferer
+	var itemIndexes []int
+
+	addLine := func(l linebuffer.LineBufferer, itemIndex int) bool {
+		lineBuffers = append(lineBuffers, l)
+		itemIndexes = append(itemIndexes, itemIndex)
+		return len(lineBuffers) == totalNumLines
+	}
+
+	currItemIdx := clampValZeroToMax(topItemIdx, len(items)-1)
+
+	currItem := items[currItemIdx]
+	done := totalNumLines == 0
+	if done {
+		return contentLineBuffers{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
+	}
+
+	if wrapText {
+		lb := currItem.Render()
+		// first item has potentially fewer lines depending on the line offset
+		numLines := max(0, lb.NumWrappedLines(width)-topItemLineOffset)
+		for range numLines {
+			// adding untruncated, unstyled lineBuffers
+			done = addLine(lb, currItemIdx)
+			if done {
+				break
+			}
+		}
+
+		for !done {
+			currItemIdx++
+			if currItemIdx >= len(items) {
+				done = true
+			} else {
+				currItem = items[currItemIdx]
+				lb = currItem.Render()
+				numLines = lb.NumWrappedLines(width)
+				for range numLines {
+					// adding untruncated, unstyled lineBuffers
+					done = addLine(lb, currItemIdx)
+					if done {
+						break
+					}
+				}
+			}
+		}
+	} else {
+		done = addLine(currItem.Render(), currItemIdx)
+		for !done {
+			currItemIdx++
+			if currItemIdx >= len(items) {
+				done = true
+			} else {
+				currItem = items[currItemIdx]
+				done = addLine(currItem.Render(), currItemIdx)
+			}
+		}
+	}
+	return contentLineBuffers{lineBuffers: lineBuffers, itemIndexes: itemIndexes}
 }
 
 // TODO LEO: reuse this for selection styling
