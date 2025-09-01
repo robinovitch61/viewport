@@ -16,7 +16,7 @@ type LineBufferer interface {
 		continuation string,
 		highlights []Highlight,
 	) (string, int)
-	// NumWrappedLines TODO
+	// NumWrappedLines returns the number of wrapped lines given a wrap width
 	NumWrappedLines(wrapWidth int) int
 	// Repr returns a representation of the Linebufferer as a string for debugging
 	Repr() string

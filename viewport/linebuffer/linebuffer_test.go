@@ -889,6 +889,98 @@ func TestLineBuffer_Take(t *testing.T) {
 	}
 }
 
+func TestLineBuffer_NumWrappedLines(t *testing.T) {
+	tests := []struct {
+		name      string
+		s         string
+		wrapWidth int
+		expected  int
+	}{
+		{
+			name:      "none no width",
+			s:         "none",
+			wrapWidth: 0,
+			expected:  0,
+		},
+		{
+			name:      "none with width",
+			s:         "none",
+			wrapWidth: 5,
+			expected:  1,
+		},
+		{
+			name:      "hello world negative width",
+			s:         "hello world", // 11 width
+			wrapWidth: -1,
+			expected:  0,
+		},
+		{
+			name:      "hello world zero width",
+			s:         "hello world", // 11 width
+			wrapWidth: 0,
+			expected:  0,
+		},
+		{
+			name:      "hello world wrap 1",
+			s:         "hello world", // 11 width
+			wrapWidth: 1,
+			expected:  11,
+		},
+		{
+			name:      "hello world wrap 5",
+			s:         "hello world", // 11 width
+			wrapWidth: 5,
+			expected:  3,
+		},
+		{
+			name:      "hello world wrap 11",
+			s:         "hello world", // 11 width
+			wrapWidth: 11,
+			expected:  1,
+		},
+		{
+			name:      "hello world wrap 12",
+			s:         "hello world", // 11 width
+			wrapWidth: 12,
+			expected:  1,
+		},
+		{
+			name:      "ansi wrap 5",
+			s:         redBg.Render("hello world"), // 11 width
+			wrapWidth: 5,
+			expected:  3,
+		},
+		{
+			name:      "unicode_ansi wrap 3",
+			s:         redBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 3,
+			expected:  2,
+		},
+		{
+			name:      "unicode_ansi wrap 6",
+			s:         redBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 6,
+			expected:  1,
+		},
+		{
+			name:      "unicode_ansi wrap 7",
+			s:         redBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 7,
+			expected:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lb := New(tt.s)
+			actual := lb.NumWrappedLines(tt.wrapWidth)
+			if actual != tt.expected {
+				t.Errorf("expected %d, got %d for line buffer %s with wrap width %d", tt.expected, actual, lb.Repr(), tt.wrapWidth)
+			}
+		})
+	}
+}
+
 func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 	tests := []struct {
 		name            string

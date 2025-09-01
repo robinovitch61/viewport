@@ -220,10 +220,11 @@ func (l LineBuffer) Take(
 	return res, takeWidth - remainingWidth
 }
 
-// NumWrappedLines TODO
-// TODO LEO: test
+// NumWrappedLines returns the number of wrapped lines given a wrap width
 func (l LineBuffer) NumWrappedLines(wrapWidth int) int {
-	if l.totalWidth == 0 && wrapWidth > 0 {
+	if wrapWidth <= 0 {
+		return 0
+	} else if l.totalWidth == 0 {
 		return 1
 	}
 	return (l.totalWidth + wrapWidth - 1) / wrapWidth

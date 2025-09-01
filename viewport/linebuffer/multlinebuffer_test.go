@@ -11,6 +11,7 @@ import (
 
 func getEquivalentLineBuffers() map[string][]LineBufferer {
 	return map[string][]LineBufferer{
+		"none": {},
 		"hello world": {
 			New("hello world"),
 			NewMulti(New("hello world")),
@@ -435,6 +436,99 @@ func TestMultiLineBuffer_Take(t *testing.T) {
 				}
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.Repr()))
+			}
+		})
+	}
+}
+
+func TestMultiLineBuffer_NumWrappedLines(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		wrapWidth int
+		expected  int
+	}{
+		{
+			name:      "none no width",
+			key:       "none",
+			wrapWidth: 0,
+			expected:  0,
+		},
+		{
+			name:      "none with width",
+			key:       "none",
+			wrapWidth: 5,
+			expected:  1,
+		},
+		{
+			name:      "hello world negative width",
+			key:       "hello world", // 11 width
+			wrapWidth: -1,
+			expected:  0,
+		},
+		{
+			name:      "hello world zero width",
+			key:       "hello world", // 11 width
+			wrapWidth: 0,
+			expected:  0,
+		},
+		{
+			name:      "hello world wrap 1",
+			key:       "hello world", // 11 width
+			wrapWidth: 1,
+			expected:  11,
+		},
+		{
+			name:      "hello world wrap 5",
+			key:       "hello world", // 11 width
+			wrapWidth: 5,
+			expected:  3,
+		},
+		{
+			name:      "hello world wrap 11",
+			key:       "hello world", // 11 width
+			wrapWidth: 11,
+			expected:  1,
+		},
+		{
+			name:      "hello world wrap 12",
+			key:       "hello world", // 11 width
+			wrapWidth: 12,
+			expected:  1,
+		},
+		{
+			name:      "ansi wrap 5",
+			key:       "ansi", // 11 width
+			wrapWidth: 5,
+			expected:  3,
+		},
+		{
+			name:      "unicode_ansi wrap 3",
+			key:       "unicode_ansi", // 6 width
+			wrapWidth: 3,
+			expected:  2,
+		},
+		{
+			name:      "unicode_ansi wrap 6",
+			key:       "unicode_ansi", // 6 width
+			wrapWidth: 6,
+			expected:  1,
+		},
+		{
+			name:      "unicode_ansi wrap 7",
+			key:       "unicode_ansi", // 6 width
+			wrapWidth: 7,
+			expected:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, eq := range getEquivalentLineBuffers()[tt.key] {
+				actual := eq.NumWrappedLines(tt.wrapWidth)
+				if actual != tt.expected {
+					t.Errorf("expected %d, got %d for line buffer %s with wrap width %d", tt.expected, actual, eq.Repr(), tt.wrapWidth)
+				}
 			}
 		})
 	}
