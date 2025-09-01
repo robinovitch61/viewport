@@ -8,11 +8,9 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/examples/text"
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
-
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/bubbleo/viewport"
 )
 
@@ -21,10 +19,10 @@ var styles = viewport.DefaultStyles()
 
 type model struct {
 	// viewport is the container for the lines
-	viewport *viewport.Model[viewport.Item]
+	viewport *viewport.Model[viewport.ExampleItem]
 
 	// lines contains the lines to be displayed in the viewport
-	lines []viewport.Item
+	lines []viewport.ExampleItem
 
 	// ready indicates whether the model has been initialized
 	ready bool
@@ -61,11 +59,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New[viewport.Item](
+			m.viewport = viewport.New[viewport.ExampleItem](
 				viewportWidth,
 				viewportHeight,
-				viewport.WithKeyMap[viewport.Item](keyMap),
-				viewport.WithStyles[viewport.Item](styles),
+				viewport.WithKeyMap[viewport.ExampleItem](keyMap),
+				viewport.WithStyles[viewport.ExampleItem](styles),
 			)
 			m.viewport.SetContent(m.lines)
 			m.viewport.SetSelectionEnabled(false)
@@ -131,9 +129,9 @@ func getShortHelp(bindings []key.Binding) string {
 
 func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
-	renderableLines := make([]viewport.Item, len(lines))
+	renderableLines := make([]viewport.ExampleItem, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = viewport.Item{LineBuffer: linebuffer.New(line)}
+		renderableLines[i] = viewport.ExampleItem{LineBuffer: viewport.NewLineBuffer(line)}
 	}
 
 	p := tea.NewProgram(

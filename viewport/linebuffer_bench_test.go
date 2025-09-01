@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"strings"
@@ -23,7 +23,7 @@ func BenchmarkNew_Plain_10(b *testing.B) {
 	baseString := strings.Repeat("h", 10)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -31,7 +31,7 @@ func BenchmarkNew_Plain_100(b *testing.B) {
 	baseString := strings.Repeat("h", 100)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -39,7 +39,7 @@ func BenchmarkNew_Plain_1000(b *testing.B) {
 	baseString := strings.Repeat("h", 1000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -47,7 +47,7 @@ func BenchmarkNew_Plain_10000(b *testing.B) {
 	baseString := strings.Repeat("h", 10000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -56,7 +56,7 @@ func BenchmarkNew_ANSI_10(b *testing.B) {
 	baseString := strings.Repeat("\x1b[31mh"+RST+"", 10)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -64,7 +64,7 @@ func BenchmarkNew_ANSI_100(b *testing.B) {
 	baseString := strings.Repeat("\x1b[31mh"+RST+"", 100)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -72,7 +72,7 @@ func BenchmarkNew_ANSI_1000(b *testing.B) {
 	baseString := strings.Repeat("\x1b[31mh"+RST+"", 1000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -80,7 +80,7 @@ func BenchmarkNew_ANSI_10000(b *testing.B) {
 	baseString := strings.Repeat("\x1b[31mh"+RST+"", 10000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -89,7 +89,7 @@ func BenchmarkNew_Unicode_10(b *testing.B) {
 	baseString := strings.Repeat("世", 10)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -97,7 +97,7 @@ func BenchmarkNew_Unicode_100(b *testing.B) {
 	baseString := strings.Repeat("世", 100)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -105,7 +105,7 @@ func BenchmarkNew_Unicode_1000(b *testing.B) {
 	baseString := strings.Repeat("世", 1000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }
 
@@ -113,6 +113,6 @@ func BenchmarkNew_Unicode_10000(b *testing.B) {
 	baseString := strings.Repeat("世", 10000)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = New(baseString)
+		_ = NewLineBuffer(baseString)
 	}
 }

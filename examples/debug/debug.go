@@ -5,36 +5,35 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
-
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
+	"github.com/robinovitch61/bubbleo/viewport"
 )
 
 func main() {
-	lbs := []linebuffer.LineBufferer{
-		linebuffer.New("hello world"),
-		linebuffer.NewMulti(linebuffer.New("hello world")),
-		linebuffer.NewMulti(
-			linebuffer.New("hello"),
-			linebuffer.New(" world"),
+	lbs := []viewport.Item{
+		viewport.NewLineBuffer("hello world"),
+		viewport.NewMulti(viewport.NewLineBuffer("hello world")),
+		viewport.NewMulti(
+			viewport.NewLineBuffer("hello"),
+			viewport.NewLineBuffer(" world"),
 		),
-		linebuffer.NewMulti(
-			linebuffer.New("hel"),
-			linebuffer.New("lo "),
-			linebuffer.New("wo"),
-			linebuffer.New("rld"),
+		viewport.NewMulti(
+			viewport.NewLineBuffer("hel"),
+			viewport.NewLineBuffer("lo "),
+			viewport.NewLineBuffer("wo"),
+			viewport.NewLineBuffer("rld"),
 		),
-		linebuffer.NewMulti(
-			linebuffer.New("h"),
-			linebuffer.New("e"),
-			linebuffer.New("l"),
-			linebuffer.New("l"),
-			linebuffer.New("o"),
-			linebuffer.New(" "),
-			linebuffer.New("w"),
-			linebuffer.New("o"),
-			linebuffer.New("r"),
-			linebuffer.New("l"),
-			linebuffer.New("d"),
+		viewport.NewMulti(
+			viewport.NewLineBuffer("h"),
+			viewport.NewLineBuffer("e"),
+			viewport.NewLineBuffer("l"),
+			viewport.NewLineBuffer("l"),
+			viewport.NewLineBuffer("o"),
+			viewport.NewLineBuffer(" "),
+			viewport.NewLineBuffer("w"),
+			viewport.NewLineBuffer("o"),
+			viewport.NewLineBuffer("r"),
+			viewport.NewLineBuffer("l"),
+			viewport.NewLineBuffer("d"),
 		),
 	}
 
@@ -49,7 +48,7 @@ func main() {
 
 	expected := "..\x1b[48;2;255;0;0m.o.\x1b[0m.."
 	for _, lb := range lbs {
-		highlights := linebuffer.ExtractHighlights([]string{lb.Content()}, toHighlight, highlightStyle)
+		highlights := viewport.ExtractHighlights([]string{lb.Content()}, toHighlight, highlightStyle)
 		//println(fmt.Sprintf("for %s, highlights: %v", lb.Repr(), highlights))
 		actual, _ := lb.Take(widthToLeft, takeWidth, continuation, highlights)
 		if actual != expected {

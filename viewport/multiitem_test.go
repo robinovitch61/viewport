@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"fmt"
@@ -9,57 +9,57 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func getEquivalentLineBuffers() map[string][]LineBufferer {
-	return map[string][]LineBufferer{
+func getEquivalentLineBuffers() map[string][]Item {
+	return map[string][]Item{
 		"none": {},
 		"hello world": {
-			New("hello world"),
-			NewMulti(New("hello world")),
+			NewLineBuffer("hello world"),
+			NewMulti(NewLineBuffer("hello world")),
 			NewMulti(
-				New("hello"),
-				New(" world"),
+				NewLineBuffer("hello"),
+				NewLineBuffer(" world"),
 			),
 			NewMulti(
-				New("hel"),
-				New("lo "),
-				New("wo"),
-				New("rld"),
+				NewLineBuffer("hel"),
+				NewLineBuffer("lo "),
+				NewLineBuffer("wo"),
+				NewLineBuffer("rld"),
 			),
 			NewMulti(
-				New("h"),
-				New("e"),
-				New("l"),
-				New("l"),
-				New("o"),
-				New(" "),
-				New("w"),
-				New("o"),
-				New("r"),
-				New("l"),
-				New("d"),
+				NewLineBuffer("h"),
+				NewLineBuffer("e"),
+				NewLineBuffer("l"),
+				NewLineBuffer("l"),
+				NewLineBuffer("o"),
+				NewLineBuffer(" "),
+				NewLineBuffer("w"),
+				NewLineBuffer("o"),
+				NewLineBuffer("r"),
+				NewLineBuffer("l"),
+				NewLineBuffer("d"),
 			),
 		},
 		"ansi": {
-			New(redBg.Render("hello") + " " + blueBg.Render("world")),
-			NewMulti(New(redBg.Render("hello") + " " + blueBg.Render("world"))),
+			NewLineBuffer(redBg.Render("hello") + " " + blueBg.Render("world")),
+			NewMulti(NewLineBuffer(redBg.Render("hello") + " " + blueBg.Render("world"))),
 			NewMulti(
-				New(redBg.Render("hello")+" "),
-				New(blueBg.Render("world")),
+				NewLineBuffer(redBg.Render("hello")+" "),
+				NewLineBuffer(blueBg.Render("world")),
 			),
 			NewMulti(
-				New(redBg.Render("hello")),
-				New(" "),
-				New(blueBg.Render("world")),
+				NewLineBuffer(redBg.Render("hello")),
+				NewLineBuffer(" "),
+				NewLineBuffer(blueBg.Render("world")),
 			),
 		},
 		"unicode_ansi": {
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
-			New(redBg.Render("A💖") + "中é"),
-			NewMulti(New(redBg.Render("A💖") + "中é")),
+			NewLineBuffer(redBg.Render("A💖") + "中é"),
+			NewMulti(NewLineBuffer(redBg.Render("A💖") + "中é")),
 			NewMulti(
-				New(redBg.Render("A💖")),
-				New("中"),
-				New("é"),
+				NewLineBuffer(redBg.Render("A💖")),
+				NewLineBuffer("中"),
+				NewLineBuffer("é"),
 			),
 		}}
 }

@@ -1,7 +1,7 @@
-package linebuffer
+package viewport
 
-// LineBufferer defines the interface for line buffer implementations.
-type LineBufferer interface {
+// Item defines the interface for viewport item implementations
+type Item interface {
 	// Width returns the total width in terminal cells
 	Width() int
 	// Content returns the underlying complete string

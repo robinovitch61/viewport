@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// LineBuffer provides functionality to get sequential strings of a specified terminal cell width, accounting
+// SingleItem provides functionality to get sequential strings of a specified terminal cell width, accounting
 // for the ansi escape codes styling the line.
-type LineBuffer struct {
+type SingleItem struct {
 	line                 string     // underlying string with ansi codes. utf-8 encoded bytes
 	lineNoAnsi           string     // line without ansi codes. utf-8 encoded bytes
 	lineNoAnsiRuneWidths []uint8    // packed terminal cell widths, 4 widths per byte (2 bits each)
@@ -23,16 +23,16 @@ type LineBuffer struct {
 	sparseLineNoAnsiCumRuneWidths   []uint32 // cumulative terminal cell width, stored every sparsity runes
 }
 
-// type assertion that LineBuffer implements LineBufferer
-var _ LineBufferer = LineBuffer{}
+// type assertion that SingleItem implements Item
+var _ Item = SingleItem{}
 
-// type assertion that *LineBuffer implements LineBufferer
-var _ LineBufferer = (*LineBuffer)(nil)
+// type assertion that *SingleItem implements Item
+var _ Item = (*SingleItem)(nil)
 
-// New creates a new LineBuffer from the given string.
-func New(line string) LineBuffer {
+// NewLineBuffer creates a new SingleItem from the given string.
+func NewLineBuffer(line string) SingleItem {
 	if len(line) <= 0 {
-		return LineBuffer{line: line}
+		return SingleItem{line: line}
 	}
 
 	// keep sparsity 1 for short lines
@@ -41,7 +41,7 @@ func New(line string) LineBuffer {
 		sparsity = 10 // tradeoff between memory usage and CPU. 10 seems to be a good balance
 	}
 
-	lb := LineBuffer{
+	lb := SingleItem{
 		line:     line,
 		sparsity: sparsity,
 	}
@@ -110,7 +110,7 @@ func New(line string) LineBuffer {
 }
 
 // Width returns the total width in terminal cells.
-func (l LineBuffer) Width() int {
+func (l SingleItem) Width() int {
 	if len(l.line) == 0 {
 		return 0
 	}
@@ -118,12 +118,12 @@ func (l LineBuffer) Width() int {
 }
 
 // Content returns the underlying string content.
-func (l LineBuffer) Content() string {
+func (l SingleItem) Content() string {
 	return l.line
 }
 
 // Take returns a string from the buffer
-func (l LineBuffer) Take(
+func (l SingleItem) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
@@ -221,7 +221,7 @@ func (l LineBuffer) Take(
 }
 
 // NumWrappedLines returns the number of wrapped lines given a wrap width
-func (l LineBuffer) NumWrappedLines(wrapWidth int) int {
+func (l SingleItem) NumWrappedLines(wrapWidth int) int {
 	if wrapWidth <= 0 {
 		return 0
 	} else if l.totalWidth == 0 {
@@ -231,13 +231,13 @@ func (l LineBuffer) NumWrappedLines(wrapWidth int) int {
 }
 
 // Repr returns a string representation for debugging.
-func (l LineBuffer) Repr() string {
+func (l SingleItem) Repr() string {
 	return fmt.Sprintf("LB(%q)", l.line)
 }
 
 // runeAt decodes the desired rune from the lineNoAnsi string
 // it serves as a memory-saving technique compared to storing all the runes in a slice
-func (l LineBuffer) runeAt(runeIdx int) rune {
+func (l SingleItem) runeAt(runeIdx int) rune {
 	if runeIdx < 0 || runeIdx >= l.numNoAnsiRunes {
 		return -1
 	}
@@ -252,7 +252,7 @@ func (l LineBuffer) runeAt(runeIdx int) rune {
 	return r
 }
 
-func (l LineBuffer) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
+func (l SingleItem) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
 	if runeIdx < 0 {
 		panic("runeIdx must be greater or equal to 0")
 	}
@@ -281,7 +281,7 @@ func (l LineBuffer) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
 }
 
 // getRuneWidth extracts the width of a rune from the packed array
-func (l LineBuffer) getRuneWidth(runeIdx int) uint8 {
+func (l SingleItem) getRuneWidth(runeIdx int) uint8 {
 	if runeIdx < 0 || runeIdx >= l.numNoAnsiRunes {
 		return 0
 	}
@@ -291,7 +291,7 @@ func (l LineBuffer) getRuneWidth(runeIdx int) uint8 {
 	return (l.lineNoAnsiRuneWidths[packedIdx] >> bitPos) & 3
 }
 
-func (l LineBuffer) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
+func (l SingleItem) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
 	if runeIdx < 0 {
 		return 0
 	}
@@ -317,7 +317,7 @@ func (l LineBuffer) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
 }
 
 // findRuneIndexWithWidthToLeft returns the index of the rune that has the input width to the left of it
-func (l LineBuffer) findRuneIndexWithWidthToLeft(widthToLeft int) int {
+func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 	if widthToLeft < 0 {
 		panic("widthToLeft less than 0")
 	}

@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
-
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -286,7 +284,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	// otherwise, rebuild all highlights
-	var highlights []linebuffer.Highlight
+	var highlights []viewport.Highlight
 	for matchIdx, match := range m.allMatches {
 		itemIdx := match.ItemIndex
 		if m.matchingItemsOnly {
@@ -300,7 +298,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		if matchIdx == m.focusedMatchIdx {
 			style = m.styles.Match.Focused
 		}
-		highlight := linebuffer.Highlight{
+		highlight := viewport.Highlight{
 			ItemIndex:       itemIdx,
 			StartByteOffset: match.Start,
 			EndByteOffset:   match.End,
@@ -375,8 +373,8 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
-	filterLineBuffer := linebuffer.New(filterLine)
-	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []linebuffer.Highlight{})
+	filterLineBuffer := viewport.NewLineBuffer(filterLine)
+	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []viewport.Highlight{})
 	return res
 }
 

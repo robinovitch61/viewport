@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"testing"

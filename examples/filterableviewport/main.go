@@ -11,7 +11,6 @@ import (
 	"github.com/robinovitch61/bubbleo/examples/text"
 	"github.com/robinovitch61/bubbleo/filterableviewport"
 	"github.com/robinovitch61/bubbleo/viewport"
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
 )
 
 type appKeys struct {
@@ -41,10 +40,10 @@ var styles = filterableviewport.DefaultStyles()
 
 type model struct {
 	// fv is the filterable container for the lines
-	fv *filterableviewport.Model[viewport.Item]
+	fv *filterableviewport.Model[viewport.ExampleItem]
 
 	// lines contains the lines to be displayed in the viewport
-	lines []viewport.Item
+	lines []viewport.ExampleItem
 
 	// ready indicates whether the model has been initialized
 	ready bool
@@ -96,19 +95,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			vp := viewport.New[viewport.Item](
+			vp := viewport.New[viewport.ExampleItem](
 				viewportWidth,
 				viewportHeight,
-				viewport.WithKeyMap[viewport.Item](viewportKeyMap),
+				viewport.WithKeyMap[viewport.ExampleItem](viewportKeyMap),
 			)
-			m.fv = filterableviewport.New[viewport.Item](
+			m.fv = filterableviewport.New[viewport.ExampleItem](
 				vp,
-				filterableviewport.WithKeyMap[viewport.Item](filterableViewportKeyMap),
-				filterableviewport.WithStyles[viewport.Item](styles),
-				filterableviewport.WithPrefixText[viewport.Item]("Filter:"),
-				filterableviewport.WithEmptyText[viewport.Item]("No Current Filter"),
-				filterableviewport.WithMatchingItemsOnly[viewport.Item](false),
-				filterableviewport.WithCanToggleMatchingItemsOnly[viewport.Item](true),
+				filterableviewport.WithKeyMap[viewport.ExampleItem](filterableViewportKeyMap),
+				filterableviewport.WithStyles[viewport.ExampleItem](styles),
+				filterableviewport.WithPrefixText[viewport.ExampleItem]("Filter:"),
+				filterableviewport.WithEmptyText[viewport.ExampleItem]("No Current Filter"),
+				filterableviewport.WithMatchingItemsOnly[viewport.ExampleItem](false),
+				filterableviewport.WithCanToggleMatchingItemsOnly[viewport.ExampleItem](true),
 			)
 			m.fv.SetContent(m.lines)
 			m.fv.Viewport.SetSelectionEnabled(false)
@@ -182,9 +181,9 @@ func getShortHelp(bindings []key.Binding) string {
 
 func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
-	renderableLines := make([]viewport.Item, len(lines))
+	renderableLines := make([]viewport.ExampleItem, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = viewport.Item{LineBuffer: linebuffer.New(line)}
+		renderableLines[i] = viewport.ExampleItem{LineBuffer: viewport.NewLineBuffer(line)}
 	}
 
 	p := tea.NewProgram(

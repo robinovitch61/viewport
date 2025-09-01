@@ -1,98 +1,96 @@
 package viewport
 
-import "github.com/robinovitch61/bubbleo/viewport/linebuffer"
+// contentManager manages the actual SingleItem and selection state
+type contentManager[T Renderable] struct {
+	// items is the complete list of items to be rendered in the viewport
+	items []T
 
-// ContentManager manages the actual LineBuffer and selection state
-type ContentManager[T Renderable] struct {
-	// Items is the complete list of items to be rendered in the viewport
-	Items []T
-
-	// Header is the fixed header lines at the top of the viewport
+	// header is the fixed header lines at the top of the viewport
 	// these lines wrap and are horizontally scrollable similar to other rendered items
-	Header []string
+	header []string
 
-	// selectedIdx is the index of Items of the current selection (only relevant when selection is enabled)
+	// selectedIdx is the index of items of the current selection (only relevant when selection is enabled)
 	selectedIdx int
 
-	// Highlights is what to highlight wherever it shows up within an item, even wrapped between lines
-	Highlights []linebuffer.Highlight
+	// highlights is what to highlight wherever it shows up within an item, even wrapped between lines
+	highlights []Highlight
 
 	// highlightsByItem is a cache of highlights indexed by item index for O(1) lookup
-	highlightsByItem map[int][]linebuffer.Highlight
+	highlightsByItem map[int][]Highlight
 
-	// CompareFn is an optional function to compare items for maintaining the selection when LineBuffer changes
-	// if set, the viewport will try to maintain the previous selected item when LineBuffer changes
-	CompareFn CompareFn[T]
+	// compareFn is an optional function to compare items for maintaining the selection when SingleItem changes
+	// if set, the viewport will try to maintain the previous selected item when SingleItem changes
+	compareFn CompareFn[T]
 }
 
-// NewContentManager creates a new ContentManager with empty initial state.
-func NewContentManager[T Renderable]() *ContentManager[T] {
-	return &ContentManager[T]{
-		Items:            []T{},
-		Header:           []string{},
+// newContentManager creates a new contentManager with empty initial state.
+func newContentManager[T Renderable]() *contentManager[T] {
+	return &contentManager[T]{
+		items:            []T{},
+		header:           []string{},
 		selectedIdx:      0,
-		highlightsByItem: make(map[int][]linebuffer.Highlight),
+		highlightsByItem: make(map[int][]Highlight),
 	}
 }
 
-// SetSelectedIdx sets the selected item index.
-func (cm *ContentManager[T]) SetSelectedIdx(idx int) {
-	cm.selectedIdx = clampValZeroToMax(idx, len(cm.Items)-1)
+// setSelectedIdx sets the selected item index.
+func (cm *contentManager[T]) setSelectedIdx(idx int) {
+	cm.selectedIdx = clampValZeroToMax(idx, len(cm.items)-1)
 }
 
-// GetSelectedIdx returns the current selected item index.
-func (cm *ContentManager[T]) GetSelectedIdx() int {
+// getSelectedIdx returns the current selected item index.
+func (cm *contentManager[T]) getSelectedIdx() int {
 	return cm.selectedIdx
 }
 
-// GetSelectedItem returns a pointer to the currently selected item, or nil if none selected.
-func (cm *ContentManager[T]) GetSelectedItem() *T {
-	if cm.selectedIdx >= len(cm.Items) || cm.selectedIdx < 0 {
+// getSelectedItem returns a pointer to the currently selected item, or nil if none selected.
+func (cm *contentManager[T]) getSelectedItem() *T {
+	if cm.selectedIdx >= len(cm.items) || cm.selectedIdx < 0 {
 		return nil
 	}
-	return &cm.Items[cm.selectedIdx]
+	return &cm.items[cm.selectedIdx]
 }
 
-// NumItems returns the total number of items.
-func (cm *ContentManager[T]) NumItems() int {
-	return len(cm.Items)
+// numItems returns the total number of items.
+func (cm *contentManager[T]) numItems() int {
+	return len(cm.items)
 }
 
-// IsEmpty returns true if there are no items.
-func (cm *ContentManager[T]) IsEmpty() bool {
-	return len(cm.Items) == 0
+// isEmpty returns true if there are no items.
+func (cm *contentManager[T]) isEmpty() bool {
+	return len(cm.items) == 0
 }
 
-// ValidateSelectedIdx ensures the selected index is within valid bounds.
-func (cm *ContentManager[T]) ValidateSelectedIdx() {
-	if len(cm.Items) == 0 {
+// validateSelectedIdx ensures the selected index is within valid bounds.
+func (cm *contentManager[T]) validateSelectedIdx() {
+	if len(cm.items) == 0 {
 		cm.selectedIdx = 0
 		return
 	}
-	cm.selectedIdx = clampValZeroToMax(cm.selectedIdx, len(cm.Items)-1)
+	cm.selectedIdx = clampValZeroToMax(cm.selectedIdx, len(cm.items)-1)
 }
 
 // rebuildHighlightsCache rebuilds the highlights-by-item-index cache for O(1) lookup.
-func (cm *ContentManager[T]) rebuildHighlightsCache() {
-	cm.highlightsByItem = make(map[int][]linebuffer.Highlight)
-	for _, highlight := range cm.Highlights {
+func (cm *contentManager[T]) rebuildHighlightsCache() {
+	cm.highlightsByItem = make(map[int][]Highlight)
+	for _, highlight := range cm.highlights {
 		itemIdx := highlight.ItemIndex
 		cm.highlightsByItem[itemIdx] = append(cm.highlightsByItem[itemIdx], highlight)
 	}
 }
 
-// SetHighlights sets the highlights and rebuilds the cache.
-func (cm *ContentManager[T]) SetHighlights(highlights []linebuffer.Highlight) {
-	cm.Highlights = highlights
+// setHighlights sets the highlights and rebuilds the cache.
+func (cm *contentManager[T]) setHighlights(highlights []Highlight) {
+	cm.highlights = highlights
 	cm.rebuildHighlightsCache()
 }
 
-// GetHighlights returns all highlights.
-func (cm *ContentManager[T]) GetHighlights() []linebuffer.Highlight {
-	return cm.Highlights
+// getHighlights returns all highlights.
+func (cm *contentManager[T]) getHighlights() []Highlight {
+	return cm.highlights
 }
 
-// GetHighlightsForItem returns highlights for a specific item index in O(1) time.
-func (cm *ContentManager[T]) GetHighlightsForItem(itemIndex int) []linebuffer.Highlight {
+// getHighlightsForItem returns highlights for a specific item index in O(1) time.
+func (cm *contentManager[T]) getHighlightsForItem(itemIndex int) []Highlight {
 	return cm.highlightsByItem[itemIndex]
 }

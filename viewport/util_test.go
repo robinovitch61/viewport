@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"regexp"
@@ -1109,7 +1109,7 @@ func TestLineBuffer_getNonAnsiBytes(t *testing.T) {
 func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 	tests := []struct {
 		name           string
-		buffers        []LineBuffer
+		buffers        []SingleItem
 		nBytes         int
 		startBufferIdx int
 		widthToLeft    int
@@ -1117,7 +1117,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		shouldPanic    bool
 	}{
 		{
-			name:           "empty buffers",
+			name:           "empty items",
 			buffers:        nil,
 			nBytes:         1,
 			startBufferIdx: 0,
@@ -1126,7 +1126,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:           "negative bytes",
-			buffers:        []LineBuffer{New("abc")},
+			buffers:        []SingleItem{NewLineBuffer("abc")},
 			nBytes:         -1,
 			startBufferIdx: 0,
 			widthToLeft:    1,
@@ -1134,7 +1134,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:           "zero bytes",
-			buffers:        []LineBuffer{New("abc")},
+			buffers:        []SingleItem{NewLineBuffer("abc")},
 			nBytes:         0,
 			startBufferIdx: 0,
 			widthToLeft:    1,
@@ -1142,7 +1142,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:           "buffer index out of bounds",
-			buffers:        []LineBuffer{New("abc")},
+			buffers:        []SingleItem{NewLineBuffer("abc")},
 			nBytes:         1,
 			startBufferIdx: 1,
 			widthToLeft:    0,
@@ -1150,7 +1150,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:           "single buffer full content",
-			buffers:        []LineBuffer{New("abc")},
+			buffers:        []SingleItem{NewLineBuffer("abc")},
 			nBytes:         3,
 			startBufferIdx: 0,
 			widthToLeft:    3,
@@ -1158,17 +1158,17 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:           "single buffer partial content",
-			buffers:        []LineBuffer{New("abc")},
+			buffers:        []SingleItem{NewLineBuffer("abc")},
 			nBytes:         2,
 			startBufferIdx: 0,
 			widthToLeft:    2,
 			expected:       "ab",
 		},
 		{
-			name: "multiple buffers full content",
-			buffers: []LineBuffer{
-				New("abc"),
-				New("def"),
+			name: "multiple items full content",
+			buffers: []SingleItem{
+				NewLineBuffer("abc"),
+				NewLineBuffer("def"),
 			},
 			nBytes:         6,
 			startBufferIdx: 1,
@@ -1176,10 +1176,10 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 			expected:       "abcdef",
 		},
 		{
-			name: "multiple buffers partial content",
-			buffers: []LineBuffer{
-				New("abc"),
-				New("def"),
+			name: "multiple items partial content",
+			buffers: []SingleItem{
+				NewLineBuffer("abc"),
+				NewLineBuffer("def"),
 			},
 			nBytes:         4,
 			startBufferIdx: 1,
@@ -1188,9 +1188,9 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name: "ignore ansi codes",
-			buffers: []LineBuffer{
-				New("a" + redBg.Render("b") + "c"),
-				New(redBg.Render("def")),
+			buffers: []SingleItem{
+				NewLineBuffer("a" + redBg.Render("b") + "c"),
+				NewLineBuffer(redBg.Render("def")),
 			},
 			nBytes:         5,
 			startBufferIdx: 1,
@@ -1200,9 +1200,9 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 		// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
 		{
 			name: "unicode characters",
-			buffers: []LineBuffer{
-				New("A💖中"),
-				New("é"),
+			buffers: []SingleItem{
+				NewLineBuffer("A💖中"),
+				NewLineBuffer("é"),
 			},
 			nBytes:         10,
 			startBufferIdx: 1,
@@ -1229,7 +1229,7 @@ func TestLineBuffer_getBytesLeftOfWidth(t *testing.T) {
 func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 	tests := []struct {
 		name         string
-		buffers      []LineBuffer
+		buffers      []SingleItem
 		nBytes       int
 		endBufferIdx int
 		widthToRight int
@@ -1237,7 +1237,7 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		shouldPanic  bool
 	}{
 		{
-			name:         "empty buffers",
+			name:         "empty items",
 			buffers:      nil,
 			nBytes:       1,
 			endBufferIdx: 0,
@@ -1246,7 +1246,7 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "negative bytes",
-			buffers:      []LineBuffer{New("abc")},
+			buffers:      []SingleItem{NewLineBuffer("abc")},
 			nBytes:       -1,
 			endBufferIdx: 0,
 			widthToRight: 1,
@@ -1254,7 +1254,7 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "zero bytes",
-			buffers:      []LineBuffer{New("abc")},
+			buffers:      []SingleItem{NewLineBuffer("abc")},
 			nBytes:       0,
 			endBufferIdx: 0,
 			widthToRight: 1,
@@ -1262,7 +1262,7 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "buffer index out of bounds",
-			buffers:      []LineBuffer{New("abc")},
+			buffers:      []SingleItem{NewLineBuffer("abc")},
 			nBytes:       1,
 			endBufferIdx: 1,
 			widthToRight: 0,
@@ -1270,7 +1270,7 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single buffer full content",
-			buffers:      []LineBuffer{New("abc")},
+			buffers:      []SingleItem{NewLineBuffer("abc")},
 			nBytes:       3,
 			endBufferIdx: 0,
 			widthToRight: 3,
@@ -1278,17 +1278,17 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single buffer partial content",
-			buffers:      []LineBuffer{New("abc")},
+			buffers:      []SingleItem{NewLineBuffer("abc")},
 			nBytes:       2,
 			endBufferIdx: 0,
 			widthToRight: 2,
 			expected:     "bc",
 		},
 		{
-			name: "multiple buffers full content",
-			buffers: []LineBuffer{
-				New("abc"),
-				New("def"),
+			name: "multiple items full content",
+			buffers: []SingleItem{
+				NewLineBuffer("abc"),
+				NewLineBuffer("def"),
 			},
 			nBytes:       6,
 			endBufferIdx: 0,
@@ -1296,10 +1296,10 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 			expected:     "abcdef",
 		},
 		{
-			name: "multiple buffers partial content",
-			buffers: []LineBuffer{
-				New("abc"),
-				New("def"),
+			name: "multiple items partial content",
+			buffers: []SingleItem{
+				NewLineBuffer("abc"),
+				NewLineBuffer("def"),
 			},
 			nBytes:       4,
 			endBufferIdx: 0,
@@ -1308,9 +1308,9 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name: "ignore ansi codes",
-			buffers: []LineBuffer{
-				New("a" + redBg.Render("b") + "c"),
-				New(redBg.Render("def")),
+			buffers: []SingleItem{
+				NewLineBuffer("a" + redBg.Render("b") + "c"),
+				NewLineBuffer(redBg.Render("def")),
 			},
 			nBytes:       5,
 			endBufferIdx: 0,
@@ -1320,9 +1320,9 @@ func TestLineBuffer_getBytesRightOfWidth(t *testing.T) {
 		// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
 		{
 			name: "unicode characters",
-			buffers: []LineBuffer{
-				New("A💖中"),
-				New("é"),
+			buffers: []SingleItem{
+				NewLineBuffer("A💖中"),
+				NewLineBuffer("é"),
 			},
 			nBytes:       10,
 			endBufferIdx: 0,

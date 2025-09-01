@@ -1,4 +1,4 @@
-package linebuffer
+package viewport
 
 import (
 	"strings"
@@ -39,7 +39,7 @@ func TestLineBuffer_Width(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 			if actual := lb.Width(); actual != tt.expected {
 				t.Errorf("expected %d, got %d", tt.expected, actual)
 			}
@@ -72,7 +72,7 @@ func TestLineBuffer_Content(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 			if actual := lb.Content(); actual != tt.expected {
 				t.Errorf("expected %s, got %s", tt.expected, actual)
 			}
@@ -873,7 +873,7 @@ func TestLineBuffer_Take(t *testing.T) {
 			if len(tt.expected) != tt.numTakes {
 				t.Fatalf("num expected != num popLefts")
 			}
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 			startWidth := tt.startWidth
 
 			var highlights []Highlight
@@ -972,7 +972,7 @@ func TestLineBuffer_NumWrappedLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 			actual := lb.NumWrappedLines(tt.wrapWidth)
 			if actual != tt.expected {
 				t.Errorf("expected %d, got %d for line buffer %s with wrap width %d", tt.expected, actual, lb.Repr(), tt.wrapWidth)
@@ -1055,7 +1055,7 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
@@ -1140,7 +1140,7 @@ func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			lb := NewLineBuffer(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
