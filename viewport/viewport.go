@@ -345,7 +345,7 @@ func (m *Model[T]) SetContent(content []T) {
 			m.content.SetSelectedIdx(max(0, m.content.NumItems()-1))
 			m.scrollSoSelectionInView()
 		} else if m.content.CompareFn != nil {
-			// TODO: could flag when LineBuffer is sorted & comparable and use binary search instead
+			// TODO: could flag when items are sorted & comparable and use binary search instead
 			found := false
 			items := m.content.Items
 			for i := range items {
