@@ -21,7 +21,7 @@ import (
 // this is the first line    0               0
 // this is the second line   1               1
 //
-// wrap disabled, line overflow:
+// wrap disabled, overflows viewport width:
 //                           item index      line index
 // this is the first...      0               0
 // this is the secon...      1               1
@@ -218,7 +218,7 @@ func (m *Model[T]) View() string {
 	estimatedSize := (len(visibleHeaderLines) + len(content.lineBuffers) + 10) * (m.display.Bounds.Width + 1)
 	builder.Grow(estimatedSize)
 
-	// header lines are already wrapped
+	// header lines
 	for i := range visibleHeaderLines {
 		lineBuffer := linebuffer.New(visibleHeaderLines[i])
 		line, _ := lineBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []linebuffer.Highlight{})
@@ -226,7 +226,7 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
-	// NEXT: truncate and style lineBuffers if wrapped
+	// content lines
 	truncatedVisibleContentLines := make([]string, len(content.lineBuffers))
 	currentItemIdxWidthToLeft := m.display.Bounds.Width * m.display.TopItemLineOffset
 	for lbIdx := range content.lineBuffers {
@@ -248,8 +248,6 @@ func (m *Model[T]) View() string {
 					currentItemIdxWidthToLeft += widthTaken
 				}
 			}
-			// if wrapped, lineBuffers are already truncated and highlighted
-			//truncated = content.lineBuffers[lbIdx].Content()
 		} else {
 			// if not wrapped, lineBuffers are not yet truncated or highlighted
 			truncated, _ = content.lineBuffers[lbIdx].Take(
@@ -1064,14 +1062,6 @@ func (m *Model[T]) styleSelection(selection string) string {
 	return builder.String()
 }
 
-//func toLineBuffers(lines []string) []linebuffer.LineBufferer {
-//	res := make([]linebuffer.LineBufferer, len(lines))
-//	for i, line := range lines {
-//		res[i] = linebuffer.New(line)
-//	}
-//	return res
-//}
-
 func percent(a, b int) int {
 	return int(float32(a) / float32(b) * 100)
 }
@@ -1085,13 +1075,3 @@ func safeSliceUpToIdx[T any](s []T, i int) []T {
 	}
 	return s[:i]
 }
-
-//func safeSliceFromIdx(s []string, i int) []string {
-//	if i < 0 {
-//		return s
-//	}
-//	if i > len(s) {
-//		return []string{}
-//	}
-//	return s[i:]
-//}
