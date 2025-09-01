@@ -527,6 +527,15 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	}
 }
 
+// SetXOffsetWidth sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
+func (m *Model[T]) SetXOffsetWidth(width int) {
+	if m.config.WrapText {
+		return
+	}
+	maxXOffset := m.maxItemWidth() - m.display.Bounds.Width
+	m.display.XOffset = max(0, min(maxXOffset, width))
+}
+
 // SetHighlights sets specific positions to highlight with custom styles in the viewport.
 func (m *Model[T]) SetHighlights(highlights []linebuffer.Highlight) {
 	m.content.SetHighlights(highlights)
@@ -585,16 +594,6 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	items := m.content.Items
 	lb := items[itemIdx].Render()
 	return lb.NumWrappedLines(m.display.Bounds.Width)
-}
-
-// SetXOffsetWidth sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
-// TODO LEO: test this function
-func (m *Model[T]) SetXOffsetWidth(width int) {
-	if m.config.WrapText {
-		return
-	}
-	maxXOffset := m.maxItemWidth() - m.display.Bounds.Width
-	m.display.XOffset = max(0, min(maxXOffset, width))
 }
 
 func (m *Model[T]) setWidthHeight(width, height int) {

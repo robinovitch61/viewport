@@ -446,6 +446,44 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOff_WrapOff_SetXOffsetWidth(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+	})
+	initialExpectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the fir...",
+		"the sec...",
+	})
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(-1)
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(0)
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(4)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...st line",
+		"...ond ...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(1000)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...t line ",
+		"...nd line",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOff_WrapOff_BulkScrolling(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
@@ -1271,6 +1309,45 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 		"\x1b[38;2;0;0;255msecond" + linebuffer.RST,
 		"third",
 		"33% (2/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_SetXOffsetWidth(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+	})
+	initialExpectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("the fir..."),
+		"the sec...",
+	})
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(-1)
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(0)
+	internal.CmpStr(t, initialExpectedView, vp.View())
+
+	vp.SetXOffsetWidth(4)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("...st line"),
+		"...ond ...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(1000)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("...t line"),
+		"...nd line",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2634,6 +2711,37 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOff_WrapOn_SetXOffsetWidth(t *testing.T) {
+	w, h := 10, 8
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first ",
+		"line",
+		"the second",
+		" line",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(-1)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(0)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(4)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(1000)
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOff_WrapOn_BulkScrolling(t *testing.T) {
 	w, h := 10, 4
 	vp := newViewport(w, h)
@@ -3561,6 +3669,39 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 		"line",
 		"66% (2/3)",
 	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_SetXOffsetWidth(t *testing.T) {
+	w, h := 10, 8
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+	})
+
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"\x1b[38;2;0;0;255mthe first " + linebuffer.RST,
+		"\x1b[38;2;0;0;255mline" + linebuffer.RST,
+		"the second",
+		" line",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(-1)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(0)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(4)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetXOffsetWidth(1000)
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
