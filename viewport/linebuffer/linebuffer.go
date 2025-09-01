@@ -220,30 +220,6 @@ func (l LineBuffer) Take(
 	return res, takeWidth - remainingWidth
 }
 
-// WrappedLines returns the content broken into lines that fit within the specified width.
-func (l LineBuffer) WrappedLines(
-	wrapWidth int,
-	maxLinesEachEnd int,
-	highlights []Highlight,
-) []string {
-	if wrapWidth == 0 {
-		return []string{}
-	}
-	// preserve empty lines
-	if l.totalWidth == 0 {
-		return []string{l.line}
-	}
-
-	totalLines := (l.totalWidth + wrapWidth - 1) / wrapWidth
-	return getWrappedLines(
-		l,
-		totalLines,
-		wrapWidth,
-		maxLinesEachEnd,
-		highlights,
-	)
-}
-
 // NumWrappedLines TODO
 // TODO LEO: test
 func (l LineBuffer) NumWrappedLines(wrapWidth int) int {

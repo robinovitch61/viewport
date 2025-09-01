@@ -716,48 +716,6 @@ func getBytesRightOfWidth(nBytes int, buffers []LineBuffer, endBufferIdx int, wi
 	return result
 }
 
-// getWrappedLines is logic shared by WrappedLines in single and multi LineBuffers
-// it is well-tested as part of the tests of those methods
-func getWrappedLines(
-	l LineBufferer,
-	totalLines int,
-	width int,
-	maxLinesEachEnd int,
-	highlights []Highlight,
-) []string {
-	if width <= 0 {
-		return []string{}
-	}
-	if maxLinesEachEnd <= 0 {
-		maxLinesEachEnd = -1
-	}
-
-	var res []string
-	startWidth := 0
-	if maxLinesEachEnd > 0 && totalLines > maxLinesEachEnd*2 {
-		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
-			res = append(res, line)
-			startWidth += lineWidth
-		}
-
-		startWidth = (totalLines - maxLinesEachEnd) * width
-		for nLines := 0; nLines < maxLinesEachEnd; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
-			res = append(res, line)
-			startWidth += lineWidth
-		}
-	} else {
-		for nLines := 0; nLines < totalLines; nLines++ {
-			line, lineWidth := l.Take(startWidth, width, "", highlights)
-			res = append(res, line)
-			startWidth += lineWidth
-		}
-	}
-
-	return res
-}
-
 func removeEmptyAnsiSequences(s string) string {
 	if len(s) == 0 {
 		return s

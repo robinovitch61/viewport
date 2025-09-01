@@ -150,36 +150,6 @@ func (m MultiLineBuffer) Take(
 	return res, takeWidth - remainingTotalWidth
 }
 
-// WrappedLines returns the content broken into lines that fit within the specified width.
-func (m MultiLineBuffer) WrappedLines(
-	width int,
-	maxLinesEachEnd int,
-	highlights []Highlight,
-) []string {
-	if width <= 0 {
-		return []string{}
-	}
-	if len(m.buffers) == 0 {
-		return []string{}
-	}
-	if len(m.buffers) == 1 {
-		return m.buffers[0].WrappedLines(width, maxLinesEachEnd, highlights)
-	}
-
-	totalLines := (m.totalWidth + width - 1) / width
-	if totalLines == 0 {
-		return []string{""}
-	}
-
-	return getWrappedLines(
-		m,
-		totalLines,
-		width,
-		maxLinesEachEnd,
-		highlights,
-	)
-}
-
 // NumWrappedLines TODO
 // TODO LEO: test
 func (m MultiLineBuffer) NumWrappedLines(wrapWidth int) int {

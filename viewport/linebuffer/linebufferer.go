@@ -16,10 +16,6 @@ type LineBufferer interface {
 		continuation string,
 		highlights []Highlight,
 	) (string, int)
-	// WrappedLines returns the content as a slice of strings, wrapping at width.
-	// maxLinesEachEnd is the maximum number of lines to return from the beginning and end of the content.
-	// highlights are applied to the content
-	WrappedLines(width int, maxLinesEachEnd int, highlights []Highlight) []string
 	// NumWrappedLines TODO
 	NumWrappedLines(wrapWidth int) int
 	// Repr returns a representation of the Linebufferer as a string for debugging

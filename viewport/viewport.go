@@ -745,22 +745,54 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		return nil
 	}
 
-	header := m.content.Header
-	if !m.config.WrapText {
-		return safeSliceUpToIdx(header, m.display.Bounds.Height)
+	headerLbs := make([]linebuffer.LineBufferer, len(m.content.Header))
+	for i := range m.content.Header {
+		headerLbs[i] = linebuffer.New(m.content.Header[i])
 	}
 
-	// TODO LEO: next, refactor header line generation and remove WrappedLines
-	// wrapped
-	var wrappedHeaderLines []string
-	for _, s := range header {
-		lb := linebuffer.New(s)
-		wrappedHeaderLines = append(
-			wrappedHeaderLines,
-			lb.WrappedLines(m.display.Bounds.Width, m.display.Bounds.Height, []linebuffer.Highlight{})...,
-		)
+	lbs := getLineBuffersFromItems(
+		0,
+		0,
+		m.display.Bounds.Height,
+		headerLbs,
+		m.config.WrapText,
+		m.display.Bounds.Width,
+	)
+
+	headerLines := make([]string, len(lbs.lineBuffers))
+	currentItemIdxWidthToLeft := 0
+	for lbIdx := range lbs.lineBuffers {
+		var truncated string
+		if m.config.WrapText {
+			currentItemIdx := lbs.itemIndexes[lbIdx]
+			var widthTaken int
+			truncated, widthTaken = lbs.lineBuffers[lbIdx].Take(
+				currentItemIdxWidthToLeft,
+				m.display.Bounds.Width,
+				"",
+				[]linebuffer.Highlight{}, // no highlights for header
+			)
+			if lbIdx+1 < len(lbs.lineBuffers) {
+				nextItemIdx := lbs.itemIndexes[lbIdx+1]
+				if nextItemIdx != currentItemIdx {
+					currentItemIdxWidthToLeft = 0
+				} else {
+					currentItemIdxWidthToLeft += widthTaken
+				}
+			}
+		} else {
+			// if not wrapped, lineBuffers are not yet truncated or highlighted
+			truncated, _ = lbs.lineBuffers[lbIdx].Take(
+				0, // header doesn't pan horizontally
+				m.display.Bounds.Width,
+				m.config.ContinuationIndicator,
+				[]linebuffer.Highlight{}, // no highlights for header
+			)
+		}
+		headerLines[lbIdx] = truncated
 	}
-	return safeSliceUpToIdx(wrappedHeaderLines, m.display.Bounds.Height)
+
+	return headerLines
 }
 
 type visibleContent struct {
@@ -849,6 +881,10 @@ func getLineBuffersFromItems(
 	wrapText bool,
 	width int,
 ) lineBuffersAndItemIndexes {
+	if len(allLineBuffers) == 0 || totalNumLines == 0 {
+		return lineBuffersAndItemIndexes{lineBuffers: nil, itemIndexes: nil}
+	}
+
 	var lineBuffers []linebuffer.LineBufferer
 	var itemIndexes []int
 
