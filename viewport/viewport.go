@@ -296,14 +296,9 @@ func (m *Model[T]) View() string {
 			builder.WriteByte('\n')
 		}
 		builder.WriteString(m.getTruncatedFooterLine(content))
-	} else {
-		if builder.Len() > 0 {
-			content := builder.String()
-			return m.display.RenderFinalView(strings.TrimSuffix(content, "\n"))
-		}
 	}
 
-	return m.display.RenderFinalView(builder.String())
+	return m.display.RenderFinalView(strings.TrimSuffix(builder.String(), "\n"))
 }
 
 // SetKeyMap sets the key mapping for navigation controls.
