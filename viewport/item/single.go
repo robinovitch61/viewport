@@ -54,14 +54,14 @@ func New(line string) SingleItem {
 			totalLen -= int(r[1] - r[0])
 		}
 
-		buf := make([]byte, 0, totalLen)
+		noAnsiBytes := make([]byte, 0, totalLen)
 		lastPos := 0
 		for _, r := range item.ansiCodeIndexes {
-			buf = append(buf, line[lastPos:int(r[0])]...)
+			noAnsiBytes = append(noAnsiBytes, line[lastPos:int(r[0])]...)
 			lastPos = int(r[1])
 		}
-		buf = append(buf, line[lastPos:]...)
-		item.lineNoAnsi = string(buf)
+		noAnsiBytes = append(noAnsiBytes, line[lastPos:]...)
+		item.lineNoAnsi = string(noAnsiBytes)
 	} else {
 		item.lineNoAnsi = line
 	}

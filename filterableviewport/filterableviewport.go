@@ -375,8 +375,8 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
-	filterLineBuffer := item.New(filterLine)
-	res, _ := filterLineBuffer.Take(0, m.GetWidth(), "...", []item.Highlight{})
+	filterItem := item.New(filterLine)
+	res, _ := filterItem.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
 }
 

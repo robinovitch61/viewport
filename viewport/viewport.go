@@ -571,8 +571,8 @@ func (m *Model[T]) maxItemWidth() int {
 			if itemIdx >= m.content.NumItems() {
 				break
 			}
-			lb := items[itemIdx].Get()
-			if w := lb.Width(); w > maxLineWidth {
+			currItem := items[itemIdx].Get()
+			if w := currItem.Width(); w > maxLineWidth {
 				maxLineWidth = w
 			}
 		}
@@ -592,8 +592,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 		return 0
 	}
 	items := m.content.ItemGetters
-	lb := items[itemIdx].Get()
-	return lb.NumWrappedLines(m.display.Bounds.Width)
+	return items[itemIdx].Get().NumWrappedLines(m.display.Bounds.Width)
 }
 
 func (m *Model[T]) setWidthHeight(width, height int) {
@@ -823,12 +822,12 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 	return visibleContent{itemIndexes: itemIndexes, showFooter: showFooter}
 }
 
-func renderAll[T item.Getter](items []T) []item.Item {
-	lineBuffers := make([]item.Item, len(items))
-	for i := range items {
-		lineBuffers[i] = items[i].Get()
+func renderAll[T item.Getter](itemGetters []T) []item.Item {
+	items := make([]item.Item, len(itemGetters))
+	for i := range itemGetters {
+		items[i] = itemGetters[i].Get()
 	}
-	return lineBuffers
+	return items
 }
 
 // getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines
@@ -849,9 +848,9 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		return len(itemIndexes) == totalNumLines
 	}
 
-	currLineBufferIdx := clampValZeroToMax(topItemIdx, len(allItems)-1)
+	currItemIdx := clampValZeroToMax(topItemIdx, len(allItems)-1)
 
-	currLineBuffer := allItems[currLineBufferIdx]
+	currItem := allItems[currItemIdx]
 	done := totalNumLines == 0
 	if done {
 		return itemIndexes
@@ -859,25 +858,25 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 
 	if m.config.WrapText {
 		// first item has potentially fewer lines depending on the line offset
-		numLines := max(0, currLineBuffer.NumWrappedLines(m.display.Bounds.Width)-topItemLineOffset)
+		numLines := max(0, currItem.NumWrappedLines(m.display.Bounds.Width)-topItemLineOffset)
 		for range numLines {
 			// adding untruncated, unstyled items
-			done = addLine(currLineBufferIdx)
+			done = addLine(currItemIdx)
 			if done {
 				break
 			}
 		}
 
 		for !done {
-			currLineBufferIdx++
-			if currLineBufferIdx >= len(allItems) {
+			currItemIdx++
+			if currItemIdx >= len(allItems) {
 				done = true
 			} else {
-				currLineBuffer = allItems[currLineBufferIdx]
-				numLines = currLineBuffer.NumWrappedLines(m.display.Bounds.Width)
+				currItem = allItems[currItemIdx]
+				numLines = currItem.NumWrappedLines(m.display.Bounds.Width)
 				for range numLines {
 					// adding untruncated, unstyled items
-					done = addLine(currLineBufferIdx)
+					done = addLine(currItemIdx)
 					if done {
 						break
 					}
@@ -885,13 +884,13 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 			}
 		}
 	} else {
-		done = addLine(currLineBufferIdx)
+		done = addLine(currItemIdx)
 		for !done {
-			currLineBufferIdx++
-			if currLineBufferIdx >= len(allItems) {
+			currItemIdx++
+			if currItemIdx >= len(allItems) {
 				done = true
 			} else {
-				done = addLine(currLineBufferIdx)
+				done = addLine(currItemIdx)
 			}
 		}
 	}
@@ -925,8 +924,8 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	percentScrolled := percent(numerator, denominator)
 	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 
-	footerBuffer := item.New(footerString)
-	f, _ := footerBuffer.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []item.Highlight{})
+	footerItem := item.New(footerString)
+	f, _ := footerItem.Take(0, m.display.Bounds.Width, m.config.ContinuationIndicator, []item.Highlight{})
 	return m.display.Styles.FooterStyle.Render(f)
 }
 
