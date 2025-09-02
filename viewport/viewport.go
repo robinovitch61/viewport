@@ -215,7 +215,7 @@ func (m *Model[T]) View() string {
 	content := m.getVisibleContent()
 
 	// pre-allocate capacity based on estimated size
-	estimatedSize := (len(visibleHeaderLines) + len(content.items) + 10) * (m.display.Bounds.Width + 1)
+	estimatedSize := (len(visibleHeaderLines) + len(content.itemIndexes) + 10) * (m.display.Bounds.Width + 1)
 	builder.Grow(estimatedSize)
 
 	// header lines
@@ -227,21 +227,21 @@ func (m *Model[T]) View() string {
 	}
 
 	// content lines
-	truncatedVisibleContentLines := make([]string, len(content.items))
+	truncatedVisibleContentLines := make([]string, len(content.itemIndexes))
 	currentItemIdxWidthToLeft := m.display.Bounds.Width * m.display.TopItemLineOffset
-	for lbIdx := range content.items {
+	for idx, itemIdx := range content.itemIndexes {
 		var truncated string
 		if wrap {
-			currentItemIdx := content.itemIndexes[lbIdx]
+			currentItemIdx := content.itemIndexes[idx]
 			var widthTaken int
-			truncated, widthTaken = content.items[lbIdx].Take(
+			truncated, widthTaken = m.content.ItemGetters[itemIdx].Get().Take(
 				currentItemIdxWidthToLeft,
 				m.display.Bounds.Width,
 				"",
 				m.getHighlightsForItem(currentItemIdx),
 			)
-			if lbIdx+1 < len(content.items) {
-				nextItemIdx := content.itemIndexes[lbIdx+1]
+			if idx+1 < len(content.itemIndexes) {
+				nextItemIdx := content.itemIndexes[idx+1]
 				if nextItemIdx != currentItemIdx {
 					currentItemIdxWidthToLeft = 0
 				} else {
@@ -250,21 +250,21 @@ func (m *Model[T]) View() string {
 			}
 		} else {
 			// if not wrapped, items are not yet truncated or highlighted
-			truncated, _ = content.items[lbIdx].Take(
+			truncated, _ = m.content.ItemGetters[itemIdx].Get().Take(
 				m.display.XOffset,
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
-				m.getHighlightsForItem(content.itemIndexes[lbIdx]),
+				m.getHighlightsForItem(content.itemIndexes[idx]),
 			)
 		}
 
-		truncatedIsSelection := m.navigation.SelectionEnabled && content.itemIndexes[lbIdx] == m.content.GetSelectedIdx()
+		truncatedIsSelection := m.navigation.SelectionEnabled && content.itemIndexes[idx] == m.content.GetSelectedIdx()
 		if truncatedIsSelection {
 			truncated = m.styleSelection(truncated)
 		}
 
 		pannedRight := m.display.XOffset > 0
-		itemHasWidth := content.items[lbIdx].Width() > 0
+		itemHasWidth := m.content.ItemGetters[itemIdx].Get().Width() > 0
 		pannedPastAllWidth := lipgloss.Width(truncated) == 0
 		if !wrap && pannedRight && itemHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
@@ -280,7 +280,7 @@ func (m *Model[T]) View() string {
 			truncated = m.styleSelection(" ")
 		}
 
-		truncatedVisibleContentLines[lbIdx] = truncated
+		truncatedVisibleContentLines[idx] = truncated
 	}
 
 	for i := range truncatedVisibleContentLines {
@@ -288,7 +288,7 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
-	nVisibleLines := len(content.items)
+	nVisibleLines := len(content.itemIndexes)
 	if content.showFooter {
 		// pad so footer shows up at bottom
 		padCount := max(0, m.getNumContentLinesWithFooterVisible()-nVisibleLines)
@@ -320,7 +320,7 @@ func (m *Model[T]) SetContent(content []T) {
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 			initialNumLinesAboveSelection = inView.numLinesAboveSelection
 		}
-		currentItems := m.content.Items
+		currentItems := m.content.ItemGetters
 		selectedIdx := m.content.GetSelectedIdx()
 		if m.navigation.TopSticky && len(currentItems) > 0 && selectedIdx == 0 {
 			stayAtTop = true
@@ -331,7 +331,7 @@ func (m *Model[T]) SetContent(content []T) {
 		}
 	}
 
-	m.content.Items = content
+	m.content.ItemGetters = content
 	// ensure scroll position is valid given new Item
 	m.safelySetTopItemIdxAndOffset(m.display.TopItemIdx, m.display.TopItemLineOffset)
 
@@ -347,7 +347,7 @@ func (m *Model[T]) SetContent(content []T) {
 		} else if m.content.CompareFn != nil {
 			// TODO: could flag when items are sorted & comparable and use binary search instead
 			found := false
-			items := m.content.Items
+			items := m.content.ItemGetters
 			for i := range items {
 				if m.content.CompareFn(items[i], prevSelection) {
 					m.content.SetSelectedIdx(i)
@@ -562,7 +562,7 @@ func (m *Model[T]) maxItemWidth() int {
 
 	// check content line widths without fully rendering all of them
 	if !m.content.IsEmpty() {
-		items := m.content.Items
+		items := m.content.ItemGetters
 		startIdx := clampValZeroToMax(m.display.TopItemIdx, m.content.NumItems()-1)
 		numItemsToCheck := min(m.content.NumItems()-startIdx, m.display.Bounds.Height)
 
@@ -591,7 +591,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	if m.content.IsEmpty() || itemIdx < 0 || itemIdx >= m.content.NumItems() {
 		return 0
 	}
-	items := m.content.Items
+	items := m.content.ItemGetters
 	lb := items[itemIdx].Get()
 	return lb.NumWrappedLines(m.display.Bounds.Width)
 }
@@ -737,33 +737,33 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		return nil
 	}
 
-	headerLbs := make([]item.Item, len(m.content.Header))
+	headerItems := make([]item.Item, len(m.content.Header))
 	for i := range m.content.Header {
-		headerLbs[i] = item.New(m.content.Header[i])
+		headerItems[i] = item.New(m.content.Header[i])
 	}
 
-	lbs := m.getItemsSpanningLines(
+	itemIndexes := m.getItemIndexesSpanningLines(
 		0,
 		0,
 		m.display.Bounds.Height,
-		headerLbs,
+		headerItems,
 	)
 
-	headerLines := make([]string, len(lbs.items))
+	headerLines := make([]string, len(itemIndexes))
 	currentItemIdxWidthToLeft := 0
-	for lbIdx := range lbs.items {
+	for idx, itemIdx := range itemIndexes {
 		var truncated string
 		if m.config.WrapText {
-			currentItemIdx := lbs.itemIndexes[lbIdx]
+			currentItemIdx := itemIndexes[idx]
 			var widthTaken int
-			truncated, widthTaken = lbs.items[lbIdx].Take(
+			truncated, widthTaken = headerItems[itemIdx].Take(
 				currentItemIdxWidthToLeft,
 				m.display.Bounds.Width,
 				"",
 				[]item.Highlight{}, // no highlights for header
 			)
-			if lbIdx+1 < len(lbs.items) {
-				nextItemIdx := lbs.itemIndexes[lbIdx+1]
+			if idx+1 < len(itemIndexes) {
+				nextItemIdx := itemIndexes[idx+1]
 				if nextItemIdx != currentItemIdx {
 					currentItemIdxWidthToLeft = 0
 				} else {
@@ -772,59 +772,55 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 			}
 		} else {
 			// if not wrapped, items are not yet truncated or highlighted
-			truncated, _ = lbs.items[lbIdx].Take(
+			truncated, _ = headerItems[itemIdx].Take(
 				0, // header doesn't pan horizontally
 				m.display.Bounds.Width,
 				m.config.ContinuationIndicator,
 				[]item.Highlight{}, // no highlights for header
 			)
 		}
-		headerLines[lbIdx] = truncated
+		headerLines[idx] = truncated
 	}
 
 	return headerLines
 }
 
 type visibleContent struct {
-	// items contains the items that have at least one line currently visible
-	items []item.Item
-	// itemIndexes is the index of the item in allItems that corresponds to each linebuffer. len(itemIndexes) == len(items)
+	// itemIndexes is the indexes of m.content.ItemGetters for each line
 	itemIndexes []int
 	// showFooter indicates if the footer is visible
 	showFooter bool
 }
 
-// getVisibleContent returns the items, associated item indexes, and whether to show the footer for the current
-// scroll position
+// getVisibleContent returns visibleContent for the current scroll position
 func (m *Model[T]) getVisibleContent() visibleContent {
 	if m.display.Bounds.Width == 0 {
-		return visibleContent{items: nil, itemIndexes: nil, showFooter: false}
+		return visibleContent{itemIndexes: nil, showFooter: false}
 	}
 	if m.content.IsEmpty() {
-		return visibleContent{items: nil, itemIndexes: nil, showFooter: false}
+		return visibleContent{itemIndexes: nil, showFooter: false}
 	}
 
 	numLinesAfterHeader := max(0, m.display.Bounds.Height-len(m.getVisibleHeaderLines()))
 
-	lbs := m.getItemsSpanningLines(
+	itemIndexes := m.getItemIndexesSpanningLines(
 		m.display.TopItemIdx,
 		m.display.TopItemLineOffset,
 		numLinesAfterHeader,
-		renderAll(m.content.Items),
+		renderAll(m.content.ItemGetters),
 	)
-	if len(lbs.items) == 0 {
-		return visibleContent{items: nil, itemIndexes: nil, showFooter: false}
+	if len(itemIndexes) == 0 {
+		return visibleContent{itemIndexes: nil, showFooter: false}
 	}
 
 	scrolledToTop := m.display.TopItemIdx == 0 && m.display.TopItemLineOffset == 0
-	contentFillsScreen := len(lbs.items)+1 >= numLinesAfterHeader
+	contentFillsScreen := len(itemIndexes)+1 >= numLinesAfterHeader
 	showFooter := m.config.FooterEnabled && (!scrolledToTop || contentFillsScreen)
 	if showFooter {
 		// leave one line for the footer
-		lbs.items = safeSliceUpToIdx(lbs.items, numLinesAfterHeader-1)
-		lbs.itemIndexes = safeSliceUpToIdx(lbs.itemIndexes, numLinesAfterHeader-1)
+		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
 	}
-	return visibleContent{items: lbs.items, itemIndexes: lbs.itemIndexes, showFooter: showFooter}
+	return visibleContent{itemIndexes: itemIndexes, showFooter: showFooter}
 }
 
 func renderAll[T item.Getter](items []T) []item.Item {
@@ -835,31 +831,22 @@ func renderAll[T item.Getter](items []T) []item.Item {
 	return lineBuffers
 }
 
-type itemsSpanningLines struct {
-	// items contain the items that have at least one line currently visible in the content
-	items []item.Item
-	// itemIndexes is the index of the item that corresponds to each linebuffer. len(itemIndexes) == len(items)
-	itemIndexes []int
-}
-
-// getItemsSpanningLines returns the items and associated item indexes for the offset and num lines specified
-func (m *Model[T]) getItemsSpanningLines(
+// getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines
+func (m *Model[T]) getItemIndexesSpanningLines(
 	topItemIdx int,
 	topItemLineOffset int,
 	totalNumLines int,
 	allItems []item.Item,
-) itemsSpanningLines {
+) []int {
 	if len(allItems) == 0 || totalNumLines == 0 {
-		return itemsSpanningLines{items: nil, itemIndexes: nil}
+		return nil
 	}
 
-	var lineBuffers []item.Item
 	var itemIndexes []int
 
-	addLine := func(l item.Item, itemIndex int) bool {
-		lineBuffers = append(lineBuffers, l)
+	addLine := func(itemIndex int) bool {
 		itemIndexes = append(itemIndexes, itemIndex)
-		return len(lineBuffers) == totalNumLines
+		return len(itemIndexes) == totalNumLines
 	}
 
 	currLineBufferIdx := clampValZeroToMax(topItemIdx, len(allItems)-1)
@@ -867,7 +854,7 @@ func (m *Model[T]) getItemsSpanningLines(
 	currLineBuffer := allItems[currLineBufferIdx]
 	done := totalNumLines == 0
 	if done {
-		return itemsSpanningLines{items: lineBuffers, itemIndexes: itemIndexes}
+		return itemIndexes
 	}
 
 	if m.config.WrapText {
@@ -875,7 +862,7 @@ func (m *Model[T]) getItemsSpanningLines(
 		numLines := max(0, currLineBuffer.NumWrappedLines(m.display.Bounds.Width)-topItemLineOffset)
 		for range numLines {
 			// adding untruncated, unstyled items
-			done = addLine(currLineBuffer, currLineBufferIdx)
+			done = addLine(currLineBufferIdx)
 			if done {
 				break
 			}
@@ -890,7 +877,7 @@ func (m *Model[T]) getItemsSpanningLines(
 				numLines = currLineBuffer.NumWrappedLines(m.display.Bounds.Width)
 				for range numLines {
 					// adding untruncated, unstyled items
-					done = addLine(currLineBuffer, currLineBufferIdx)
+					done = addLine(currLineBufferIdx)
 					if done {
 						break
 					}
@@ -898,18 +885,17 @@ func (m *Model[T]) getItemsSpanningLines(
 			}
 		}
 	} else {
-		done = addLine(currLineBuffer, currLineBufferIdx)
+		done = addLine(currLineBufferIdx)
 		for !done {
 			currLineBufferIdx++
 			if currLineBufferIdx >= len(allItems) {
 				done = true
 			} else {
-				currLineBuffer = allItems[currLineBufferIdx]
-				done = addLine(currLineBuffer, currLineBufferIdx)
+				done = addLine(currLineBufferIdx)
 			}
 		}
 	}
-	return itemsSpanningLines{items: lineBuffers, itemIndexes: itemIndexes}
+	return itemIndexes
 }
 
 // TODO LEO: reuse this for selection styling
@@ -923,7 +909,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	if !visibleContentLines.showFooter {
 		panic("getTruncatedFooterLine called when footer should not be shown")
 	}
-	if len(visibleContentLines.items) == 0 {
+	if len(visibleContentLines.itemIndexes) == 0 {
 		return ""
 	}
 
