@@ -88,7 +88,7 @@ type Model[T item.Getter] struct {
 	navigation *navigationManager
 
 	// config manages configuration options
-	config *Configuration
+	config *configuration
 }
 
 // New creates a new viewport model with reasonable defaults
@@ -104,7 +104,7 @@ func New[T item.Getter](width, height int, opts ...Option[T]) (m *Model[T]) {
 	m.content = NewContentManager[T]()
 	m.display = newDisplayManager(width, height, DefaultStyles())
 	m.navigation = newNavigationManager(DefaultKeyMap())
-	m.config = NewConfiguration()
+	m.config = newConfiguration()
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -125,7 +125,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		navCtx := navigationContext{
-			wrapText:        m.config.WrapText,
+			wrapText:        m.config.wrapText,
 			dimensions:      m.display.bounds,
 			numContentLines: m.getNumContentLinesWithFooterVisible(),
 			numVisibleItems: m.getNumVisibleItems(),
@@ -148,12 +148,12 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			}
 
 		case actionLeft:
-			if !m.config.WrapText {
+			if !m.config.wrapText {
 				m.viewLeft(navResult.scrollAmount)
 			}
 
 		case actionRight:
-			if !m.config.WrapText {
+			if !m.config.wrapText {
 				m.viewRight(navResult.scrollAmount)
 			}
 
@@ -209,7 +209,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 // View renders the viewport
 func (m *Model[T]) View() string {
 	var builder strings.Builder
-	wrap := m.config.WrapText
+	wrap := m.config.wrapText
 
 	visibleHeaderLines := m.getVisibleHeaderLines()
 	content := m.getVisibleContent()
@@ -221,7 +221,7 @@ func (m *Model[T]) View() string {
 	// header lines
 	for i := range visibleHeaderLines {
 		headerItem := item.New(visibleHeaderLines[i])
-		line, _ := headerItem.Take(0, m.display.bounds.width, m.config.ContinuationIndicator, []item.Highlight{})
+		line, _ := headerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 		builder.WriteString(line)
 		builder.WriteByte('\n')
 	}
@@ -253,7 +253,7 @@ func (m *Model[T]) View() string {
 			truncated, _ = m.content.ItemGetters[itemIdx].Get().Take(
 				m.display.xOffset,
 				m.display.bounds.width,
-				m.config.ContinuationIndicator,
+				m.config.continuationIndicator,
 				m.getHighlightsForItem(content.itemIndexes[idx]),
 			)
 		}
@@ -396,7 +396,7 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 
 // SetFooterEnabled sets whether the viewport shows the footer when it overflows
 func (m *Model[T]) SetFooterEnabled(footerEnabled bool) {
-	m.config.FooterEnabled = footerEnabled
+	m.config.footerEnabled = footerEnabled
 }
 
 // SetSelectionComparator sets the comparator function for maintaining the current selection when Item changes.
@@ -418,7 +418,7 @@ func (m *Model[T]) SetWrapText(wrapText bool) {
 			initialNumLinesAboveSelection = inView.numLinesAboveSelection
 		}
 	}
-	m.config.WrapText = wrapText
+	m.config.wrapText = wrapText
 	m.display.topItemLineOffset = 0
 	m.display.xOffset = 0
 	if m.navigation.selectionEnabled {
@@ -433,7 +433,7 @@ func (m *Model[T]) SetWrapText(wrapText bool) {
 
 // GetWrapText returns whether the viewport wraps text
 func (m *Model[T]) GetWrapText() bool {
-	return m.config.WrapText
+	return m.config.wrapText
 }
 
 // SetWidth sets the viewport's width
@@ -529,7 +529,7 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 
 // SetXOffsetWidth sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
 func (m *Model[T]) SetXOffsetWidth(width int) {
-	if m.config.WrapText {
+	if m.config.wrapText {
 		return
 	}
 	maxXOffset := m.maxItemWidth() - m.display.bounds.width
@@ -547,7 +547,7 @@ func (m *Model[T]) GetHighlights() []item.Highlight {
 }
 
 func (m *Model[T]) maxItemWidth() int {
-	if m.config.WrapText {
+	if m.config.wrapText {
 		panic("maxItemWidth should not be called when wrapping is enabled")
 	}
 
@@ -582,7 +582,7 @@ func (m *Model[T]) maxItemWidth() int {
 }
 
 func (m *Model[T]) numLinesForItem(itemIdx int) int {
-	if !m.config.WrapText {
+	if !m.config.wrapText {
 		return 1
 	}
 	if m.display.bounds.width == 0 {
@@ -700,7 +700,7 @@ func (m *Model[T]) scrollByNLines(n int) {
 	}
 
 	newTopItemIdx, newTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
-	if !m.config.WrapText {
+	if !m.config.wrapText {
 		newTopItemIdx = m.display.topItemIdx + n
 	} else {
 		// wrapped
@@ -752,7 +752,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 	currentItemIdxWidthToLeft := 0
 	for idx, itemIdx := range itemIndexes {
 		var truncated string
-		if m.config.WrapText {
+		if m.config.wrapText {
 			currentItemIdx := itemIndexes[idx]
 			var widthTaken int
 			truncated, widthTaken = headerItems[itemIdx].Take(
@@ -774,7 +774,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 			truncated, _ = headerItems[itemIdx].Take(
 				0, // header doesn't pan horizontally
 				m.display.bounds.width,
-				m.config.ContinuationIndicator,
+				m.config.continuationIndicator,
 				[]item.Highlight{}, // no highlights for header
 			)
 		}
@@ -814,7 +814,7 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 
 	scrolledToTop := m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0
 	contentFillsScreen := len(itemIndexes)+1 >= numLinesAfterHeader
-	showFooter := m.config.FooterEnabled && (!scrolledToTop || contentFillsScreen)
+	showFooter := m.config.footerEnabled && (!scrolledToTop || contentFillsScreen)
 	if showFooter {
 		// leave one line for the footer
 		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
@@ -856,7 +856,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		return itemIndexes
 	}
 
-	if m.config.WrapText {
+	if m.config.wrapText {
 		// first item has potentially fewer lines depending on the line offset
 		numLines := max(0, currItem.NumWrappedLines(m.display.bounds.width)-topItemLineOffset)
 		for range numLines {
@@ -915,7 +915,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	// if selection is disabled, numerator should be item index of bottom visible line
 	if !m.navigation.selectionEnabled {
 		numerator = visibleContentLines.itemIndexes[len(visibleContentLines.itemIndexes)-1] + 1
-		if m.config.WrapText && numerator == denominator && !m.isScrolledToBottom() {
+		if m.config.wrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
 			return m.display.styles.FooterStyle.Render(fmt.Sprintf("99%% (%d/%d)", numerator, denominator))
 		}
@@ -925,15 +925,15 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 
 	footerItem := item.New(footerString)
-	f, _ := footerItem.Take(0, m.display.bounds.width, m.config.ContinuationIndicator, []item.Highlight{})
+	f, _ := footerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 	return m.display.styles.FooterStyle.Render(f)
 }
 
 func (m *Model[T]) getLineContinuationIndicator() string {
-	if m.config.WrapText {
+	if m.config.wrapText {
 		return ""
 	}
-	return m.config.ContinuationIndicator
+	return m.config.continuationIndicator
 }
 
 func (m *Model[T]) isScrolledToBottom() bool {
@@ -985,7 +985,7 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	// assume footer will be shown - if it isn't, max item idx and offset will both be 0
 	numContentLines := max(0, m.display.bounds.height-headerLines-1)
 
-	if !m.config.WrapText {
+	if !m.config.wrapText {
 		return max(0, numItems-numContentLines), 0
 	}
 
@@ -1009,7 +1009,7 @@ func (m *Model[T]) getHighlightsForItem(itemIndex int) []item.Highlight {
 }
 
 func (m *Model[T]) getNumVisibleItems() int {
-	if !m.config.WrapText {
+	if !m.config.wrapText {
 		return m.getNumContentLinesWithFooterVisible()
 	}
 	content := m.getVisibleContent()

@@ -1,22 +1,22 @@
 package viewport
 
-// Configuration consolidates all configuration options for the viewport
-type Configuration struct {
+// configuration consolidates all configuration options for the viewport
+type configuration struct {
 	// wrapText is true if the viewport wraps text rather than showing that a line is truncated/horizontally scrollable
-	WrapText bool
+	wrapText bool
 
-	// footerEnabled is true if the viewport will show the footer when it overflows
-	FooterEnabled bool
+	// footerEnabled is true if the viewport currently shows the footer based on its dimensions and content
+	footerEnabled bool
 
-	// continuationIndicator is the string to use to indicate that a line has been truncated from the left or right
-	ContinuationIndicator string
+	// continuationIndicator is the string to use to indicate that an unwrapped line continues to the left or right
+	continuationIndicator string
 }
 
-// NewConfiguration creates a new Configuration with default settings.
-func NewConfiguration() *Configuration {
-	return &Configuration{
-		WrapText:              false,
-		FooterEnabled:         true,
-		ContinuationIndicator: "...",
+// newConfiguration creates a new configuration with default settings.
+func newConfiguration() *configuration {
+	return &configuration{
+		wrapText:              false,
+		footerEnabled:         true,
+		continuationIndicator: "...",
 	}
 }
