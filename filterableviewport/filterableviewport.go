@@ -5,13 +5,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/robinovitch61/bubbleo/viewport/item"
-
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport"
+	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
 type filterMode int
@@ -375,7 +374,7 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
-	filterItem := item.New(filterLine)
+	filterItem := item.NewItem(filterLine)
 	res, _ := filterItem.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
 }

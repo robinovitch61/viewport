@@ -1,6 +1,10 @@
 package item
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/robinovitch61/bubbleo/internal"
+)
 
 func TestString_overflowsLeft(t *testing.T) {
 	tests := []struct {
@@ -392,16 +396,16 @@ func TestString_replaceStartWithContinuation(t *testing.T) {
 		{
 			name: "unicode start ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
-			s:            redBg.Render("A💖") + "中é",
+			s:            internal.RedBg.Render("A💖") + "中é",
 			continuation: "...",
-			expected:     redBg.Render("...") + "中é",
+			expected:     internal.RedBg.Render("...") + "中é",
 		},
 		{
 			name: "unicode almost start ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
-			s:            "A" + redBg.Render("💖") + "中é",
+			s:            "A" + internal.RedBg.Render("💖") + "中é",
 			continuation: "...",
-			expected:     "." + redBg.Render("..") + "中é",
+			expected:     "." + internal.RedBg.Render("..") + "中é",
 		},
 	}
 	for _, tt := range tests {
@@ -488,16 +492,16 @@ func TestString_replaceEndWithContinuation(t *testing.T) {
 		{
 			name: "unicode end ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
-			s:            "A💖" + redBg.Render("中é"),
+			s:            "A💖" + internal.RedBg.Render("中é"),
 			continuation: "...",
-			expected:     "A💖" + redBg.Render("..."),
+			expected:     "A💖" + internal.RedBg.Render("..."),
 		},
 		{
 			name: "unicode almost end ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b)
-			s:            "A" + redBg.Render("💖中") + "é",
+			s:            "A" + internal.RedBg.Render("💖中") + "é",
 			continuation: "...",
-			expected:     "A" + redBg.Render("💖..") + ".",
+			expected:     "A" + internal.RedBg.Render("💖..") + ".",
 		},
 	}
 	for _, tt := range tests {
@@ -529,7 +533,7 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:         "negative bytes",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       -1,
 			startItemIdx: 0,
 			widthToLeft:  1,
@@ -537,7 +541,7 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:         "zero bytes",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       0,
 			startItemIdx: 0,
 			widthToLeft:  1,
@@ -545,7 +549,7 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:         "item index out of bounds",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       1,
 			startItemIdx: 1,
 			widthToLeft:  0,
@@ -553,7 +557,7 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single item full content",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       3,
 			startItemIdx: 0,
 			widthToLeft:  3,
@@ -561,7 +565,7 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single item partial content",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       2,
 			startItemIdx: 0,
 			widthToLeft:  2,
@@ -570,8 +574,8 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		{
 			name: "multiple items full content",
 			items: []SingleItem{
-				New("abc"),
-				New("def"),
+				NewItem("abc"),
+				NewItem("def"),
 			},
 			nBytes:       6,
 			startItemIdx: 1,
@@ -581,8 +585,8 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		{
 			name: "multiple items partial content",
 			items: []SingleItem{
-				New("abc"),
-				New("def"),
+				NewItem("abc"),
+				NewItem("def"),
 			},
 			nBytes:       4,
 			startItemIdx: 1,
@@ -592,8 +596,8 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		{
 			name: "ignore ansi codes",
 			items: []SingleItem{
-				New("a" + redBg.Render("b") + "c"),
-				New(redBg.Render("def")),
+				NewItem("a" + internal.RedBg.Render("b") + "c"),
+				NewItem(internal.RedBg.Render("def")),
 			},
 			nBytes:       5,
 			startItemIdx: 1,
@@ -604,8 +608,8 @@ func TestString_getBytesLeftOfWidth(t *testing.T) {
 		{
 			name: "unicode characters",
 			items: []SingleItem{
-				New("A💖中"),
-				New("é"),
+				NewItem("A💖中"),
+				NewItem("é"),
 			},
 			nBytes:       10,
 			startItemIdx: 1,
@@ -649,7 +653,7 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "negative bytes",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       -1,
 			endItemIdx:   0,
 			widthToRight: 1,
@@ -657,7 +661,7 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "zero bytes",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       0,
 			endItemIdx:   0,
 			widthToRight: 1,
@@ -665,7 +669,7 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "item index out of bounds",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       1,
 			endItemIdx:   1,
 			widthToRight: 0,
@@ -673,7 +677,7 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single item full content",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       3,
 			endItemIdx:   0,
 			widthToRight: 3,
@@ -681,7 +685,7 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		},
 		{
 			name:         "single item partial content",
-			items:        []SingleItem{New("abc")},
+			items:        []SingleItem{NewItem("abc")},
 			nBytes:       2,
 			endItemIdx:   0,
 			widthToRight: 2,
@@ -690,8 +694,8 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		{
 			name: "multiple items full content",
 			items: []SingleItem{
-				New("abc"),
-				New("def"),
+				NewItem("abc"),
+				NewItem("def"),
 			},
 			nBytes:       6,
 			endItemIdx:   0,
@@ -701,8 +705,8 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		{
 			name: "multiple items partial content",
 			items: []SingleItem{
-				New("abc"),
-				New("def"),
+				NewItem("abc"),
+				NewItem("def"),
 			},
 			nBytes:       4,
 			endItemIdx:   0,
@@ -712,8 +716,8 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		{
 			name: "ignore ansi codes",
 			items: []SingleItem{
-				New("a" + redBg.Render("b") + "c"),
-				New(redBg.Render("def")),
+				NewItem("a" + internal.RedBg.Render("b") + "c"),
+				NewItem(internal.RedBg.Render("def")),
 			},
 			nBytes:       5,
 			endItemIdx:   0,
@@ -724,8 +728,8 @@ func TestString_getBytesRightOfWidth(t *testing.T) {
 		{
 			name: "unicode characters",
 			items: []SingleItem{
-				New("A💖中"),
-				New("é"),
+				NewItem("A💖中"),
+				NewItem("é"),
 			},
 			nBytes:       10,
 			endItemIdx:   0,

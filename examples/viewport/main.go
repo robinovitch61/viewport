@@ -8,12 +8,11 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/examples/text"
-	"github.com/robinovitch61/bubbleo/viewport/item"
-
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/robinovitch61/bubbleo/viewport"
+	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
 var keyMap = viewport.DefaultKeyMap()
@@ -133,7 +132,7 @@ func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
 	renderableLines := make([]item.SimpleGetter, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = item.SimpleGetter{Item: item.New(line)}
+		renderableLines[i] = item.SimpleGetter{Item: item.NewItem(line)}
 	}
 
 	p := tea.NewProgram(

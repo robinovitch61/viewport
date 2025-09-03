@@ -18,17 +18,6 @@ type highlightRange struct {
 // note that in future charm library versions this may change to "\x1b[m"
 const RST = "\x1b[0m"
 
-// Test helper colors and styles
-var (
-	red     = lipgloss.Color("#FF0000")
-	blue    = lipgloss.Color("#0000FF")
-	green   = lipgloss.Color("#00FF00")
-	redFg   = lipgloss.NewStyle().Foreground(red)
-	redBg   = lipgloss.NewStyle().Background(red)
-	blueBg  = lipgloss.NewStyle().Background(blue)
-	greenBg = lipgloss.NewStyle().Background(green)
-)
-
 // reapplyAnsi reconstructs ANSI escape sequences in a truncated string based on their positions in the original.
 // It ensures that any active text formatting (colors, styles) from the original string is correctly maintained
 // in the truncated output, and adds proper reset codes where needed.

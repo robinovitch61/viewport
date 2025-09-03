@@ -184,7 +184,7 @@ func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
 	renderableLines := make([]item.SimpleGetter, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = item.SimpleGetter{Item: item.New(line)}
+		renderableLines[i] = item.SimpleGetter{Item: item.NewItem(line)}
 	}
 
 	p := tea.NewProgram(

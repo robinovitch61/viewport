@@ -36,13 +36,12 @@ var (
 		SelectedItemStyle:        selectedItemStyle,
 	}
 
+	// TODO LEO: use internal.RedFg, unsure why doesn't work
 	red            = lipgloss.NewStyle().Foreground(lipgloss.Color("FF0000"))
 	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
 	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
-	//focusedStyle   = lipgloss.NewStyle()
-	//unfocusedStyle = lipgloss.NewStyle()
-	matchStyles = MatchStyles{
+	matchStyles    = MatchStyles{
 		Focused:   focusedStyle,
 		Unfocused: unfocusedStyle,
 	}
@@ -958,7 +957,7 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 func stringsToItems(vals []string) []item.SimpleGetter {
 	items := make([]item.SimpleGetter, len(vals))
 	for i, s := range vals {
-		items[i] = item.SimpleGetter{Item: item.New(s)}
+		items[i] = item.SimpleGetter{Item: item.NewItem(s)}
 	}
 	return items
 }

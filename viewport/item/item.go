@@ -12,6 +12,7 @@ type Item interface {
 	// continuation replaces the start and end if the content exceeds the bounds.
 	// highlights is a list of highlights to apply to the taken content.
 	// Returns the line and the actual width taken
+	// TODO LEO: figure out how to make this private while still using it in viewport and filterableviewport packages
 	Take(
 		widthToLeft,
 		takeWidth int,

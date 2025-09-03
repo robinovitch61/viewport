@@ -220,7 +220,7 @@ func (m *Model[T]) View() string {
 
 	// header lines
 	for i := range visibleHeaderLines {
-		headerItem := item.New(visibleHeaderLines[i])
+		headerItem := item.NewItem(visibleHeaderLines[i])
 		line, _ := headerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 		builder.WriteString(line)
 		builder.WriteByte('\n')
@@ -268,7 +268,7 @@ func (m *Model[T]) View() string {
 		pannedPastAllWidth := lipgloss.Width(truncated) == 0
 		if !wrap && pannedRight && itemHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
-			continuation := item.New(m.getLineContinuationIndicator())
+			continuation := item.NewItem(m.getLineContinuationIndicator())
 			truncated, _ = continuation.Take(0, m.display.bounds.width, "", []item.Highlight{})
 			if truncatedIsSelection {
 				truncated = m.styleSelection(truncated)
@@ -729,7 +729,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 
 	headerItems := make([]item.Item, len(m.content.header))
 	for i := range m.content.header {
-		headerItems[i] = item.New(m.content.header[i])
+		headerItems[i] = item.NewItem(m.content.header[i])
 	}
 
 	itemIndexes := m.getItemIndexesSpanningLines(
@@ -915,7 +915,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	percentScrolled := percent(numerator, denominator)
 	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
 
-	footerItem := item.New(footerString)
+	footerItem := item.NewItem(footerString)
 	f, _ := footerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 	return m.display.styles.FooterStyle.Render(f)
 }

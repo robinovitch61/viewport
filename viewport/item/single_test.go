@@ -39,7 +39,7 @@ func TestSingle_Width(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := New(tt.s)
+			item := NewItem(tt.s)
 			if actual := item.Width(); actual != tt.expected {
 				t.Errorf("expected %d, got %d", tt.expected, actual)
 			}
@@ -72,7 +72,7 @@ func TestSingle_Content(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := New(tt.s)
+			item := NewItem(tt.s)
 			if actual := item.Content(); actual != tt.expected {
 				t.Errorf("expected %s, got %s", tt.expected, actual)
 			}
@@ -653,10 +653,10 @@ func TestSingle_Take(t *testing.T) {
 			width:          15,
 			continuation:   "",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a " + redBg.Render("very") + " normal l",
+				"a " + internal.RedBg.Render("very") + " normal l",
 			},
 		},
 		{
@@ -665,10 +665,10 @@ func TestSingle_Take(t *testing.T) {
 			width:          15,
 			continuation:   "",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a " + redBg.Render("very") + " normal l",
+				"a " + internal.RedBg.Render("very") + " normal l",
 			},
 		},
 		{
@@ -677,7 +677,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          15,
 			continuation:   "...",
 			toHighlight:    "l l",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
 				"a very norma\x1b[48;2;255;0;0m...\x1b[0m",
@@ -689,7 +689,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          15,
 			continuation:   "...",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			startWidth:     1,
 			numTakes:       1,
 			expected: []string{
@@ -702,7 +702,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          6,
 			continuation:   "",
 			toHighlight:    "r",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
 				strings.Repeat("\x1b[48;2;255;0;0mr"+RST+"", 6),
@@ -715,7 +715,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          15,
 			continuation:   "",
 			toHighlight:    "er",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
 				"\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mth" + RST + "\x1b[48;2;255;0;0mer" + RST + "\x1b[38;2;0;0;255m\x1b[48;2;0;255;0me" + RST + " \x1b[48;2;255;0;0mer" + RST,
@@ -727,11 +727,11 @@ func TestSingle_Take(t *testing.T) {
 			width:          6,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("hi the"),
-				redBg.Render("re") + " re",
+				internal.RedBg.Render("hi the"),
+				internal.RedBg.Render("re") + " re",
 			},
 		},
 		{
@@ -740,7 +740,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          6,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
 				"\x1b[48;2;255;0;0mhi the" + RST,
@@ -749,14 +749,14 @@ func TestSingle_Take(t *testing.T) {
 		},
 		{
 			name:           "toHighlight, no continuation, another ansi",
-			s:              redBg.Render("hello") + " " + blueBg.Render("world"),
+			s:              internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"),
 			width:          11,
 			continuation:   "",
 			toHighlight:    "lo wo",
-			highlightStyle: greenBg,
+			highlightStyle: internal.GreenBg,
 			numTakes:       1,
 			expected: []string{
-				redBg.Render("hel") + greenBg.Render("lo wo") + blueBg.Render("rld"),
+				internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
 			},
 		},
 		{
@@ -765,11 +765,11 @@ func TestSingle_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("hi ther"),
-				redBg.Render("e") + " re",
+				internal.RedBg.Render("hi ther"),
+				internal.RedBg.Render("e") + " re",
 			},
 		},
 		{
@@ -778,11 +778,11 @@ func TestSingle_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界") + "🌟",
-				redBg.Render("世界") + "🌟",
+				internal.RedBg.Render("世界") + "🌟",
+				internal.RedBg.Render("世界") + "🌟",
 			},
 		},
 		{
@@ -791,11 +791,11 @@ func TestSingle_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界🌟"),
-				redBg.Render("世") + "界🌟",
+				internal.RedBg.Render("世界🌟"),
+				internal.RedBg.Render("世") + "界🌟",
 			},
 		},
 		{
@@ -804,11 +804,11 @@ func TestSingle_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界🌟"),
-				redBg.Render("世") + "\x1b[38;2;0;0;255m界🌟" + RST,
+				internal.RedBg.Render("世界🌟"),
+				internal.RedBg.Render("世") + "\x1b[38;2;0;0;255m界🌟" + RST,
 			},
 		},
 		{
@@ -817,7 +817,7 @@ func TestSingle_Take(t *testing.T) {
 			width:          7,
 			continuation:   "...",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
 				"\x1b[48;2;255;0;0m世界..\x1b[0m",
@@ -847,12 +847,12 @@ func TestSingle_Take(t *testing.T) {
 		{
 			name: "unicode with heart start continuation and ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
-			s:            redBg.Render("A💖") + "中é",
+			s:            internal.RedBg.Render("A💖") + "中é",
 			width:        5,
 			continuation: "...",
 			startWidth:   1,
 			numTakes:     1,
-			expected:     []string{redBg.Render("..") + "中é"},
+			expected:     []string{internal.RedBg.Render("..") + "中é"},
 		},
 		{
 			name: "unicode combining",
@@ -873,7 +873,7 @@ func TestSingle_Take(t *testing.T) {
 			if len(tt.expected) != tt.numTakes {
 				t.Fatalf("num expected != num popLefts")
 			}
-			item := New(tt.s)
+			item := NewItem(tt.s)
 			startWidth := tt.startWidth
 
 			var highlights []Highlight
@@ -946,25 +946,25 @@ func TestSingle_NumWrappedLines(t *testing.T) {
 		},
 		{
 			name:      "ansi wrap 5",
-			s:         redBg.Render("hello world"), // 11 width
+			s:         internal.RedBg.Render("hello world"), // 11 width
 			wrapWidth: 5,
 			expected:  3,
 		},
 		{
 			name:      "unicode_ansi wrap 3",
-			s:         redBg.Render("A💖") + "中é", // 6 width
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
 			wrapWidth: 3,
 			expected:  2,
 		},
 		{
 			name:      "unicode_ansi wrap 6",
-			s:         redBg.Render("A💖") + "中é", // 6 width
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
 			wrapWidth: 6,
 			expected:  1,
 		},
 		{
 			name:      "unicode_ansi wrap 7",
-			s:         redBg.Render("A💖") + "中é", // 6 width
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
 			wrapWidth: 7,
 			expected:  1,
 		},
@@ -972,7 +972,7 @@ func TestSingle_NumWrappedLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := New(tt.s)
+			item := NewItem(tt.s)
 			actual := item.NumWrappedLines(tt.wrapWidth)
 			if actual != tt.expected {
 				t.Errorf("expected %d, got %d for item %s with wrap width %d", tt.expected, actual, item.repr(), tt.wrapWidth)
@@ -1027,7 +1027,7 @@ func TestSingle_findRuneIndexWithWidthToLeft(t *testing.T) {
 		},
 		{
 			name:            "ansi",
-			s:               "hi " + redBg.Render("there") + " leo",
+			s:               "hi " + internal.RedBg.Render("there") + " leo",
 			widthToLeft:     8,
 			expectedRuneIdx: 8,
 		},
@@ -1055,7 +1055,7 @@ func TestSingle_findRuneIndexWithWidthToLeft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := New(tt.s)
+			item := NewItem(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
@@ -1112,7 +1112,7 @@ func TestSingle_getByteOffsetAtRuneIdx(t *testing.T) {
 		},
 		{
 			name:               "ansi",
-			s:                  "hi " + redBg.Render("there") + " leo",
+			s:                  "hi " + internal.RedBg.Render("there") + " leo",
 			runeIdx:            8,
 			expectedByteOffset: 8,
 		},
@@ -1140,7 +1140,7 @@ func TestSingle_getByteOffsetAtRuneIdx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item := New(tt.s)
+			item := NewItem(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {

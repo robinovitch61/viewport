@@ -29,8 +29,8 @@ var _ Item = SingleItem{}
 // type assertion that *SingleItem implements Item
 var _ Item = (*SingleItem)(nil)
 
-// New creates a new SingleItem from the given string.
-func New(line string) SingleItem {
+// NewItem creates a new SingleItem from the given string.
+func NewItem(line string) SingleItem {
 	if len(line) <= 0 {
 		return SingleItem{line: line}
 	}

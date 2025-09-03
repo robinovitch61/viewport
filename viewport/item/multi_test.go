@@ -13,53 +13,53 @@ func getEquivalentItems() map[string][]Item {
 	return map[string][]Item{
 		"none": {},
 		"hello world": {
-			New("hello world"),
-			NewMulti(New("hello world")),
+			NewItem("hello world"),
+			NewMulti(NewItem("hello world")),
 			NewMulti(
-				New("hello"),
-				New(" world"),
+				NewItem("hello"),
+				NewItem(" world"),
 			),
 			NewMulti(
-				New("hel"),
-				New("lo "),
-				New("wo"),
-				New("rld"),
+				NewItem("hel"),
+				NewItem("lo "),
+				NewItem("wo"),
+				NewItem("rld"),
 			),
 			NewMulti(
-				New("h"),
-				New("e"),
-				New("l"),
-				New("l"),
-				New("o"),
-				New(" "),
-				New("w"),
-				New("o"),
-				New("r"),
-				New("l"),
-				New("d"),
+				NewItem("h"),
+				NewItem("e"),
+				NewItem("l"),
+				NewItem("l"),
+				NewItem("o"),
+				NewItem(" "),
+				NewItem("w"),
+				NewItem("o"),
+				NewItem("r"),
+				NewItem("l"),
+				NewItem("d"),
 			),
 		},
 		"ansi": {
-			New(redBg.Render("hello") + " " + blueBg.Render("world")),
-			NewMulti(New(redBg.Render("hello") + " " + blueBg.Render("world"))),
+			NewItem(internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world")),
+			NewMulti(NewItem(internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"))),
 			NewMulti(
-				New(redBg.Render("hello")+" "),
-				New(blueBg.Render("world")),
+				NewItem(internal.RedBg.Render("hello")+" "),
+				NewItem(internal.BlueBg.Render("world")),
 			),
 			NewMulti(
-				New(redBg.Render("hello")),
-				New(" "),
-				New(blueBg.Render("world")),
+				NewItem(internal.RedBg.Render("hello")),
+				NewItem(" "),
+				NewItem(internal.BlueBg.Render("world")),
 			),
 		},
 		"unicode_ansi": {
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
-			New(redBg.Render("A💖") + "中é"),
-			NewMulti(New(redBg.Render("A💖") + "中é")),
+			NewItem(internal.RedBg.Render("A💖") + "中é"),
+			NewMulti(NewItem(internal.RedBg.Render("A💖") + "中é")),
 			NewMulti(
-				New(redBg.Render("A💖")),
-				New("中"),
-				New("é"),
+				NewItem(internal.RedBg.Render("A💖")),
+				NewItem("中"),
+				NewItem("é"),
 			),
 		}}
 }
@@ -172,8 +172,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      11,
 			continuation:   "",
 			toHighlight:    "hello",
-			highlightStyle: redBg,
-			expected:       redBg.Render("hello") + " world",
+			highlightStyle: internal.RedBg,
+			expected:       internal.RedBg.Render("hello") + " world",
 		},
 		{
 			name:           "hello world with highlight across boundary",
@@ -182,8 +182,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      6,
 			continuation:   "",
 			toHighlight:    "lo wo",
-			highlightStyle: redBg,
-			expected:       redBg.Render("lo wo") + "r",
+			highlightStyle: internal.RedBg,
+			expected:       internal.RedBg.Render("lo wo") + "r",
 		},
 		{
 			name:           "hello world with highlight and middle continuation",
@@ -192,8 +192,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      7,
 			continuation:   "..",
 			toHighlight:    "lo ",
-			highlightStyle: redBg,
-			expected:       ".." + redBg.Render("lo ") + "..",
+			highlightStyle: internal.RedBg,
+			expected:       ".." + internal.RedBg.Render("lo ") + "..",
 		},
 		{
 			name:           "hello world with highlight and overlapping continuation",
@@ -202,7 +202,7 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      7,
 			continuation:   "...",
 			toHighlight:    "lo ",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			expected:       "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
 		},
 		{
@@ -213,7 +213,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("hello") + " " + blueBg.Render("w"),
+			expected:       internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("w"),
 		},
 		{
 			name:           "ansi start at 1",
@@ -223,7 +223,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("ello") + " " + blueBg.Render("wo"),
+			expected:       internal.RedBg.Render("ello") + " " + internal.BlueBg.Render("wo"),
 		},
 		{
 			name:           "ansi end",
@@ -233,7 +233,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       blueBg.Render("d"),
+			expected:       internal.BlueBg.Render("d"),
 		},
 		{
 			name:           "ansi past end",
@@ -253,7 +253,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("hell.") + "." + blueBg.Render("."),
+			expected:       internal.RedBg.Render("hell.") + "." + internal.BlueBg.Render("."),
 		},
 		{
 			name:           "ansi with continuation at start",
@@ -263,7 +263,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render(".") + "." + blueBg.Render(".orld"),
+			expected:       internal.RedBg.Render(".") + "." + internal.BlueBg.Render(".orld"),
 		},
 		{
 			name:           "ansi with continuation both ends",
@@ -273,7 +273,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("...") + " " + blueBg.Render("..."),
+			expected:       internal.RedBg.Render("...") + " " + internal.BlueBg.Render("..."),
 		},
 		{
 			name:           "ansi with highlight whole word",
@@ -282,8 +282,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      11,
 			continuation:   "",
 			toHighlight:    "hello",
-			highlightStyle: greenBg,
-			expected:       greenBg.Render("hello") + " " + blueBg.Render("world"),
+			highlightStyle: internal.GreenBg,
+			expected:       internal.GreenBg.Render("hello") + " " + internal.BlueBg.Render("world"),
 		},
 		{
 			name:           "ansi with highlight partial word",
@@ -292,8 +292,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      11,
 			continuation:   "",
 			toHighlight:    "ell",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("h") + greenBg.Render("ell") + redBg.Render("o") + " " + blueBg.Render("world"),
+			highlightStyle: internal.GreenBg,
+			expected:       internal.RedBg.Render("h") + internal.GreenBg.Render("ell") + internal.RedBg.Render("o") + " " + internal.BlueBg.Render("world"),
 		},
 		{
 			name:           "ansi with highlight across boundary",
@@ -302,8 +302,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      11,
 			continuation:   "",
 			toHighlight:    "lo wo",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("hel") + greenBg.Render("lo wo") + blueBg.Render("rld"),
+			highlightStyle: internal.GreenBg,
+			expected:       internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
 		},
 		{
 			name:           "ansi with highlight and middle continuation",
@@ -312,8 +312,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      7,
 			continuation:   "..",
 			toHighlight:    "lo ",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("..") + greenBg.Render("lo ") + blueBg.Render(".."),
+			highlightStyle: internal.GreenBg,
+			expected:       internal.RedBg.Render("..") + internal.GreenBg.Render("lo ") + internal.BlueBg.Render(".."),
 		},
 		{
 			name:           "ansi with highlight and overlapping continuation",
@@ -322,8 +322,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      7,
 			continuation:   "...",
 			toHighlight:    "lo ",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("..") + greenBg.Render(".o.") + blueBg.Render(".."),
+			highlightStyle: internal.GreenBg,
+			expected:       internal.RedBg.Render("..") + internal.GreenBg.Render(".o.") + internal.BlueBg.Render(".."),
 		},
 		{
 			name:           "unicode_ansi start at 0",
@@ -333,7 +333,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("A💖") + "中é",
+			expected:       internal.RedBg.Render("A💖") + "中é",
 		},
 		{
 			name:           "unicode_ansi start at 1",
@@ -343,7 +343,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("💖") + "中é",
+			expected:       internal.RedBg.Render("💖") + "中é",
 		},
 		{
 			name:           "unicode_ansi end",
@@ -373,7 +373,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("A💖") + "..", // bit of an edge cases, seems fine
+			expected:       internal.RedBg.Render("A💖") + "..", // bit of an edge cases, seems fine
 		},
 		{
 			name:           "unicode_ansi with continuation at start",
@@ -383,7 +383,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "",
 			highlightStyle: lipgloss.NewStyle(),
-			expected:       redBg.Render("..") + "中é",
+			expected:       internal.RedBg.Render("..") + "中é",
 		},
 		{
 			name:           "unicode_ansi with highlight whole word",
@@ -392,8 +392,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      6,
 			continuation:   "",
 			toHighlight:    "A💖",
-			highlightStyle: greenBg,
-			expected:       greenBg.Render("A💖") + "中é",
+			highlightStyle: internal.GreenBg,
+			expected:       internal.GreenBg.Render("A💖") + "中é",
 		},
 		{
 			name:           "unicode_ansi with highlight partial word",
@@ -402,8 +402,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      6,
 			continuation:   "",
 			toHighlight:    "A",
-			highlightStyle: greenBg,
-			expected:       greenBg.Render("A") + redBg.Render("💖") + "中é",
+			highlightStyle: internal.GreenBg,
+			expected:       internal.GreenBg.Render("A") + internal.RedBg.Render("💖") + "中é",
 		},
 		{
 			name:           "unicode_ansi with highlight across boundary",
@@ -412,8 +412,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      6,
 			continuation:   "",
 			toHighlight:    "💖中",
-			highlightStyle: greenBg,
-			expected:       redBg.Render("A") + greenBg.Render("💖中") + "é",
+			highlightStyle: internal.GreenBg,
+			expected:       internal.RedBg.Render("A") + internal.GreenBg.Render("💖中") + "é",
 		},
 		{
 			name:           "unicode_ansi with highlight and overlapping continuation",
@@ -422,8 +422,8 @@ func TestMultiItem_Take(t *testing.T) {
 			takeWidth:      5,
 			continuation:   "..",
 			toHighlight:    "💖",
-			highlightStyle: greenBg,
-			expected:       greenBg.Render("..") + "中é",
+			highlightStyle: internal.GreenBg,
+			expected:       internal.GreenBg.Render("..") + "中é",
 		},
 	}
 

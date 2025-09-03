@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/robinovitch61/bubbleo/internal"
+	"github.com/robinovitch61/bubbleo/viewport/item"
 
 	"github.com/muesli/termenv"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
 // Note: this won't be necessary in future charm library versions
@@ -28,10 +28,7 @@ var (
 	fullPgUpKeyMsg   = internal.MakeKeyMsg('b')
 	goToTopKeyMsg    = internal.MakeKeyMsg('g')
 	goToBottomKeyMsg = internal.MakeKeyMsg('G')
-	red              = lipgloss.Color("#ff0000")
-	blue             = lipgloss.Color("#0000ff")
-	green            = lipgloss.Color("#00ff00")
-	selectionStyle   = lipgloss.NewStyle().Foreground(blue)
+	selectionStyle   = internal.BlueFg
 )
 
 func newViewport(width, height int, options ...Option[item.SimpleGetter]) *Model[item.SimpleGetter] {
@@ -92,9 +89,9 @@ func TestViewport_SelectionOff_WrapOff_Basic(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -135,9 +132,9 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -173,7 +170,7 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOff_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(red),
+		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
@@ -836,13 +833,13 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 			ItemIndex:       1,
 			StartByteOffset: 4,
 			EndByteOffset:   10,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 		{
 			ItemIndex:       2,
 			StartByteOffset: 4,
 			EndByteOffset:   9,
-			Style:           lipgloss.NewStyle().Foreground(green),
+			Style:           internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -870,7 +867,7 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 1,
 			EndByteOffset:   8,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -931,9 +928,9 @@ func TestViewport_SelectionOn_WrapOff_Basic(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -980,9 +977,9 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -1018,7 +1015,7 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOn_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(red),
+		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
@@ -2242,13 +2239,13 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 4,
 			EndByteOffset:   9,
-			Style:           lipgloss.NewStyle().Foreground(green),
+			Style:           internal.GreenFg,
 		},
 		{
 			ItemIndex:       1,
 			StartByteOffset: 4,
 			EndByteOffset:   10,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2276,7 +2273,7 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 1,
 			EndByteOffset:   8,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2338,9 +2335,9 @@ func TestViewport_SelectionOff_WrapOn_Basic(t *testing.T) {
 	vp.SetWrapText(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -2383,9 +2380,9 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 	vp.SetWrapText(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -2427,7 +2424,7 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(red),
+		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
@@ -3145,13 +3142,13 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 			ItemIndex:       1,
 			StartByteOffset: 0,
 			EndByteOffset:   6,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 		{
 			ItemIndex:       1,
 			StartByteOffset: 12,
 			EndByteOffset:   16,
-			Style:           lipgloss.NewStyle().Foreground(green),
+			Style:           internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3179,7 +3176,7 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 1,
 			EndByteOffset:   8,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3251,9 +3248,9 @@ func TestViewport_SelectionOn_WrapOn_Basic(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -3302,9 +3299,9 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"first line",
-		lipgloss.NewStyle().Foreground(red).Render("second") + " line",
-		lipgloss.NewStyle().Foreground(red).Render("a really really long line"),
-		lipgloss.NewStyle().Foreground(red).Render("a") + " really really long line",
+		internal.RedFg.Render("second") + " line",
+		internal.RedFg.Render("a really really long line"),
+		internal.RedFg.Render("a") + " really really long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -3346,7 +3343,7 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
-		FooterStyle:              lipgloss.NewStyle().Foreground(red),
+		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
@@ -4674,13 +4671,13 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 0,
 			EndByteOffset:   5,
-			Style:           lipgloss.NewStyle().Foreground(green),
+			Style:           internal.GreenFg,
 		},
 		{
 			ItemIndex:       0,
 			StartByteOffset: 11,
 			EndByteOffset:   15,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4709,7 +4706,7 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 			ItemIndex:       0,
 			StartByteOffset: 1,
 			EndByteOffset:   8,
-			Style:           lipgloss.NewStyle().Foreground(red),
+			Style:           internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4920,7 +4917,7 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 func setContent(vp *Model[item.SimpleGetter], content []string) {
 	renderableStrings := make([]item.SimpleGetter, len(content))
 	for i := range content {
-		renderableStrings[i] = item.SimpleGetter{Item: item.New(content[i])}
+		renderableStrings[i] = item.SimpleGetter{Item: item.NewItem(content[i])}
 	}
 	vp.SetContent(renderableStrings)
 }

@@ -14,6 +14,19 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// Test helper colors and styles
+var (
+	Blue    = lipgloss.Color("#0000FF")
+	BlueBg  = lipgloss.NewStyle().Background(Blue)
+	BlueFg  = lipgloss.NewStyle().Foreground(Blue)
+	Green   = lipgloss.Color("#00FF00")
+	GreenBg = lipgloss.NewStyle().Background(Green)
+	GreenFg = lipgloss.NewStyle().Foreground(Green)
+	Red     = lipgloss.Color("#FF0000")
+	RedBg   = lipgloss.NewStyle().Background(Red)
+	RedFg   = lipgloss.NewStyle().Foreground(Red)
+)
+
 // CmpStr compares two strings and fails the test if they are not equal
 func CmpStr(t *testing.T, expected, actual string, extra ...string) {
 	_, file, line, _ := runtime.Caller(1)
