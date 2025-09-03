@@ -34,7 +34,7 @@ var (
 	selectionStyle   = lipgloss.NewStyle().Foreground(blue)
 )
 
-func newViewport(width, height int) *Model[item.SimpleGetter] {
+func newViewport(width, height int, options ...Option[item.SimpleGetter]) *Model[item.SimpleGetter] {
 	styles := Styles{
 		FooterStyle:              lipgloss.NewStyle(),
 		HighlightStyle:           lipgloss.NewStyle(),
@@ -42,10 +42,12 @@ func newViewport(width, height int) *Model[item.SimpleGetter] {
 		SelectedItemStyle:        selectionStyle,
 	}
 
-	return New[item.SimpleGetter](width, height,
+	options = append([]Option[item.SimpleGetter]{
 		WithKeyMap[item.SimpleGetter](DefaultKeyMap()),
 		WithStyles[item.SimpleGetter](styles),
-	)
+	}, options...)
+
+	return New[item.SimpleGetter](width, height, options...)
 }
 
 // # SELECTION DISABLED, WRAP OFF
@@ -170,14 +172,13 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOff_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetStyles(Styles{
+	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
 		FooterStyle:              lipgloss.NewStyle().Foreground(red),
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
-	})
+	}))
+	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
 		"1",
 		"2",
@@ -1016,15 +1017,14 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOn_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetSelectionEnabled(true)
-	vp.SetStyles(Styles{
+	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
 		FooterStyle:              lipgloss.NewStyle().Foreground(red),
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
-	})
+	}))
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"1",
 		"2",
@@ -2426,15 +2426,14 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetWrapText(true)
-	vp.SetStyles(Styles{
+	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
 		FooterStyle:              lipgloss.NewStyle().Foreground(red),
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
-	})
+	}))
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
 	setContent(vp, []string{
 		"1",
 		"2",
@@ -3346,16 +3345,15 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetWrapText(true)
-	vp.SetSelectionEnabled(true)
-	vp.SetStyles(Styles{
+	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
 		FooterStyle:              lipgloss.NewStyle().Foreground(red),
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
 		SelectedItemStyle:        selectionStyle,
-	})
+	}))
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
 		"1",
 		"2",

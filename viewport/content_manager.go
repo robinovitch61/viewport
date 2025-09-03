@@ -7,8 +7,8 @@ type contentManager[T item.Getter] struct {
 	// itemGetters is the complete list of items to be rendered in the viewport
 	itemGetters []T
 
-	// header is the fixed header lines at the top of the viewport
-	// these lines wrap and are horizontally scrollable similar to other rendered items
+	// header is the unselectable lines at the top of the viewport
+	// these lines wrap, but don't pan horizontally like other non-wrapped lines
 	header []string
 
 	// selectedIdx is the index of itemGetters of the current selection (only relevant when selection is enabled)

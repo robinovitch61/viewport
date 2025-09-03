@@ -301,16 +301,6 @@ func (m *Model[T]) View() string {
 	return m.display.render(strings.TrimSuffix(builder.String(), "\n"))
 }
 
-// SetKeyMap sets the key mapping for navigation controls.
-func (m *Model[T]) SetKeyMap(keyMap KeyMap) {
-	m.navigation.keyMap = keyMap
-}
-
-// SetStyles sets the styling configuration for the viewport
-func (m *Model[T]) SetStyles(styles Styles) {
-	m.display.styles = styles
-}
-
 // SetContent sets the Item, the selectable set of lines in the viewport
 func (m *Model[T]) SetContent(content []T) {
 	var initialNumLinesAboveSelection int
@@ -441,9 +431,19 @@ func (m *Model[T]) SetWidth(width int) {
 	m.setWidthHeight(width, m.display.bounds.height)
 }
 
+// GetWidth returns the viewport width
+func (m *Model[T]) GetWidth() int {
+	return m.display.bounds.width
+}
+
 // SetHeight sets the viewport's height, including header and footer
 func (m *Model[T]) SetHeight(height int) {
 	m.setWidthHeight(m.display.bounds.width, height)
+}
+
+// GetHeight returns the viewport height
+func (m *Model[T]) GetHeight() int {
+	return m.display.bounds.height
 }
 
 // SetSelectedItemIdx sets the selected context index. Automatically puts selection in view as necessary
@@ -476,18 +476,9 @@ func (m *Model[T]) SetHeader(header []string) {
 	m.content.header = header
 }
 
-// GetWidth returns the viewport width
-func (m *Model[T]) GetWidth() int {
-	return m.display.bounds.width
-}
-
-// GetHeight returns the viewport height
-func (m *Model[T]) GetHeight() int {
-	return m.display.bounds.height
-}
-
 // ScrollSoItemIdxInView scrolls the viewport to ensure the specified item index is visible.
-// If the desired item is above the current content, this scrolls so that
+// If the desired item is above the current content, this scrolls so that the item is at the top. If it is below,
+// it scrolls so that the item is at the bottom.
 func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
