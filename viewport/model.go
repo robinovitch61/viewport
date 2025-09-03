@@ -1,6 +1,6 @@
 package viewport
 
-// Rectangle represents a rectangular area with width and height dimensions.
-type Rectangle struct {
-	Width, Height int
+// rectangle represents a rectangular area
+type rectangle struct {
+	width, height int
 }

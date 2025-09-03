@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// TODO LEO: simple tests
 // navigationManager manages keyboard input and navigation logic
 type navigationManager struct {
 	// keyMap is the keymap for the viewport
@@ -61,7 +62,7 @@ const (
 // navigationContext contains the context needed for navigation calculations
 type navigationContext struct {
 	wrapText        bool
-	dimensions      Rectangle
+	dimensions      rectangle
 	numContentLines int
 	numVisibleItems int
 }
@@ -84,12 +85,12 @@ func (nm navigationManager) processKeyMsg(msg tea.KeyMsg, ctx navigationContext)
 
 	case key.Matches(msg, nm.keyMap.Left):
 		if !ctx.wrapText {
-			return navigationResult{action: actionLeft, scrollAmount: ctx.dimensions.Width / 4}
+			return navigationResult{action: actionLeft, scrollAmount: ctx.dimensions.width / 4}
 		}
 
 	case key.Matches(msg, nm.keyMap.Right):
 		if !ctx.wrapText {
-			return navigationResult{action: actionRight, scrollAmount: ctx.dimensions.Width / 4}
+			return navigationResult{action: actionRight, scrollAmount: ctx.dimensions.width / 4}
 		}
 
 	case key.Matches(msg, nm.keyMap.HalfPageUp):

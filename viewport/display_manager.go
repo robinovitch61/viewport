@@ -4,72 +4,64 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// DisplayManager handles all display/rendering concerns
-type DisplayManager struct {
-	// Bounds contains the viewport dimensions
-	Bounds Rectangle
+// displayManager handles all display/rendering concerns
+type displayManager struct {
+	// bounds contains the viewport dimensions in terminal cells
+	bounds rectangle
 
-	// TopItemIdx is the items index of the topmost visible item
-	TopItemIdx int
+	// topItemIdx is the index of the topmost visible item
+	topItemIdx int
 
-	// TopItemLineOffset is the number of lines in the top item that are out of view of the topmost visible line.
+	// topItemLineOffset is the number of lines in the top item that are above the first visible line
 	// Only non-zero when wrapped
-	TopItemLineOffset int
+	topItemLineOffset int
 
-	// XOffset is the number of terminal cells scrolled right when rendered lines overflow the viewport and wrapping is off
-	XOffset int
+	// xOffset is the number of terminal cells (width) scrolled right when lines overflow and wrapping is off
+	xOffset int
 
-	// Styles contains the styling configuration
-	Styles Styles
+	// styles contains the styling configuration
+	styles Styles
 }
 
-// NewDisplayManager creates a new DisplayManager with the specified dimensions and styles.
-func NewDisplayManager(width, height int, styles Styles) *DisplayManager {
-	return &DisplayManager{
-		Bounds: Rectangle{
-			Width:  max(0, width),
-			Height: max(0, height),
+// newDisplayManager creates a new displayManager with the specified dimensions and styles
+func newDisplayManager(width, height int, styles Styles) *displayManager {
+	return &displayManager{
+		bounds: rectangle{
+			width:  max(0, width),
+			height: max(0, height),
 		},
-		TopItemIdx:        0,
-		TopItemLineOffset: 0,
-		XOffset:           0,
-		Styles:            styles,
+		topItemIdx:        0,
+		topItemLineOffset: 0,
+		xOffset:           0,
+		styles:            styles,
 	}
 }
 
-// SetBounds sets the viewport dimensions with validation
-func (dm *DisplayManager) SetBounds(width, height int) {
-	dm.Bounds.Width = max(0, width)
-	dm.Bounds.Height = max(0, height)
+// setBounds sets the viewport dimensions with validation
+func (dm *displayManager) setBounds(r rectangle) {
+	r.width, r.height = max(0, r.width), max(0, r.height)
+	dm.bounds = r
 }
 
-// GetHighlightStyle returns the appropriate highlight style based on selection state.
-func (dm *DisplayManager) GetHighlightStyle(isSelected bool) lipgloss.Style {
-	if isSelected {
-		return dm.Styles.HighlightStyleIfSelected
-	}
-	return dm.Styles.HighlightStyle
-}
-
-// SafelySetTopItemIdxAndOffset safely sets the top item index and offset within bounds.
-func (dm *DisplayManager) SafelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset int) {
-	dm.TopItemIdx = clampValZeroToMax(topItemIdx, maxTopItemIdx)
-	dm.TopItemLineOffset = topItemLineOffset
-	if dm.TopItemIdx == maxTopItemIdx {
-		dm.TopItemLineOffset = clampValZeroToMax(topItemLineOffset, maxTopItemLineOffset)
+// safelySetTopItemIdxAndOffset safely sets the top item index and line offset
+func (dm *displayManager) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset int) {
+	dm.topItemIdx = clampValZeroToMax(topItemIdx, maxTopItemIdx)
+	dm.topItemLineOffset = topItemLineOffset
+	if dm.topItemIdx == maxTopItemIdx {
+		dm.topItemLineOffset = clampValZeroToMax(topItemLineOffset, maxTopItemLineOffset)
 	}
 }
 
-// GetNumContentLines returns the number of lines available for Item display.
-func (dm *DisplayManager) GetNumContentLines(headerLines int, showFooter bool) int {
-	contentHeight := dm.Bounds.Height - headerLines
+// getNumContentLines returns the number of lines in the content
+func (dm *displayManager) getNumContentLines(headerLines int, showFooter bool) int {
+	contentHeight := dm.bounds.height - headerLines
 	if showFooter {
 		contentHeight-- // one for footer
 	}
 	return max(0, contentHeight)
 }
 
-// RenderFinalView applies final styling to the rendered Item.
-func (dm *DisplayManager) RenderFinalView(content string) string {
-	return lipgloss.NewStyle().Width(dm.Bounds.Width).Height(dm.Bounds.Height).Render(content)
+// render applies final styling to the display
+func (dm *displayManager) render(display string) string {
+	return lipgloss.NewStyle().Width(dm.bounds.width).Height(dm.bounds.height).Render(display)
 }
