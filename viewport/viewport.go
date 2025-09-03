@@ -44,7 +44,7 @@ type Option[T item.Getter] func(*Model[T])
 // WithKeyMap sets the key mapping for the viewport
 func WithKeyMap[T item.Getter](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
-		m.navigation.KeyMap = keyMap
+		m.navigation.keyMap = keyMap
 	}
 }
 
@@ -85,7 +85,7 @@ type Model[T item.Getter] struct {
 	display *DisplayManager
 
 	// navigation manages keyboard input and navigation logic
-	navigation *NavigationManager
+	navigation *navigationManager
 
 	// config manages configuration options
 	config *Configuration
@@ -103,7 +103,7 @@ func New[T item.Getter](width, height int, opts ...Option[T]) (m *Model[T]) {
 	m = &Model[T]{}
 	m.content = NewContentManager[T]()
 	m.display = NewDisplayManager(width, height, DefaultStyles())
-	m.navigation = NewNavigationManager(DefaultKeyMap())
+	m.navigation = newNavigationManager(DefaultKeyMap())
 	m.config = NewConfiguration()
 
 	for _, opt := range opts {
@@ -124,73 +124,73 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		navCtx := NavigationContext{
-			WrapText:        m.config.WrapText,
-			Dimensions:      m.display.Bounds,
-			NumContentLines: m.getNumContentLinesWithFooterVisible(),
-			NumVisibleItems: m.getNumVisibleItems(),
+		navCtx := navigationContext{
+			wrapText:        m.config.WrapText,
+			dimensions:      m.display.Bounds,
+			numContentLines: m.getNumContentLinesWithFooterVisible(),
+			numVisibleItems: m.getNumVisibleItems(),
 		}
-		navResult := m.navigation.ProcessKeyMsg(msg, navCtx)
+		navResult := m.navigation.processKeyMsg(msg, navCtx)
 
-		switch navResult.Action {
-		case ActionUp:
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxUp(navResult.SelectionAmount)
+		switch navResult.action {
+		case actionUp:
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxUp(navResult.selectionAmount)
 			} else {
-				m.scrollUp(navResult.ScrollAmount)
+				m.scrollUp(navResult.scrollAmount)
 			}
 
-		case ActionDown:
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxDown(navResult.SelectionAmount)
+		case actionDown:
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxDown(navResult.selectionAmount)
 			} else {
-				m.scrollDown(navResult.ScrollAmount)
+				m.scrollDown(navResult.scrollAmount)
 			}
 
-		case ActionLeft:
+		case actionLeft:
 			if !m.config.WrapText {
-				m.viewLeft(navResult.ScrollAmount)
+				m.viewLeft(navResult.scrollAmount)
 			}
 
-		case ActionRight:
+		case actionRight:
 			if !m.config.WrapText {
-				m.viewRight(navResult.ScrollAmount)
+				m.viewRight(navResult.scrollAmount)
 			}
 
-		case ActionHalfPageUp:
-			m.scrollUp(navResult.ScrollAmount)
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxUp(navResult.SelectionAmount)
+		case actionHalfPageUp:
+			m.scrollUp(navResult.scrollAmount)
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxUp(navResult.selectionAmount)
 			}
 
-		case ActionHalfPageDown:
-			m.scrollDown(navResult.ScrollAmount)
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxDown(navResult.SelectionAmount)
+		case actionHalfPageDown:
+			m.scrollDown(navResult.scrollAmount)
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxDown(navResult.selectionAmount)
 			}
 
-		case ActionPageUp:
-			m.scrollUp(navResult.ScrollAmount)
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxUp(navResult.SelectionAmount)
+		case actionPageUp:
+			m.scrollUp(navResult.scrollAmount)
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxUp(navResult.selectionAmount)
 			}
 
-		case ActionPageDown:
-			m.scrollDown(navResult.ScrollAmount)
-			if m.navigation.SelectionEnabled {
-				m.selectedItemIdxDown(navResult.SelectionAmount)
+		case actionPageDown:
+			m.scrollDown(navResult.scrollAmount)
+			if m.navigation.selectionEnabled {
+				m.selectedItemIdxDown(navResult.selectionAmount)
 			}
 
-		case ActionTop:
-			if m.navigation.SelectionEnabled {
+		case actionTop:
+			if m.navigation.selectionEnabled {
 				m.SetSelectedItemIdx(0)
 			} else {
 				m.display.TopItemIdx = 0
 				m.display.TopItemLineOffset = 0
 			}
 
-		case ActionBottom:
-			if m.navigation.SelectionEnabled {
+		case actionBottom:
+			if m.navigation.selectionEnabled {
 				m.selectedItemIdxDown(m.content.NumItems())
 			} else {
 				maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
@@ -258,7 +258,7 @@ func (m *Model[T]) View() string {
 			)
 		}
 
-		truncatedIsSelection := m.navigation.SelectionEnabled && content.itemIndexes[idx] == m.content.GetSelectedIdx()
+		truncatedIsSelection := m.navigation.selectionEnabled && content.itemIndexes[idx] == m.content.GetSelectedIdx()
 		if truncatedIsSelection {
 			truncated = m.styleSelection(truncated)
 		}
@@ -303,7 +303,7 @@ func (m *Model[T]) View() string {
 
 // SetKeyMap sets the key mapping for navigation controls.
 func (m *Model[T]) SetKeyMap(keyMap KeyMap) {
-	m.navigation.KeyMap = keyMap
+	m.navigation.keyMap = keyMap
 }
 
 // SetStyles sets the styling configuration for the viewport
@@ -316,15 +316,15 @@ func (m *Model[T]) SetContent(content []T) {
 	var initialNumLinesAboveSelection int
 	var stayAtTop, stayAtBottom bool
 	var prevSelection T
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 			initialNumLinesAboveSelection = inView.numLinesAboveSelection
 		}
 		currentItems := m.content.ItemGetters
 		selectedIdx := m.content.GetSelectedIdx()
-		if m.navigation.TopSticky && len(currentItems) > 0 && selectedIdx == 0 {
+		if m.navigation.topSticky && len(currentItems) > 0 && selectedIdx == 0 {
 			stayAtTop = true
-		} else if m.navigation.BottomSticky && (len(currentItems) == 0 || (selectedIdx == len(currentItems)-1)) {
+		} else if m.navigation.bottomSticky && (len(currentItems) == 0 || (selectedIdx == len(currentItems)-1)) {
 			stayAtBottom = true
 		} else if m.content.CompareFn != nil && 0 <= selectedIdx && selectedIdx < len(currentItems) {
 			prevSelection = currentItems[selectedIdx]
@@ -338,7 +338,7 @@ func (m *Model[T]) SetContent(content []T) {
 	// ensure xOffset is valid given new Item
 	m.SetXOffsetWidth(m.display.XOffset)
 
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		if stayAtTop {
 			m.content.SetSelectedIdx(0)
 		} else if stayAtBottom {
@@ -373,18 +373,18 @@ func (m *Model[T]) SetContent(content []T) {
 
 // SetTopSticky sets whether selection should stay at top when new Item added and selection is at the top
 func (m *Model[T]) SetTopSticky(topSticky bool) {
-	m.navigation.TopSticky = topSticky
+	m.navigation.topSticky = topSticky
 }
 
 // SetBottomSticky sets whether selection should stay at bottom when new Item added and selection is at the bottom
 func (m *Model[T]) SetBottomSticky(bottomSticky bool) {
-	m.navigation.BottomSticky = bottomSticky
+	m.navigation.bottomSticky = bottomSticky
 }
 
 // SetSelectionEnabled sets whether the viewport allows line selection
 func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
-	wasEnabled := m.navigation.SelectionEnabled
-	m.navigation.SelectionEnabled = selectionEnabled
+	wasEnabled := m.navigation.selectionEnabled
+	m.navigation.selectionEnabled = selectionEnabled
 
 	// when enabling selection, set the selected item to the top visible item and ensure the top line is in view
 	if selectionEnabled && !wasEnabled && !m.content.IsEmpty() {
@@ -407,13 +407,13 @@ func (m *Model[T]) SetSelectionComparator(compareFn CompareFn[T]) {
 
 // GetSelectionEnabled returns whether the viewport allows line selection
 func (m *Model[T]) GetSelectionEnabled() bool {
-	return m.navigation.SelectionEnabled
+	return m.navigation.selectionEnabled
 }
 
 // SetWrapText sets whether the viewport wraps text
 func (m *Model[T]) SetWrapText(wrapText bool) {
 	var initialNumLinesAboveSelection int
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 			initialNumLinesAboveSelection = inView.numLinesAboveSelection
 		}
@@ -421,7 +421,7 @@ func (m *Model[T]) SetWrapText(wrapText bool) {
 	m.config.WrapText = wrapText
 	m.display.TopItemLineOffset = 0
 	m.display.XOffset = 0
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		m.scrollSoSelectionInView()
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 			m.scrollUp(initialNumLinesAboveSelection - inView.numLinesAboveSelection)
@@ -448,7 +448,7 @@ func (m *Model[T]) SetHeight(height int) {
 
 // SetSelectedItemIdx sets the selected context index. Automatically puts selection in view as necessary
 func (m *Model[T]) SetSelectedItemIdx(selectedItemIdx int) {
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		return
 	}
 	m.content.SetSelectedIdx(selectedItemIdx)
@@ -457,7 +457,7 @@ func (m *Model[T]) SetSelectedItemIdx(selectedItemIdx int) {
 
 // GetSelectedItemIdx returns the currently selected item index
 func (m *Model[T]) GetSelectedItemIdx() int {
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		return 0
 	}
 	return m.content.GetSelectedIdx()
@@ -465,7 +465,7 @@ func (m *Model[T]) GetSelectedItemIdx() int {
 
 // GetSelectedItem returns a pointer to the currently selected item
 func (m *Model[T]) GetSelectedItem() *T {
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		return nil
 	}
 	return m.content.GetSelectedItem()
@@ -518,7 +518,7 @@ func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
 		}
 	}
 
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		// if scrolled such that selection is now fully out of view, undo it
 		if m.selectionInViewInfo().numLinesSelectionInView == 0 {
 			m.display.TopItemIdx = originalTopItemIdx
@@ -597,7 +597,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 
 func (m *Model[T]) setWidthHeight(width, height int) {
 	m.display.SetBounds(width, height)
-	if m.navigation.SelectionEnabled {
+	if m.navigation.selectionEnabled {
 		m.scrollSoSelectionInView()
 	}
 	m.safelySetTopItemIdxAndOffset(m.display.TopItemIdx, m.display.TopItemLineOffset)
@@ -614,7 +614,7 @@ func (m *Model[T]) getNumContentLinesWithFooterVisible() int {
 }
 
 func (m *Model[T]) scrollSoSelectionInView() {
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")
 	}
 	m.ScrollSoItemIdxInView(m.content.GetSelectedIdx())
@@ -899,7 +899,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 
 // TODO LEO: reuse this for selection styling
 //func (m *Model[T]) highlightStyle(itemIdx int) lipgloss.Style {
-//	return m.display.GetHighlightStyle(m.navigation.SelectionEnabled && itemIdx == m.content.GetSelectedIdx())
+//	return m.display.GetHighlightStyle(m.navigation.selectionEnabled && itemIdx == m.content.GetSelectedIdx())
 //}
 
 func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) string {
@@ -913,7 +913,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContent) st
 	}
 
 	// if selection is disabled, numerator should be item index of bottom visible line
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		numerator = visibleContentLines.itemIndexes[len(visibleContentLines.itemIndexes)-1] + 1
 		if m.config.WrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
@@ -953,7 +953,7 @@ type selectionInViewInfoResult struct {
 }
 
 func (m *Model[T]) selectionInViewInfo() selectionInViewInfoResult {
-	if !m.navigation.SelectionEnabled {
+	if !m.navigation.selectionEnabled {
 		panic("selectionInViewInfo called when selection is disabled")
 	}
 	content := m.getVisibleContent()
