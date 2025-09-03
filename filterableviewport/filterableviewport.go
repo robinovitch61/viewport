@@ -407,6 +407,7 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 			return []T{}
 		}
 		for i := range m.items {
+			// TODO LEO: test that ansi doesn't interfere with matches (this should be ContentNoAnsi())
 			content := m.items[i].Get().Content()
 			matches := regex.FindAllStringIndex(content, -1)
 			if len(matches) > 0 {

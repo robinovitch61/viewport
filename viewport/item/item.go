@@ -21,6 +21,7 @@ type Item interface {
 	) (string, int)
 
 	// NumWrappedLines returns the number of wrapped lines given a wrap width
+	// TODO LEO: make this private
 	NumWrappedLines(wrapWidth int) int
 
 	// repr returns a representation of the object as a string for debugging

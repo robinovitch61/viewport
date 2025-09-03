@@ -16,6 +16,7 @@ type Highlight struct {
 }
 
 // ExtractHighlights extracts highlights from a slice of strings and a match string
+// TODO LEO: is this the right place for this?
 func ExtractHighlights(
 	items []string,
 	exactMatch string,
@@ -51,6 +52,7 @@ func ExtractHighlights(
 }
 
 // ExtractHighlightsRegexMatch extracts highlights from a slice of strings based on a regex match
+// TODO LEO: is this the right place for this?
 func ExtractHighlightsRegexMatch(
 	items []string,
 	regexPattern string,
