@@ -3,7 +3,6 @@ package viewport
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/robinovitch61/bubbleo/viewport/internal"
 )
 
 // NavigationManager manages keyboard input and navigation logic
@@ -62,7 +61,7 @@ const (
 // NavigationContext contains the context needed for navigation calculations
 type NavigationContext struct {
 	WrapText        bool
-	Dimensions      internal.Rectangle
+	Dimensions      Rectangle
 	NumContentLines int
 	NumVisibleItems int
 }

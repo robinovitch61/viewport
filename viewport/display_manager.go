@@ -2,13 +2,12 @@ package viewport
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/robinovitch61/bubbleo/viewport/internal"
 )
 
 // DisplayManager handles all display/rendering concerns
 type DisplayManager struct {
 	// Bounds contains the viewport dimensions
-	Bounds internal.Rectangle
+	Bounds Rectangle
 
 	// TopItemIdx is the items index of the topmost visible item
 	TopItemIdx int
@@ -27,7 +26,7 @@ type DisplayManager struct {
 // NewDisplayManager creates a new DisplayManager with the specified dimensions and styles.
 func NewDisplayManager(width, height int, styles Styles) *DisplayManager {
 	return &DisplayManager{
-		Bounds: internal.Rectangle{
+		Bounds: Rectangle{
 			Width:  max(0, width),
 			Height: max(0, height),
 		},

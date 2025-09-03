@@ -1,4 +1,4 @@
-package internal
+package viewport
 
 // Rectangle represents a rectangular area with width and height dimensions.
 type Rectangle struct {

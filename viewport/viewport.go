@@ -1054,3 +1054,7 @@ func safeSliceUpToIdx[T any](s []T, i int) []T {
 	}
 	return s[:i]
 }
+
+func clampValZeroToMax(v, maximum int) int {
+	return max(0, min(maximum, v))
+}
