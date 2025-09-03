@@ -65,3 +65,8 @@ func (dm *displayManager) getNumContentLines(headerLines int, showFooter bool) i
 func (dm *displayManager) render(display string) string {
 	return lipgloss.NewStyle().Width(dm.bounds.width).Height(dm.bounds.height).Render(display)
 }
+
+// rectangle represents a rectangular area
+type rectangle struct {
+	width, height int
+}
