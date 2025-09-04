@@ -36,8 +36,6 @@ var (
 		SelectedItemStyle:        selectedItemStyle,
 	}
 
-	// TODO LEO: use internal.RedFg, unsure why doesn't work
-	red            = lipgloss.NewStyle().Foreground(lipgloss.Color("FF0000"))
 	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
 	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
@@ -861,6 +859,30 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 //	// TODO LEO
 //}
 
+// TODO LEO: make this test pass, then delete it (covered by below tests)
+func TestMatchNavigationManyMatchesSomeWrapTmp(t *testing.T) {
+	fv := makeFilterableViewport(
+		10,
+		5,
+		[]viewport.Option[item.SimpleGetter]{
+			viewport.WithWrapText[item.SimpleGetter](true),
+		},
+		[]Option[item.SimpleGetter]{},
+	)
+	fv.SetContent(stringsToItems([]string{
+		internal.RedFg.Render(strings.Repeat("a", 11)),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		focusedStyle.Render("a") + strings.Repeat(unfocusedStyle.Render("a"), 9),
+		unfocusedStyle.Render("a"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
@@ -872,7 +894,7 @@ func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	)
 	numAs := 10000
 	fv.SetContent(stringsToItems([]string{
-		red.Render(strings.Repeat("a", numAs)),
+		internal.RedFg.Render(strings.Repeat("a", numAs)),
 	}))
 	fv, _ = fv.Update(filterKeyMsg)
 	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
@@ -902,7 +924,7 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 		)
 		numAs := 5000
 		fv.SetContent(stringsToItems([]string{
-			red.Render(strings.Repeat("a", numAs)),
+			internal.RedFg.Render(strings.Repeat("a", numAs)),
 		}))
 		fv, _ = fv.Update(filterKeyMsg)
 		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
