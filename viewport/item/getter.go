@@ -1,6 +1,7 @@
 package item
 
 // Getter is implemented by types that can return an Item
+// TODO LEO: rename to ViewportObject or move to viewport and do viewport.Object?
 type Getter interface {
 	Get() Item
 }

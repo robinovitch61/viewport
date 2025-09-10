@@ -104,7 +104,7 @@ func TestNewLongText(t *testing.T) {
 		[]viewport.Option[item.SimpleGetter]{},
 		[]Option[item.SimpleGetter]{
 			WithPrefixText[item.SimpleGetter]("Filter:"),
-			WithEmptyText[item.SimpleGetter]("No Filter Present"),
+			WithEmptyText[item.SimpleGetter]("Nada Filter"),
 		},
 	)
 	fv.SetContent(stringsToItems([]string{
@@ -113,7 +113,7 @@ func TestNewLongText(t *testing.T) {
 		"Line 3",
 	}))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"No Filt...",
+		"Nada Fi...",
 		"Line 1",
 		"Line 2",
 		footerStyle.Render("66% (2/3)"),
@@ -168,7 +168,7 @@ func TestNegativeDimensions(t *testing.T) {
 	internal.CmpStr(t, "", fv.View())
 }
 
-func TestSetWidth(t *testing.T) {
+func TestSetWidthSetHeight(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
 		4,
@@ -179,15 +179,7 @@ func TestSetWidth(t *testing.T) {
 	if fv.GetWidth() != 30 {
 		t.Errorf("expected width 30, got %d", fv.GetWidth())
 	}
-}
 
-func TestSetHeight(t *testing.T) {
-	fv := makeFilterableViewport(
-		20,
-		4,
-		[]viewport.Option[item.SimpleGetter]{},
-		[]Option[item.SimpleGetter]{},
-	)
 	fv.SetHeight(6)
 	if fv.GetHeight() != 6 {
 		t.Errorf("expected height 6, got %d", fv.GetHeight())
@@ -347,9 +339,6 @@ func TestNilContent(t *testing.T) {
 	fv.SetContent(nil)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
-		"",
-		"",
-		"",
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
@@ -659,8 +648,8 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 
 func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 	fv := makeFilterableViewport(
-		60,
-		5,
+		7,
+		6,
 		[]viewport.Option[item.SimpleGetter]{
 			viewport.WithWrapText[item.SimpleGetter](true),
 		},
@@ -669,6 +658,7 @@ func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 				Match: matchStyles,
 			}),
 			WithMatchingItemsOnly[item.SimpleGetter](false),
+			WithEmptyText[item.SimpleGetter]("None"),
 		},
 	)
 	fv.SetContent(stringsToItems([]string{
@@ -677,11 +667,12 @@ func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 		"no match",
 	}))
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"No Filter",
-		"hi there",
-		"hi over there",
-		"no match",
-		footerStyle.Render("100% (3/3)"),
+		"None",
+		"hi ther",
+		"e",
+		"hi over",
+		" there",
+		footerStyle.Render("66% ..."),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -691,21 +682,23 @@ func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] there  (1/2 matches on 2 items)",
-		"hi " + focusedStyle.Render("there"),
-		"hi over " + unfocusedStyle.Render("there"),
-		"no match",
-		footerStyle.Render("100% (3/3)"),
+		"[exa...",
+		"hi " + focusedStyle.Render("ther"),
+		focusedStyle.Render("e"),
+		"hi over",
+		" " + unfocusedStyle.Render("there"),
+		footerStyle.Render("66% ..."),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
 	fv, _ = fv.Update(nextMatchKeyMsg)
 	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] there  (2/2 matches on 2 items)",
-		"hi " + unfocusedStyle.Render("there"),
-		"hi over " + focusedStyle.Render("there"),
-		"no match",
-		footerStyle.Render("100% (3/3)"),
+		"[exa...",
+		"hi " + unfocusedStyle.Render("ther"),
+		unfocusedStyle.Render("e"),
+		"hi over",
+		" " + focusedStyle.Render("there"),
+		footerStyle.Render("66% ..."),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -721,8 +714,8 @@ func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 
 func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 	fv := makeFilterableViewport(
-		60,
-		5,
+		7,
+		6,
 		[]viewport.Option[item.SimpleGetter]{
 			viewport.WithWrapText[item.SimpleGetter](true),
 		},
@@ -731,7 +724,7 @@ func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 				Match: matchStyles,
 			}),
 			WithMatchingItemsOnly[item.SimpleGetter](true),
-			WithCanToggleMatchingItemsOnly[item.SimpleGetter](false),
+			WithEmptyText[item.SimpleGetter]("None"),
 		},
 	)
 	fv.SetContent(stringsToItems([]string{
@@ -740,11 +733,12 @@ func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 		"no match",
 	}))
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"No Filter",
-		"hi there",
-		"hi over there",
-		"no match",
-		footerStyle.Render("100% (3/3)"),
+		"None",
+		"hi ther",
+		"e",
+		"hi over",
+		" there",
+		footerStyle.Render("66% ..."),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -754,17 +748,23 @@ func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] there  (1/2 matches on 2 items) showing matches only",
-		"hi " + focusedStyle.Render("there"),
-		"hi over " + unfocusedStyle.Render("there"),
+		"[exa...",
+		"hi " + focusedStyle.Render("ther"),
+		focusedStyle.Render("e"),
+		"hi over",
+		" " + unfocusedStyle.Render("there"),
+		footerStyle.Render("100%..."),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
 	fv, _ = fv.Update(nextMatchKeyMsg)
 	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] there  (2/2 matches on 2 items) showing matches only",
-		"hi " + unfocusedStyle.Render("there"),
-		"hi over " + focusedStyle.Render("there"),
+		"[exa...",
+		"hi " + unfocusedStyle.Render("ther"),
+		unfocusedStyle.Render("e"),
+		"hi over",
+		" " + focusedStyle.Render("there"),
+		footerStyle.Render("100%..."),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
