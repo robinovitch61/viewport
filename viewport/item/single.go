@@ -117,9 +117,14 @@ func (l SingleItem) Width() int {
 	return l.totalWidth
 }
 
-// Content returns the underlying string content.
+// Content returns the underlying string content
 func (l SingleItem) Content() string {
 	return l.line
+}
+
+// ContentNoAnsi returns the underlying string content without ANSI escape codes
+func (l SingleItem) ContentNoAnsi() string {
+	return l.lineNoAnsi
 }
 
 // Take returns a substring of the item that fits within the specified width

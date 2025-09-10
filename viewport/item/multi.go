@@ -6,8 +6,9 @@ import (
 
 // MultiItem implements Item by wrapping multiple SingleItem's without extra memory allocation
 type MultiItem struct {
-	items      []SingleItem
-	totalWidth int // cached total width across all items
+	items         []SingleItem
+	totalWidth    int    // cached total width across all items
+	contentNoAnsi string // cached concatenated content without ANSI escape codes
 }
 
 // type assertion that MultiItem implements Item
@@ -61,6 +62,36 @@ func (m MultiItem) Content() string {
 	}
 
 	return builder.String()
+}
+
+// ContentNoAnsi returns the concatenated content of all items without ANSI escape codes that style the string
+func (m MultiItem) ContentNoAnsi() string {
+	if m.contentNoAnsi != "" {
+		return m.contentNoAnsi
+	}
+
+	if len(m.items) == 0 {
+		return ""
+	}
+
+	if len(m.items) == 1 {
+		m.contentNoAnsi = m.items[0].ContentNoAnsi()
+		return m.contentNoAnsi
+	}
+
+	// make a single allocation for the concatenated string
+	totalLen := 0
+	for _, items := range m.items {
+		totalLen += len(items.ContentNoAnsi())
+
+	}
+	var builder strings.Builder
+	builder.Grow(totalLen)
+	for _, item := range m.items {
+		builder.WriteString(item.ContentNoAnsi())
+	}
+	m.contentNoAnsi = builder.String()
+	return m.contentNoAnsi
 }
 
 // Take returns a substring of the item that fits within the specified width

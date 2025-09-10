@@ -8,6 +8,9 @@ type Item interface {
 	// Content returns the underlying complete string
 	Content() string
 
+	// ContentNoAnsi returns the underlying complete string without ANSI escape codes that style the string
+	ContentNoAnsi() string
+
 	// Take takes a substring (line) of the content with a specified widthToLeft and taking takeWidth.
 	// continuation replaces the start and end if the content exceeds the bounds.
 	// highlights is a list of highlights to apply to the taken content.
