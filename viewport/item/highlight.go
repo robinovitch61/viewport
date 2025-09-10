@@ -16,9 +16,9 @@ type Highlight struct {
 }
 
 // ExtractHighlights extracts highlights from a slice of strings and a match string
-// TODO LEO: is this the right place for this?
+// Strings should not contain ansi styling codes
 func ExtractHighlights(
-	items []string,
+	vals []string,
 	exactMatch string,
 	highlightStyle lipgloss.Style,
 ) []Highlight {
@@ -28,7 +28,7 @@ func ExtractHighlights(
 		return highlights
 	}
 
-	for i, item := range items {
+	for i, item := range vals {
 		plainLine := stripAnsi(item)
 		startIndex := 0
 		for {
@@ -52,9 +52,9 @@ func ExtractHighlights(
 }
 
 // ExtractHighlightsRegexMatch extracts highlights from a slice of strings based on a regex match
-// TODO LEO: is this the right place for this?
+// Strings should not contain ansi styling codes
 func ExtractHighlightsRegexMatch(
-	items []string,
+	vals []string,
 	regexPattern string,
 	highlightStyle lipgloss.Style,
 ) ([]Highlight, error) {
@@ -64,7 +64,7 @@ func ExtractHighlightsRegexMatch(
 	}
 
 	var highlights []Highlight
-	for i, item := range items {
+	for i, item := range vals {
 		plainLine := stripAnsi(item)
 		matches := regex.FindAllStringIndex(plainLine, -1)
 		for _, match := range matches {
