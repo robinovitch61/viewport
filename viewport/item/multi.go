@@ -83,7 +83,6 @@ func (m MultiItem) ContentNoAnsi() string {
 	totalLen := 0
 	for _, items := range m.items {
 		totalLen += len(items.ContentNoAnsi())
-
 	}
 	var builder strings.Builder
 	builder.Grow(totalLen)

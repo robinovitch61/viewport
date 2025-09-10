@@ -14,6 +14,14 @@ import (
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
+type object struct {
+	item item.Item
+}
+
+func (o object) GetItem() item.Item {
+	return o.item
+}
+
 type appKeys struct {
 	quit               key.Binding
 	toggleWrapTextKey  key.Binding
@@ -40,11 +48,11 @@ var filterableViewportKeyMap = filterableviewport.DefaultKeyMap()
 var styles = filterableviewport.DefaultStyles()
 
 type model struct {
-	// fv is the filterable container for the lines
-	fv *filterableviewport.Model[item.SimpleGetter]
+	// fv is the filterable container for the objects
+	fv *filterableviewport.Model[object]
 
-	// lines contains the lines to be displayed in the viewport
-	lines []item.SimpleGetter
+	// objects contains the objects to be displayed in the viewport
+	objects []object
 
 	// ready indicates whether the model has been initialized
 	ready bool
@@ -96,21 +104,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			vp := viewport.New[item.SimpleGetter](
+			vp := viewport.New[object](
 				viewportWidth,
 				viewportHeight,
-				viewport.WithKeyMap[item.SimpleGetter](viewportKeyMap),
+				viewport.WithKeyMap[object](viewportKeyMap),
 			)
-			m.fv = filterableviewport.New[item.SimpleGetter](
+			m.fv = filterableviewport.New[object](
 				vp,
-				filterableviewport.WithKeyMap[item.SimpleGetter](filterableViewportKeyMap),
-				filterableviewport.WithStyles[item.SimpleGetter](styles),
-				filterableviewport.WithPrefixText[item.SimpleGetter]("Filter:"),
-				filterableviewport.WithEmptyText[item.SimpleGetter]("No Current Filter"),
-				filterableviewport.WithMatchingItemsOnly[item.SimpleGetter](false),
-				filterableviewport.WithCanToggleMatchingItemsOnly[item.SimpleGetter](true),
+				filterableviewport.WithKeyMap[object](filterableViewportKeyMap),
+				filterableviewport.WithStyles[object](styles),
+				filterableviewport.WithPrefixText[object]("Filter:"),
+				filterableviewport.WithEmptyText[object]("No Current Filter"),
+				filterableviewport.WithMatchingItemsOnly[object](false),
+				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
 			)
-			m.fv.SetContent(m.lines)
+			m.fv.SetObjects(m.objects)
 			m.fv.Viewport.SetSelectionEnabled(false)
 			m.fv.Viewport.SetWrapText(true)
 			m.ready = true
@@ -182,13 +190,13 @@ func getShortHelp(bindings []key.Binding) string {
 
 func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
-	renderableLines := make([]item.SimpleGetter, len(lines))
+	objects := make([]object, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = item.SimpleGetter{Item: item.NewItem(line)}
+		objects[i] = object{item: item.NewItem(line)}
 	}
 
 	p := tea.NewProgram(
-		model{lines: renderableLines},
+		model{objects: objects},
 		tea.WithAltScreen(), // use the full size of the terminal in its "alternate screen buffer"
 	)
 

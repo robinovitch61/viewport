@@ -19,6 +19,23 @@ func init() {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 }
 
+type object struct {
+	item item.Item
+}
+
+func (i object) GetItem() item.Item {
+	return i.item
+}
+
+func objectsEqual(a, b object) bool {
+	if a.item == nil || b.item == nil {
+		return a.item == b.item
+	}
+	return a.item.Content() == b.item.Content()
+}
+
+var _ Object = object{}
+
 var (
 	downKeyMsg       = internal.MakeKeyMsg('j')
 	halfPgDownKeyMsg = internal.MakeKeyMsg('d')
@@ -31,7 +48,7 @@ var (
 	selectionStyle   = internal.BlueFg
 )
 
-func newViewport(width, height int, options ...Option[item.SimpleGetter]) *Model[item.SimpleGetter] {
+func newViewport(width, height int, options ...Option[object]) *Model[object] {
 	styles := Styles{
 		FooterStyle:              lipgloss.NewStyle(),
 		HighlightStyle:           lipgloss.NewStyle(),
@@ -39,12 +56,12 @@ func newViewport(width, height int, options ...Option[item.SimpleGetter]) *Model
 		SelectedItemStyle:        selectionStyle,
 	}
 
-	options = append([]Option[item.SimpleGetter]{
-		WithKeyMap[item.SimpleGetter](DefaultKeyMap()),
-		WithStyles[item.SimpleGetter](styles),
+	options = append([]Option[object]{
+		WithKeyMap[object](DefaultKeyMap()),
+		WithStyles[object](styles),
 	}, options...)
 
-	return New[item.SimpleGetter](width, height, options...)
+	return New[object](width, height, options...)
 }
 
 // # SELECTION DISABLED, WRAP OFF
@@ -169,7 +186,7 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOff_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
+	vp := newViewport(w, h, WithStyles[object](Styles{
 		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
@@ -965,7 +982,7 @@ func TestViewport_SelectionOn_WrapOff_GetConfigs(t *testing.T) {
 	if selectedItemIdx := vp.GetSelectedItemIdx(); selectedItemIdx != 1 {
 		t.Errorf("expected selected item index to be 1, got %v", selectedItemIdx)
 	}
-	if selectedItem := vp.GetSelectedItem(); selectedItem.Get().Content() != "second" {
+	if selectedItem := vp.GetSelectedItem(); selectedItem != nil && selectedItem.GetItem().Content() != "second" {
 		t.Errorf("got unexpected selected item: %v", selectedItem)
 	}
 }
@@ -1014,7 +1031,7 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOn_WrapOff_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
+	vp := newViewport(w, h, WithStyles[object](Styles{
 		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
@@ -1653,7 +1670,7 @@ func TestViewport_SelectionOn_WrapOff_MaintainSelection(t *testing.T) {
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	setContent(vp, []string{
 		"sixth",
 		"seventh",
@@ -1740,7 +1757,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetTopSticky(true)
 	setContent(vp, []string{
 		"first",
@@ -1795,7 +1812,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetBottomSticky(true)
 	setContent(vp, []string{
 		"first",
@@ -1850,7 +1867,7 @@ func TestViewport_SelectionOn_WrapOff_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetBottomSticky(true)
 
 	// test covers case where first set Item to empty, then overflow height
@@ -1880,7 +1897,7 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
 	setContent(vp, []string{
@@ -2423,7 +2440,7 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
+	vp := newViewport(w, h, WithStyles[object](Styles{
 		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
@@ -3286,7 +3303,7 @@ func TestViewport_SelectionOn_WrapOn_GetConfigs(t *testing.T) {
 	if selectedItemIdx := vp.GetSelectedItemIdx(); selectedItemIdx != 1 {
 		t.Errorf("expected selected item index to be 1, got %v", selectedItemIdx)
 	}
-	if selectedItem := vp.GetSelectedItem(); selectedItem.Get().Content() != "second" {
+	if selectedItem := vp.GetSelectedItem(); selectedItem != nil && selectedItem.GetItem().Content() != "second" {
 		t.Errorf("got unexpected selected item: %v", selectedItem)
 	}
 }
@@ -3342,7 +3359,7 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 
 func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
-	vp := newViewport(w, h, WithStyles[item.SimpleGetter](Styles{
+	vp := newViewport(w, h, WithStyles[object](Styles{
 		FooterStyle:              internal.RedFg,
 		HighlightStyle:           lipgloss.NewStyle(),
 		HighlightStyleIfSelected: lipgloss.NewStyle(),
@@ -3967,7 +3984,7 @@ func TestViewport_SelectionOn_WrapOn_MaintainSelection(t *testing.T) {
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	setContent(vp, []string{
 		"sixth item",
 		"seventh item",
@@ -4059,7 +4076,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTop(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetTopSticky(true)
 	setContent(vp, []string{
 		"the first line",
@@ -4117,7 +4134,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetBottomSticky(true)
 	setContent(vp, []string{
 		"the first line",
@@ -4197,7 +4214,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomOverflowHeight(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetBottomSticky(true)
 
 	// test covers case where first set Item to empty, then overflow height
@@ -4228,7 +4245,7 @@ func TestViewport_SelectionOn_WrapOn_StickyTopBottom(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetTopSticky(true)
 	vp.SetBottomSticky(true)
 	setContent(vp, []string{
@@ -4312,7 +4329,7 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	// stickyness should override maintain selection
-	vp.SetSelectionComparator(item.SimpleGettersEqual)
+	vp.SetSelectionComparator(objectsEqual)
 	vp.SetBottomSticky(true)
 	setContent(vp, []string{
 		"first line",
@@ -4914,10 +4931,10 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func setContent(vp *Model[item.SimpleGetter], content []string) {
-	renderableStrings := make([]item.SimpleGetter, len(content))
+func setContent(vp *Model[object], content []string) {
+	renderableStrings := make([]object, len(content))
 	for i := range content {
-		renderableStrings[i] = item.SimpleGetter{Item: item.NewItem(content[i])}
+		renderableStrings[i] = object{item: item.NewItem(content[i])}
 	}
-	vp.SetContent(renderableStrings)
+	vp.SetObjects(renderableStrings)
 }

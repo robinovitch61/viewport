@@ -3,15 +3,15 @@ package viewport
 import "github.com/robinovitch61/bubbleo/viewport/item"
 
 // contentManager manages the actual Item and selection state
-type contentManager[T item.Getter] struct {
-	// itemGetters is the complete list of items to be rendered in the viewport
-	itemGetters []T
+type contentManager[T Object] struct {
+	// objects is the viewport objects
+	objects []T
 
 	// header is the unselectable lines at the top of the viewport
 	// these lines wrap, but don't pan horizontally like other non-wrapped lines
 	header []string
 
-	// selectedIdx is the index of itemGetters of the current selection (only relevant when selection is enabled)
+	// selectedIdx is the index of objects of the current selection (only relevant when selection is enabled)
 	selectedIdx int
 
 	// highlights is what to highlight wherever it shows up within an item, even wrapped between lines
@@ -26,9 +26,9 @@ type contentManager[T item.Getter] struct {
 }
 
 // newContentManager creates a new contentManager with empty initial state
-func newContentManager[T item.Getter]() *contentManager[T] {
+func newContentManager[T Object]() *contentManager[T] {
 	return &contentManager[T]{
-		itemGetters:      make([]T, 0),
+		objects:          make([]T, 0),
 		header:           []string{},
 		selectedIdx:      0,
 		highlightsByItem: make(map[int][]item.Highlight),
@@ -37,7 +37,7 @@ func newContentManager[T item.Getter]() *contentManager[T] {
 
 // setSelectedIdx sets the selected item index
 func (cm *contentManager[T]) setSelectedIdx(idx int) {
-	cm.selectedIdx = clampValZeroToMax(idx, len(cm.itemGetters)-1)
+	cm.selectedIdx = clampValZeroToMax(idx, len(cm.objects)-1)
 }
 
 // getSelectedIdx returns the current selected item index
@@ -47,20 +47,20 @@ func (cm *contentManager[T]) getSelectedIdx() int {
 
 // getSelectedItem returns a pointer to the currently selected item, or nil if none selected
 func (cm *contentManager[T]) getSelectedItem() *T {
-	if cm.selectedIdx >= len(cm.itemGetters) || cm.selectedIdx < 0 {
+	if cm.selectedIdx >= len(cm.objects) || cm.selectedIdx < 0 {
 		return nil
 	}
-	return &cm.itemGetters[cm.selectedIdx]
+	return &cm.objects[cm.selectedIdx]
 }
 
 // numItems returns the total number of items
 func (cm *contentManager[T]) numItems() int {
-	return len(cm.itemGetters)
+	return len(cm.objects)
 }
 
 // isEmpty returns true if there are no items
 func (cm *contentManager[T]) isEmpty() bool {
-	return len(cm.itemGetters) == 0
+	return len(cm.objects) == 0
 }
 
 // rebuildHighlightsCache rebuilds the internal highlight cache

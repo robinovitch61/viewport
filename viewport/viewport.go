@@ -11,7 +11,9 @@ import (
 )
 
 // Terminology:
-// - items: a selectable item in the viewport, rendered as one or more lines of text
+// - object: an object of type T that implements the Object interface, i.e. has an Item() method
+// - item: the item.Item returned by an object's Item() method. A single item may span multiple viewport lines.
+//         if selection is enabled, the item is the selectable unit
 // - line: a line of text on one row of terminal cells
 // - visible: in the vertical sense, a line is visible if it is within the viewport
 // - truncated: in the horizontal sense, a line is truncated if it is too long to fit in the viewport
@@ -39,45 +41,45 @@ var surroundingAnsiRegex = regexp.MustCompile(`(\x1b\[[0-9;]*m.*?\x1b\[0?m)`)
 type CompareFn[T any] func(a, b T) bool
 
 // Option is a functional option for configuring the viewport
-type Option[T item.Getter] func(*Model[T])
+type Option[T Object] func(*Model[T])
 
 // WithKeyMap sets the key mapping for the viewport
-func WithKeyMap[T item.Getter](keyMap KeyMap) Option[T] {
+func WithKeyMap[T Object](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
 		m.navigation.keyMap = keyMap
 	}
 }
 
 // WithStyles sets the styling for the viewport
-func WithStyles[T item.Getter](styles Styles) Option[T] {
+func WithStyles[T Object](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.display.styles = styles
 	}
 }
 
 // WithWrapText sets whether the viewport wraps text
-func WithWrapText[T item.Getter](wrap bool) Option[T] {
+func WithWrapText[T Object](wrap bool) Option[T] {
 	return func(m *Model[T]) {
 		m.SetWrapText(wrap)
 	}
 }
 
 // WithSelectionEnabled sets whether the viewport allows selection
-func WithSelectionEnabled[T item.Getter](enabled bool) Option[T] {
+func WithSelectionEnabled[T Object](enabled bool) Option[T] {
 	return func(m *Model[T]) {
 		m.SetSelectionEnabled(enabled)
 	}
 }
 
 // WithFooterEnabled sets whether the viewport shows the footer
-func WithFooterEnabled[T item.Getter](enabled bool) Option[T] {
+func WithFooterEnabled[T Object](enabled bool) Option[T] {
 	return func(m *Model[T]) {
 		m.SetFooterEnabled(enabled)
 	}
 }
 
 // Model represents a viewport component
-type Model[T item.Getter] struct {
+type Model[T Object] struct {
 	// content manages the content and selection state
 	content *contentManager[T]
 
@@ -92,7 +94,7 @@ type Model[T item.Getter] struct {
 }
 
 // New creates a new viewport model with reasonable defaults
-func New[T item.Getter](width, height int, opts ...Option[T]) (m *Model[T]) {
+func New[T Object](width, height int, opts ...Option[T]) (m *Model[T]) {
 	if width < 0 {
 		width = 0
 	}
@@ -234,7 +236,7 @@ func (m *Model[T]) View() string {
 		if wrap {
 			currentItemIdx := content.itemIndexes[idx]
 			var widthTaken int
-			truncated, widthTaken = m.content.itemGetters[itemIdx].Get().Take(
+			truncated, widthTaken = m.content.objects[itemIdx].GetItem().Take(
 				currentItemIdxWidthToLeft,
 				m.display.bounds.width,
 				"",
@@ -250,7 +252,7 @@ func (m *Model[T]) View() string {
 			}
 		} else {
 			// if not wrapped, items are not yet truncated or highlighted
-			truncated, _ = m.content.itemGetters[itemIdx].Get().Take(
+			truncated, _ = m.content.objects[itemIdx].GetItem().Take(
 				m.display.xOffset,
 				m.display.bounds.width,
 				m.config.continuationIndicator,
@@ -264,7 +266,7 @@ func (m *Model[T]) View() string {
 		}
 
 		pannedRight := m.display.xOffset > 0
-		itemHasWidth := m.content.itemGetters[itemIdx].Get().Width() > 0
+		itemHasWidth := m.content.objects[itemIdx].GetItem().Width() > 0
 		pannedPastAllWidth := lipgloss.Width(truncated) == 0
 		if !wrap && pannedRight && itemHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
@@ -301,8 +303,8 @@ func (m *Model[T]) View() string {
 	return m.display.render(strings.TrimSuffix(builder.String(), "\n"))
 }
 
-// SetContent sets the Item, the selectable set of lines in the viewport
-func (m *Model[T]) SetContent(content []T) {
+// SetObjects sets the objects
+func (m *Model[T]) SetObjects(objects []T) {
 	var initialNumLinesAboveSelection int
 	var stayAtTop, stayAtBottom bool
 	var prevSelection T
@@ -310,7 +312,7 @@ func (m *Model[T]) SetContent(content []T) {
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 			initialNumLinesAboveSelection = inView.numLinesAboveSelection
 		}
-		currentItems := m.content.itemGetters
+		currentItems := m.content.objects
 		selectedIdx := m.content.getSelectedIdx()
 		if m.navigation.topSticky && len(currentItems) > 0 && selectedIdx == 0 {
 			stayAtTop = true
@@ -321,7 +323,7 @@ func (m *Model[T]) SetContent(content []T) {
 		}
 	}
 
-	m.content.itemGetters = content
+	m.content.objects = objects
 	// ensure scroll position is valid given new Item
 	m.safelySetTopItemIdxAndOffset(m.display.topItemIdx, m.display.topItemLineOffset)
 
@@ -337,7 +339,7 @@ func (m *Model[T]) SetContent(content []T) {
 		} else if m.content.compareFn != nil {
 			// TODO: could flag when items are sorted & comparable and use binary search instead
 			found := false
-			items := m.content.itemGetters
+			items := m.content.objects
 			for i := range items {
 				if m.content.compareFn(items[i], prevSelection) {
 					m.content.setSelectedIdx(i)
@@ -352,7 +354,7 @@ func (m *Model[T]) SetContent(content []T) {
 
 		// when staying at bottom, just want to scroll so selection in view, which is done above
 		if !stayAtBottom {
-			m.content.selectedIdx = clampValZeroToMax(m.content.selectedIdx, len(m.content.itemGetters)-1)
+			m.content.selectedIdx = clampValZeroToMax(m.content.selectedIdx, len(m.content.objects)-1)
 			m.scrollSoSelectionInView()
 			if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
 				m.scrollUp(initialNumLinesAboveSelection - inView.numLinesAboveSelection)
@@ -553,7 +555,7 @@ func (m *Model[T]) maxItemWidth() int {
 
 	// check content line widths without fully rendering all of them
 	if !m.content.isEmpty() {
-		items := m.content.itemGetters
+		items := m.content.objects
 		startIdx := clampValZeroToMax(m.display.topItemIdx, m.content.numItems()-1)
 		numItemsToCheck := min(m.content.numItems()-startIdx, m.display.bounds.height)
 
@@ -562,7 +564,7 @@ func (m *Model[T]) maxItemWidth() int {
 			if itemIdx >= m.content.numItems() {
 				break
 			}
-			currItem := items[itemIdx].Get()
+			currItem := items[itemIdx].GetItem()
 			if w := currItem.Width(); w > maxLineWidth {
 				maxLineWidth = w
 			}
@@ -582,8 +584,8 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	if m.content.isEmpty() || itemIdx < 0 || itemIdx >= m.content.numItems() {
 		return 0
 	}
-	items := m.content.itemGetters
-	return items[itemIdx].Get().NumWrappedLines(m.display.bounds.width)
+	items := m.content.objects
+	return items[itemIdx].GetItem().NumWrappedLines(m.display.bounds.width)
 }
 
 func (m *Model[T]) setWidthHeight(width, height int) {
@@ -776,7 +778,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 }
 
 type visibleContent struct {
-	// itemIndexes is the indexes of m.content.itemGetters for each line
+	// itemIndexes is the indexes of m.content.objects for each line
 	itemIndexes []int
 	// showFooter indicates if the footer is visible
 	showFooter bool
@@ -797,7 +799,7 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 		m.display.topItemIdx,
 		m.display.topItemLineOffset,
 		numLinesAfterHeader,
-		renderAll(m.content.itemGetters),
+		renderAll(m.content.objects),
 	)
 	if len(itemIndexes) == 0 {
 		return visibleContent{itemIndexes: nil, showFooter: false}
@@ -813,10 +815,10 @@ func (m *Model[T]) getVisibleContent() visibleContent {
 	return visibleContent{itemIndexes: itemIndexes, showFooter: showFooter}
 }
 
-func renderAll[T item.Getter](itemGetters []T) []item.Item {
+func renderAll[T Object](itemGetters []T) []item.Item {
 	items := make([]item.Item, len(itemGetters))
 	for i := range itemGetters {
-		items[i] = itemGetters[i].Get()
+		items[i] = itemGetters[i].GetItem()
 	}
 	return items
 }

@@ -15,15 +15,23 @@ import (
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
+type object struct {
+	item item.Item
+}
+
+func (o object) GetItem() item.Item {
+	return o.item
+}
+
 var keyMap = viewport.DefaultKeyMap()
 var styles = viewport.DefaultStyles()
 
 type model struct {
 	// viewport is the container for the lines
-	viewport *viewport.Model[item.SimpleGetter]
+	viewport *viewport.Model[object]
 
 	// lines contains the lines to be displayed in the viewport
-	lines []item.SimpleGetter
+	lines []object
 
 	// ready indicates whether the model has been initialized
 	ready bool
@@ -60,13 +68,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New[item.SimpleGetter](
+			m.viewport = viewport.New[object](
 				viewportWidth,
 				viewportHeight,
-				viewport.WithKeyMap[item.SimpleGetter](keyMap),
-				viewport.WithStyles[item.SimpleGetter](styles),
+				viewport.WithKeyMap[object](keyMap),
+				viewport.WithStyles[object](styles),
 			)
-			m.viewport.SetContent(m.lines)
+			m.viewport.SetObjects(m.lines)
 			m.viewport.SetSelectionEnabled(false)
 			m.viewport.SetWrapText(true)
 			m.ready = true
@@ -130,9 +138,9 @@ func getShortHelp(bindings []key.Binding) string {
 
 func main() {
 	lines := strings.Split(text.ExampleContent, "\n")
-	renderableLines := make([]item.SimpleGetter, len(lines))
+	renderableLines := make([]object, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = item.SimpleGetter{Item: item.NewItem(line)}
+		renderableLines[i] = object{item: item.NewItem(line)}
 	}
 
 	p := tea.NewProgram(

@@ -33,17 +33,17 @@ type Match struct {
 }
 
 // Option is a functional option for configuring the filterable viewport
-type Option[T item.Getter] func(*Model[T])
+type Option[T viewport.Object] func(*Model[T])
 
 // WithKeyMap sets the key mapping for the viewport
-func WithKeyMap[T item.Getter](keyMap KeyMap) Option[T] {
+func WithKeyMap[T viewport.Object](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
 		m.keyMap = keyMap
 	}
 }
 
 // WithStyles sets the styles for the filterable viewport
-func WithStyles[T item.Getter](styles Styles) Option[T] {
+func WithStyles[T viewport.Object](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
 		m.filterTextInput.Cursor.Style = styles.CursorStyle
@@ -51,35 +51,35 @@ func WithStyles[T item.Getter](styles Styles) Option[T] {
 }
 
 // WithPrefixText sets the prefix text for the filter line
-func WithPrefixText[T item.Getter](prefix string) Option[T] {
+func WithPrefixText[T viewport.Object](prefix string) Option[T] {
 	return func(m *Model[T]) {
 		m.prefixText = prefix
 	}
 }
 
 // WithEmptyText sets the text to display when the filter is empty
-func WithEmptyText[T item.Getter](whenEmpty string) Option[T] {
+func WithEmptyText[T viewport.Object](whenEmpty string) Option[T] {
 	return func(m *Model[T]) {
 		m.emptyText = whenEmpty
 	}
 }
 
 // WithMatchingItemsOnly sets whether to show only the matching items
-func WithMatchingItemsOnly[T item.Getter](matchingItemsOnly bool) Option[T] {
+func WithMatchingItemsOnly[T viewport.Object](matchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
 		m.matchingItemsOnly = matchingItemsOnly
 	}
 }
 
 // WithCanToggleMatchingItemsOnly sets whether this viewport can toggle matching items only mode
-func WithCanToggleMatchingItemsOnly[T item.Getter](canToggleMatchingItemsOnly bool) Option[T] {
+func WithCanToggleMatchingItemsOnly[T viewport.Object](canToggleMatchingItemsOnly bool) Option[T] {
 	return func(m *Model[T]) {
 		m.canToggleMatchingItemsOnly = canToggleMatchingItemsOnly
 	}
 }
 
 // Model is the state and logic for a filterable viewport
-type Model[T item.Getter] struct {
+type Model[T viewport.Object] struct {
 	Viewport *viewport.Model[T]
 
 	height          int
@@ -88,7 +88,7 @@ type Model[T item.Getter] struct {
 	filterMode      filterMode
 	prefixText      string
 	emptyText       string
-	items           []T
+	objects         []T
 	isRegexMode     bool
 	styles          Styles
 
@@ -103,7 +103,7 @@ type Model[T item.Getter] struct {
 }
 
 // New creates a new filterable viewport model with default configuration
-func New[T item.Getter](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
+func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
@@ -119,7 +119,7 @@ func New[T item.Getter](vp *viewport.Model[T], opts ...Option[T]) *Model[T] {
 		filterMode:                 filterModeOff,
 		prefixText:                 "",
 		emptyText:                  "No Filter",
-		items:                      []T{},
+		objects:                    []T{},
 		isRegexMode:                false,
 		styles:                     defaultStyles,
 		matchingItemsOnly:          false,
@@ -230,14 +230,14 @@ func (m *Model[T]) View() string {
 
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
-	matchingItems := m.getMatchingItemsAndUpdateMatches()
+	matchingItems := m.getMatchingObjectsAndUpdateMatches()
 	m.ensureCurrentMatchInView()
 	m.updateFocusedMatchHighlight()
 	m.numMatchingItems = len(matchingItems)
 	if m.matchingItemsOnly {
-		m.Viewport.SetContent(matchingItems)
+		m.Viewport.SetObjects(matchingItems)
 	} else {
-		m.Viewport.SetContent(m.items)
+		m.Viewport.SetObjects(m.objects)
 	}
 }
 
@@ -325,13 +325,13 @@ func (m *Model[T]) GetHeight() int {
 	return m.Viewport.GetHeight() + filterLineHeight
 }
 
-// SetContent sets the content and updates total item count
-func (m *Model[T]) SetContent(items []T) {
-	if items == nil {
-		items = []T{}
+// SetObjects sets the viewport objects
+func (m *Model[T]) SetObjects(objects []T) {
+	if objects == nil {
+		objects = []T{}
 	}
-	m.Viewport.SetContent(items)
-	m.items = items
+	m.Viewport.SetObjects(objects)
+	m.objects = objects
 	m.updateMatchingItems()
 }
 
@@ -386,8 +386,8 @@ func (m *Model[T]) getModeIndicator() string {
 	return "[exact]"
 }
 
-// getMatchingItemsAndUpdateMatches filters items and updates match tracking
-func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
+// getMatchingObjectsAndUpdateMatches filters objects and updates match tracking
+func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	prevFocusedMatchIdx := m.focusedMatchIdx
 
 	m.allMatches = []Match{}
@@ -397,21 +397,21 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 
 	filterValue := m.filterTextInput.Value()
 	if m.filterMode == filterModeOff || filterValue == "" {
-		return m.items
+		return m.objects
 	}
 
-	filteredItems := make([]T, 0, len(m.items))
+	filteredObjects := make([]T, 0, len(m.objects))
 	if m.isRegexMode {
 		regex, err := regexp.Compile(filterValue)
 		if err != nil {
 			return []T{}
 		}
-		for i := range m.items {
-			content := m.items[i].Get().ContentNoAnsi()
-			matches := regex.FindAllStringIndex(content, -1)
+		for i := range m.objects {
+			contentNoAnsi := m.objects[i].GetItem().ContentNoAnsi()
+			matches := regex.FindAllStringIndex(contentNoAnsi, -1)
 			if len(matches) > 0 {
-				filteredItems = append(filteredItems, m.items[i])
-				m.itemIdxToFilteredIdx[i] = len(filteredItems) - 1
+				filteredObjects = append(filteredObjects, m.objects[i])
+				m.itemIdxToFilteredIdx[i] = len(filteredObjects) - 1
 				for _, match := range matches {
 					m.allMatches = append(m.allMatches, Match{
 						ItemIndex: i,
@@ -422,19 +422,19 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 			}
 		}
 	} else {
-		for i := range m.items {
-			content := m.items[i].Get().ContentNoAnsi()
+		for i := range m.objects {
+			contentNoAnsi := m.objects[i].GetItem().ContentNoAnsi()
 			start := 0
 			hasMatch := false
 			for {
-				index := strings.Index(content[start:], filterValue)
+				index := strings.Index(contentNoAnsi[start:], filterValue)
 				if index == -1 {
 					break
 				}
 				if !hasMatch {
-					filteredItems = append(filteredItems, m.items[i])
+					filteredObjects = append(filteredObjects, m.objects[i])
 					hasMatch = true
-					m.itemIdxToFilteredIdx[i] = len(filteredItems) - 1
+					m.itemIdxToFilteredIdx[i] = len(filteredObjects) - 1
 				}
 				matchStart := start + index
 				matchEnd := matchStart + len(filterValue)
@@ -458,7 +458,7 @@ func (m *Model[T]) getMatchingItemsAndUpdateMatches() []T {
 		m.focusedMatchIdx = -1
 	}
 
-	return filteredItems
+	return filteredObjects
 }
 
 // matchingItemsOnlyText returns the text to display when showing matching items only
