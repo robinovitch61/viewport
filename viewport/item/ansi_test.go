@@ -479,10 +479,11 @@ func TestHighlightString(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			var highlights []Highlight
+			var matches []Match
 			if tt.toHighlight != "" {
-				highlights = ExtractHighlights([]string{tt.fullLine}, tt.toHighlight, tt.highlightStyle)
+				matches = ExtractMatches([]string{tt.fullLine}, tt.toHighlight)
 			}
+			highlights := toHighlights(matches, tt.highlightStyle)
 			result := highlightString(
 				tt.styledSegment,
 				highlights,

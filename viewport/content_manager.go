@@ -67,7 +67,7 @@ func (cm *contentManager[T]) isEmpty() bool {
 func (cm *contentManager[T]) rebuildHighlightsCache() {
 	cm.highlightsByItem = make(map[int][]item.Highlight)
 	for _, highlight := range cm.highlights {
-		itemIdx := highlight.ItemIndex
+		itemIdx := highlight.Match.ItemIndex
 		cm.highlightsByItem[itemIdx] = append(cm.highlightsByItem[itemIdx], highlight)
 	}
 }

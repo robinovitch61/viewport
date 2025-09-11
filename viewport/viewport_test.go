@@ -847,16 +847,20 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       1,
-			StartByteOffset: 4,
-			EndByteOffset:   10,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       1,
+				StartByteOffset: 4,
+				EndByteOffset:   10,
+			},
+			Style: internal.RedFg,
 		},
 		{
-			ItemIndex:       2,
-			StartByteOffset: 4,
-			EndByteOffset:   9,
-			Style:           internal.GreenFg,
+			Match: item.Match{
+				ItemIndex:       2,
+				StartByteOffset: 4,
+				EndByteOffset:   9,
+			},
+			Style: internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -881,10 +885,12 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 1,
-			EndByteOffset:   8,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 1,
+				EndByteOffset:   8,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2253,16 +2259,20 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 4,
-			EndByteOffset:   9,
-			Style:           internal.GreenFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 4,
+				EndByteOffset:   9,
+			},
+			Style: internal.GreenFg,
 		},
 		{
-			ItemIndex:       1,
-			StartByteOffset: 4,
-			EndByteOffset:   10,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       1,
+				StartByteOffset: 4,
+				EndByteOffset:   10,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2287,10 +2297,12 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 1,
-			EndByteOffset:   8,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 1,
+				EndByteOffset:   8,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3156,16 +3168,20 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       1,
-			StartByteOffset: 0,
-			EndByteOffset:   6,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       1,
+				StartByteOffset: 0,
+				EndByteOffset:   6,
+			},
+			Style: internal.RedFg,
 		},
 		{
-			ItemIndex:       1,
-			StartByteOffset: 12,
-			EndByteOffset:   16,
-			Style:           internal.GreenFg,
+			Match: item.Match{
+				ItemIndex:       1,
+				StartByteOffset: 12,
+				EndByteOffset:   16,
+			},
+			Style: internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3190,10 +3206,12 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 1,
-			EndByteOffset:   8,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 1,
+				EndByteOffset:   8,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4685,16 +4703,20 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 0,
-			EndByteOffset:   5,
-			Style:           internal.GreenFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 0,
+				EndByteOffset:   5,
+			},
+			Style: internal.GreenFg,
 		},
 		{
-			ItemIndex:       0,
-			StartByteOffset: 11,
-			EndByteOffset:   15,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 11,
+				EndByteOffset:   15,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4720,10 +4742,12 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	})
 	highlights := []item.Highlight{
 		{
-			ItemIndex:       0,
-			StartByteOffset: 1,
-			EndByteOffset:   8,
-			Style:           internal.RedFg,
+			Match: item.Match{
+				ItemIndex:       0,
+				StartByteOffset: 1,
+				EndByteOffset:   8,
+			},
+			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)

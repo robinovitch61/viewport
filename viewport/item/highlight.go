@@ -9,23 +9,24 @@ import (
 
 // Highlight represents a specific position and style to highlight
 type Highlight struct {
-	ItemIndex       int            // index of the item containing the highlight
-	StartByteOffset int            // start byte offset within the item's content
-	EndByteOffset   int            // end byte offset within the item's content
-	Style           lipgloss.Style // style to apply to this highlight
+	Match Match          // the match details
+	Style lipgloss.Style // style to apply to this highlight
 }
 
-// ExtractHighlights extracts highlights from a slice of strings and a match string
+// Match represents a match of a substring within an item
+type Match struct {
+	ItemIndex       int // index of the item containing the match
+	StartByteOffset int // start position of the match within the item's content
+	EndByteOffset   int // end position of the match within the item's content
+}
+
+// ExtractMatches extracts highlights from a slice of strings and a match string
 // Strings should not contain ansi styling codes
-func ExtractHighlights(
-	vals []string,
-	exactMatch string,
-	highlightStyle lipgloss.Style,
-) []Highlight {
-	var highlights []Highlight
+func ExtractMatches(vals []string, exactMatch string) []Match {
+	var matches []Match
 
 	if exactMatch == "" {
-		return highlights
+		return matches
 	}
 
 	for i, item := range vals {
@@ -39,42 +40,36 @@ func ExtractHighlights(
 			actualStartIndex := startIndex + foundIndex
 			endIndex := actualStartIndex + len(exactMatch)
 
-			highlights = append(highlights, Highlight{
+			matches = append(matches, Match{
 				ItemIndex:       i,
 				StartByteOffset: actualStartIndex,
 				EndByteOffset:   endIndex,
-				Style:           highlightStyle,
 			})
-			startIndex = actualStartIndex + 1 // Move past this match to find overlapping matches
+			startIndex = actualStartIndex + 1 // move past this match to find overlapping matches
 		}
 	}
-	return highlights
+	return matches
 }
 
-// ExtractHighlightsRegexMatch extracts highlights from a slice of strings based on a regex match
+// ExtractMatchesRegex extracts matches from a slice of strings based on a regex pattern
 // Strings should not contain ansi styling codes
-func ExtractHighlightsRegexMatch(
-	vals []string,
-	regexPattern string,
-	highlightStyle lipgloss.Style,
-) ([]Highlight, error) {
+func ExtractMatchesRegex(vals []string, regexPattern string) ([]Match, error) {
 	regex, err := regexp.Compile(regexPattern)
 	if err != nil {
 		return nil, err
 	}
 
-	var highlights []Highlight
+	var matches []Match
 	for i, item := range vals {
 		plainLine := stripAnsi(item)
-		matches := regex.FindAllStringIndex(plainLine, -1)
-		for _, match := range matches {
-			highlights = append(highlights, Highlight{
+		regexMatches := regex.FindAllStringIndex(plainLine, -1)
+		for _, regexMatch := range regexMatches {
+			matches = append(matches, Match{
 				ItemIndex:       i,
-				StartByteOffset: match[0],
-				EndByteOffset:   match[1],
-				Style:           highlightStyle,
+				StartByteOffset: regexMatch[0],
+				EndByteOffset:   regexMatch[1],
 			})
 		}
 	}
-	return highlights, nil
+	return matches, nil
 }

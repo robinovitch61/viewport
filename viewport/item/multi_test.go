@@ -430,10 +430,11 @@ func TestMultiItem_Take(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, eq := range getEquivalentItems()[tt.key] {
-				var highlights []Highlight
+				var matches []Match
 				if tt.toHighlight != "" {
-					highlights = ExtractHighlights([]string{eq.Content()}, tt.toHighlight, tt.highlightStyle)
+					matches = ExtractMatches([]string{eq.Content()}, tt.toHighlight)
 				}
+				highlights := toHighlights(matches, tt.highlightStyle)
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.repr()))
 			}
@@ -532,4 +533,15 @@ func TestMultiItem_NumWrappedLines(t *testing.T) {
 			}
 		})
 	}
+}
+
+func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
+	var highlights []Highlight
+	for _, match := range matches {
+		highlights = append(highlights, Highlight{
+			Match: match,
+			Style: style,
+		})
+	}
+	return highlights
 }

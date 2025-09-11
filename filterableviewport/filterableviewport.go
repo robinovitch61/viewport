@@ -25,13 +25,6 @@ const (
 	filterLineHeight = 1
 )
 
-// Match represents a single match in the content
-type Match struct {
-	ItemIndex int // index of the item containing the match
-	Start     int // start position of the match within the item's content
-	End       int // end position of the match within the item's content
-}
-
 // Option is a functional option for configuring the filterable viewport
 type Option[T viewport.Object] func(*Model[T])
 
@@ -94,7 +87,7 @@ type Model[T viewport.Object] struct {
 
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
-	allMatches                 []Match
+	allMatches                 []item.Match
 	numMatchingItems           int
 	focusedMatchIdx            int
 	previousFocusedMatchIdx    int
@@ -124,7 +117,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		styles:                     defaultStyles,
 		matchingItemsOnly:          false,
 		canToggleMatchingItemsOnly: true,
-		allMatches:                 []Match{},
+		allMatches:                 []item.Match{},
 		numMatchingItems:           0,
 		focusedMatchIdx:            -1,
 		previousFocusedMatchIdx:    -1,
@@ -230,12 +223,12 @@ func (m *Model[T]) View() string {
 
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
-	matchingItems := m.getMatchingObjectsAndUpdateMatches()
+	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
 	m.ensureCurrentMatchInView()
 	m.updateFocusedMatchHighlight()
-	m.numMatchingItems = len(matchingItems)
+	m.numMatchingItems = len(matchingObjects)
 	if m.matchingItemsOnly {
-		m.Viewport.SetObjects(matchingItems)
+		m.Viewport.SetObjects(matchingObjects)
 	} else {
 		m.Viewport.SetObjects(m.objects)
 	}
@@ -300,10 +293,12 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 			style = m.styles.Match.Focused
 		}
 		highlight := item.Highlight{
-			ItemIndex:       itemIdx,
-			StartByteOffset: match.Start,
-			EndByteOffset:   match.End,
-			Style:           style,
+			Match: item.Match{
+				ItemIndex:       itemIdx,
+				StartByteOffset: match.StartByteOffset,
+				EndByteOffset:   match.EndByteOffset,
+			},
+			Style: style,
 		}
 		highlights = append(highlights, highlight)
 	}
@@ -390,7 +385,7 @@ func (m *Model[T]) getModeIndicator() string {
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	prevFocusedMatchIdx := m.focusedMatchIdx
 
-	m.allMatches = []Match{}
+	m.allMatches = []item.Match{}
 	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
 	m.itemIdxToFilteredIdx = make(map[int]int)
@@ -400,52 +395,34 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		return m.objects
 	}
 
-	filteredObjects := make([]T, 0, len(m.objects))
+	contentNoAnsiStrings := make([]string, len(m.objects))
+	for i := range m.objects {
+		contentNoAnsiStrings[i] = m.objects[i].GetItem().ContentNoAnsi()
+	}
+
+	var matches []item.Match
+	var err error
 	if m.isRegexMode {
-		regex, err := regexp.Compile(filterValue)
+		matches, err = item.ExtractMatchesRegex(contentNoAnsiStrings, filterValue)
 		if err != nil {
 			return []T{}
 		}
-		for i := range m.objects {
-			contentNoAnsi := m.objects[i].GetItem().ContentNoAnsi()
-			matches := regex.FindAllStringIndex(contentNoAnsi, -1)
-			if len(matches) > 0 {
-				filteredObjects = append(filteredObjects, m.objects[i])
-				m.itemIdxToFilteredIdx[i] = len(filteredObjects) - 1
-				for _, match := range matches {
-					m.allMatches = append(m.allMatches, Match{
-						ItemIndex: i,
-						Start:     match[0],
-						End:       match[1],
-					})
-				}
-			}
-		}
 	} else {
-		for i := range m.objects {
-			contentNoAnsi := m.objects[i].GetItem().ContentNoAnsi()
-			start := 0
-			hasMatch := false
-			for {
-				index := strings.Index(contentNoAnsi[start:], filterValue)
-				if index == -1 {
-					break
-				}
-				if !hasMatch {
-					filteredObjects = append(filteredObjects, m.objects[i])
-					hasMatch = true
-					m.itemIdxToFilteredIdx[i] = len(filteredObjects) - 1
-				}
-				matchStart := start + index
-				matchEnd := matchStart + len(filterValue)
-				m.allMatches = append(m.allMatches, Match{
-					ItemIndex: i,
-					Start:     matchStart,
-					End:       matchEnd,
-				})
-				start = matchEnd
-			}
+		matches = item.ExtractMatches(contentNoAnsiStrings, filterValue)
+	}
+
+	filteredObjects := make([]T, 0, len(m.objects))
+	itemsWithMatches := make(map[int]bool)
+
+	for _, match := range matches {
+		itemIdx := match.ItemIndex
+		if !itemsWithMatches[itemIdx] {
+			filteredObjects = append(filteredObjects, m.objects[itemIdx])
+			m.itemIdxToFilteredIdx[itemIdx] = len(filteredObjects) - 1
+			itemsWithMatches[itemIdx] = true
 		}
+
+		m.allMatches = append(m.allMatches, match)
 	}
 
 	m.totalMatchesOnAllItems = len(m.allMatches)
@@ -539,9 +516,9 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 }
 
-func (m *Model[T]) panToCurrentMatch(match Match) {
+func (m *Model[T]) panToCurrentMatch(match item.Match) {
 	// TODO LEO: use widths, not byte offsets here
-	matchCenter := match.Start + (match.End-match.Start)/2
+	matchCenter := match.StartByteOffset + (match.EndByteOffset-match.StartByteOffset)/2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
 	m.Viewport.SetXOffsetWidth(centeredXOffset)

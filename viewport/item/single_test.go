@@ -876,10 +876,11 @@ func TestSingle_Take(t *testing.T) {
 			item := NewItem(tt.s)
 			startWidth := tt.startWidth
 
-			var highlights []Highlight
+			var matches []Match
 			if tt.toHighlight != "" {
-				highlights = ExtractHighlights([]string{tt.s}, tt.toHighlight, tt.highlightStyle)
+				matches = ExtractMatches([]string{tt.s}, tt.toHighlight)
 			}
+			highlights := toHighlights(matches, tt.highlightStyle)
 			for i := 0; i < tt.numTakes; i++ {
 				actual, actualWidth := item.Take(startWidth, tt.width, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected[i], actual)
