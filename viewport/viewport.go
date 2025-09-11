@@ -234,17 +234,16 @@ func (m *Model[T]) View() string {
 	for idx, itemIdx := range content.itemIndexes {
 		var truncated string
 		if wrap {
-			currentItemIdx := content.itemIndexes[idx]
 			var widthTaken int
 			truncated, widthTaken = m.content.objects[itemIdx].GetItem().Take(
 				currentItemIdxWidthToLeft,
 				m.display.bounds.width,
 				"",
-				m.getHighlightsForItem(currentItemIdx),
+				m.getHighlightsForItem(itemIdx),
 			)
 			if idx+1 < len(content.itemIndexes) {
 				nextItemIdx := content.itemIndexes[idx+1]
-				if nextItemIdx != currentItemIdx {
+				if nextItemIdx != itemIdx {
 					currentItemIdxWidthToLeft = 0
 				} else {
 					currentItemIdxWidthToLeft += widthTaken
