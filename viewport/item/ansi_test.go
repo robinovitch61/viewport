@@ -378,117 +378,128 @@ func TestAnsi_highlightLine(t *testing.T) {
 
 func TestHighlightString(t *testing.T) {
 	for _, tt := range []struct {
-		name           string
-		styledSegment  string // segment with ANSI codes
-		toHighlight    string
-		highlightStyle lipgloss.Style
-		fullLine       string // full line without ANSI
-		segmentStart   int
-		segmentEnd     int
-		expected       string
+		name                      string
+		plainLine                 string // used for extracting highlights
+		styledSegment             string // line segment with ANSI codes
+		toHighlight               string // unstyled text to highlight in segment
+		highlightStyle            lipgloss.Style
+		plainLineSegmentStartByte int // byte offset in plainLine where segment starts
+		plainLineSegmentEndByte   int // byte offset in plainLine where segment ends
+		expected                  string
 	}{
 		{
-			name:           "empty",
-			styledSegment:  "",
-			toHighlight:    "",
-			highlightStyle: internal.RedFg,
-			fullLine:       "",
-			segmentStart:   0,
-			segmentEnd:     0,
-			expected:       "",
+			name:                      "empty",
+			plainLine:                 "",
+			styledSegment:             "",
+			toHighlight:               "",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   0,
+			expected:                  "",
 		},
 		{
-			name:           "no highlight",
-			styledSegment:  "hello",
-			toHighlight:    "",
-			highlightStyle: internal.RedFg,
-			fullLine:       "hello",
-			segmentStart:   0,
-			segmentEnd:     5,
-			expected:       "hello",
+			name:                      "no highlight",
+			plainLine:                 "hello",
+			styledSegment:             "hello",
+			toHighlight:               "",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   5,
+			expected:                  "hello",
 		},
 		{
-			name:           "simple highlight",
-			styledSegment:  "hello",
-			toHighlight:    "ell",
-			highlightStyle: internal.RedFg,
-			fullLine:       "hello",
-			segmentStart:   0,
-			segmentEnd:     5,
-			expected:       "h\x1b[38;2;255;0;0mell" + RST + "o",
+			name:                      "simple highlight",
+			plainLine:                 "hello",
+			styledSegment:             "hello",
+			toHighlight:               "ell",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   5,
+			expected:                  "h" + internal.RedFg.Render("ell") + "o",
 		},
 		{
-			name:           "highlight with existing style",
-			styledSegment:  "\x1b[38;2;255;0;0mfirst line" + RST,
-			toHighlight:    "first",
-			highlightStyle: internal.BlueFg,
-			fullLine:       "first line",
-			segmentStart:   0,
-			segmentEnd:     10,
-			expected:       "\x1b[38;2;0;0;255mfirst" + RST + "\x1b[38;2;255;0;0m line" + RST,
+			name:                      "highlight with existing style",
+			plainLine:                 "first line",
+			styledSegment:             internal.RedFg.Render("first line"),
+			toHighlight:               "first",
+			highlightStyle:            internal.BlueFg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   10,
+			expected:                  internal.BlueFg.Render("first") + internal.RedFg.Render(" line"),
 		},
 		{
-			name:           "left overflow",
-			styledSegment:  "ello world",
-			toHighlight:    "hello",
-			highlightStyle: internal.RedFg,
-			fullLine:       "hello world",
-			segmentStart:   1,
-			segmentEnd:     11,
-			expected:       "\x1b[38;2;255;0;0mello" + RST + " world",
+			name:                      "left overflow",
+			plainLine:                 "hello world",
+			styledSegment:             "ello world",
+			toHighlight:               "hello",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 1,
+			plainLineSegmentEndByte:   11,
+			expected:                  internal.RedFg.Render("ello") + " world",
 		},
 		{
-			name:           "right overflow",
-			styledSegment:  "hello wo",
-			toHighlight:    "world",
-			highlightStyle: internal.RedFg,
-			fullLine:       "hello world",
-			segmentStart:   0,
-			segmentEnd:     8,
-			expected:       "hello \x1b[38;2;255;0;0mwo" + RST,
+			name:                      "right overflow",
+			plainLine:                 "hello world",
+			styledSegment:             "hello wo",
+			toHighlight:               "world",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   8,
+			expected:                  "hello " + internal.RedFg.Render("wo"),
 		},
 		{
-			name:           "both overflow with existing style",
-			styledSegment:  "\x1b[38;2;255;0;0mello wor" + RST,
-			toHighlight:    "hello world",
-			highlightStyle: internal.BlueFg,
-			fullLine:       "hello world",
-			segmentStart:   1,
-			segmentEnd:     9,
-			expected:       "\x1b[38;2;0;0;255mello wor" + RST,
+			name:                      "both overflow with existing style",
+			plainLine:                 "hello world",
+			styledSegment:             internal.RedFg.Render("ello wor"),
+			toHighlight:               "hello world",
+			highlightStyle:            internal.BlueFg,
+			plainLineSegmentStartByte: 1,
+			plainLineSegmentEndByte:   9,
+			expected:                  internal.BlueFg.Render("ello wor"),
 		},
 		{
-			name:           "no match in segment",
-			styledSegment:  "middle",
-			toHighlight:    "outside",
-			highlightStyle: internal.RedFg,
-			fullLine:       "outside middle outside",
-			segmentStart:   8,
-			segmentEnd:     14,
-			expected:       "middle",
+			name:                      "no match in segment",
+			plainLine:                 "outside middle outside",
+			styledSegment:             "middle",
+			toHighlight:               "outside",
+			highlightStyle:            internal.RedFg,
+			plainLineSegmentStartByte: 8,
+			plainLineSegmentEndByte:   14,
+			expected:                  "middle",
 		},
 		{
-			name:           "across ansi styles",
-			styledSegment:  internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"),
-			toHighlight:    "lo wo",
-			highlightStyle: internal.GreenBg,
-			fullLine:       "hello world",
-			segmentStart:   0,
-			segmentEnd:     11,
-			expected:       internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
+			name:                      "across ansi styles",
+			plainLine:                 "hello world",
+			styledSegment:             internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"),
+			toHighlight:               "lo wo",
+			highlightStyle:            internal.GreenBg,
+			plainLineSegmentStartByte: 0,
+			plainLineSegmentEndByte:   11,
+			expected:                  internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
+		},
+		{
+			name: "unicode",
+			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b), A (1w, 1b)
+			plainLine:                 "A💖中éA",
+			styledSegment:             internal.RedFg.Render("💖中éA"),
+			toHighlight:               "💖中",
+			highlightStyle:            internal.GreenBg,
+			plainLineSegmentStartByte: 1,
+			plainLineSegmentEndByte:   12,
+			expected:                  internal.GreenBg.Render("💖中") + internal.RedFg.Render("éA"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			var matches []Match
 			if tt.toHighlight != "" {
-				matches = ExtractMatches([]string{tt.fullLine}, tt.toHighlight)
+				matches = ExtractMatches([]string{tt.plainLine}, tt.toHighlight)
 			}
 			highlights := toHighlights(matches, tt.highlightStyle)
 			result := highlightString(
 				tt.styledSegment,
 				highlights,
-				tt.segmentStart,
-				tt.segmentEnd,
+				tt.plainLineSegmentStartByte,
+				tt.plainLineSegmentEndByte,
 			)
 			internal.CmpStr(t, tt.expected, result)
 		})

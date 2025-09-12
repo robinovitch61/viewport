@@ -175,27 +175,27 @@ func highlightLine(styledLine, highlight string, highlightStyle lipgloss.Style, 
 // might overflow the segment boundaries. It preserves any existing ANSI styling in the segment.
 //
 // Parameters:
-//   - styledLine: the text segment to highlight, which may contain ANSI codes
+//   - styledSegment: the text segment to highlight, which may contain ANSI codes
 //   - highlights: a list of Highlight structs defining the styledLine byte offsets and styles to apply
-//   - plainStartByte: byte offset where styledLine starts in fullLine
-//   - plainEndByte: byte offset where styledLine ends in fullLine
+//   - plainLineSegmentStartByte: byte offset where styledSegment starts in full line without ansi codes
+//   - plainLineSegmentEndByte: byte offset where styledSegment ends in full line without ansi codes
 //
 // Returns the segment with highlighting applied, preserving original ANSI codes.
 func highlightString(
-	styledLine string,
+	styledSegment string,
 	highlights []Highlight,
-	plainStartByte int,
-	plainEndByte int,
+	plainLineSegmentStartByte int,
+	plainLineSegmentEndByte int,
 ) string {
 	if len(highlights) == 0 {
-		return styledLine
+		return styledSegment
 	}
 
 	var applicableHighlights []highlightRange
 	for _, highlight := range highlights {
-		if highlight.Match.StartByteOffset < plainEndByte && highlight.Match.EndByteOffset > plainStartByte {
-			startByte := max(highlight.Match.StartByteOffset, plainStartByte) - plainStartByte
-			endByte := min(highlight.Match.EndByteOffset, plainEndByte) - plainStartByte
+		if highlight.Match.StartByteOffset < plainLineSegmentEndByte && highlight.Match.EndByteOffset > plainLineSegmentStartByte {
+			startByte := max(highlight.Match.StartByteOffset, plainLineSegmentStartByte) - plainLineSegmentStartByte
+			endByte := min(highlight.Match.EndByteOffset, plainLineSegmentEndByte) - plainLineSegmentStartByte
 			applicableHighlights = append(applicableHighlights, highlightRange{
 				startByte: startByte,
 				endByte:   endByte,
@@ -205,7 +205,7 @@ func highlightString(
 	}
 
 	if len(applicableHighlights) == 0 {
-		return styledLine
+		return styledSegment
 	}
 
 	// sort highlights by start position
@@ -219,7 +219,7 @@ func highlightString(
 
 	var result strings.Builder
 	// pre-allocation based on highlight density (~50 bytes per highlight for styling)
-	estimatedSize := len(styledLine) + len(applicableHighlights)*50
+	estimatedSize := len(styledSegment) + len(applicableHighlights)*50
 	result.Grow(estimatedSize)
 
 	var activeStyles []string
@@ -228,14 +228,14 @@ func highlightString(
 	inAnsi := false
 
 	i := 0
-	for i < len(styledLine) {
+	for i < len(styledSegment) {
 		// handle ansi sequences
-		if strings.HasPrefix(styledLine[i:], "\x1b[") {
+		if strings.HasPrefix(styledSegment[i:], "\x1b[") {
 			inAnsi = true
-			ansiLen := strings.Index(styledLine[i:], "m")
+			ansiLen := strings.Index(styledSegment[i:], "m")
 			if ansiLen != -1 {
 				escEnd := i + ansiLen + 1
-				ansi := styledLine[i:escEnd]
+				ansi := styledSegment[i:escEnd]
 				if ansi == RST {
 					activeStyles = []string{} // reset
 				} else {
@@ -260,7 +260,7 @@ func highlightString(
 				}
 
 				// extract and apply highlight text
-				plainText := getNonAnsiBytes(styledLine, i, highlight.endByte-highlight.startByte)
+				plainText := getNonAnsiBytes(styledSegment, i, highlight.endByte-highlight.startByte)
 				result.WriteString(highlight.style.Render(plainText))
 
 				// restore previous styles if any
@@ -272,10 +272,10 @@ func highlightString(
 
 				// skip highlighted text
 				count := 0
-				for count < len(plainText) && i < len(styledLine) {
-					if strings.HasPrefix(styledLine[i:], "\x1b[") {
-						escEnd := i + strings.Index(styledLine[i:], "m") + 1
-						result.WriteString(styledLine[i:escEnd])
+				for count < len(plainText) && i < len(styledSegment) {
+					if strings.HasPrefix(styledSegment[i:], "\x1b[") {
+						escEnd := i + strings.Index(styledSegment[i:], "m") + 1
+						result.WriteString(styledSegment[i:escEnd])
 						i = escEnd
 						continue
 					}
@@ -296,8 +296,8 @@ func highlightString(
 		}
 
 		// regular character
-		if i < len(styledLine) {
-			result.WriteByte(styledLine[i])
+		if i < len(styledSegment) {
+			result.WriteByte(styledSegment[i])
 			if !inAnsi {
 				nonAnsiBytes++
 			}

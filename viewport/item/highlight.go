@@ -44,7 +44,7 @@ func ExtractMatches(vals []string, exactMatch string) []Match {
 				StartByteOffset: actualStartIndex,
 				EndByteOffset:   endIndex,
 			})
-			startIndex = actualStartIndex + 1 // move past this match to find overlapping matches
+			startIndex = actualStartIndex + 1
 		}
 	}
 	return matches
