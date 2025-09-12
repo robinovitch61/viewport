@@ -878,7 +878,7 @@ func TestSingle_Take(t *testing.T) {
 
 			var matches []Match
 			if tt.toHighlight != "" {
-				matches = ExtractMatches([]string{tt.s}, tt.toHighlight)
+				matches = ExtractMatches([]string{stripAnsi(tt.s)}, tt.toHighlight)
 			}
 			highlights := toHighlights(matches, tt.highlightStyle)
 			for i := 0; i < tt.numTakes; i++ {

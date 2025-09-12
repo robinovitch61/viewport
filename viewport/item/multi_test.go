@@ -432,7 +432,7 @@ func TestMultiItem_Take(t *testing.T) {
 			for _, eq := range getEquivalentItems()[tt.key] {
 				var matches []Match
 				if tt.toHighlight != "" {
-					matches = ExtractMatches([]string{eq.Content()}, tt.toHighlight)
+					matches = ExtractMatches([]string{eq.ContentNoAnsi()}, tt.toHighlight)
 				}
 				highlights := toHighlights(matches, tt.highlightStyle)
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)

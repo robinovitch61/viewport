@@ -30,10 +30,9 @@ func ExtractMatches(vals []string, exactMatch string) []Match {
 	}
 
 	for i, item := range vals {
-		plainLine := stripAnsi(item)
 		startIndex := 0
 		for {
-			foundIndex := strings.Index(plainLine[startIndex:], exactMatch)
+			foundIndex := strings.Index(item[startIndex:], exactMatch)
 			if foundIndex == -1 {
 				break
 			}
@@ -61,8 +60,7 @@ func ExtractMatchesRegex(vals []string, regexPattern string) ([]Match, error) {
 
 	var matches []Match
 	for i, item := range vals {
-		plainLine := stripAnsi(item)
-		regexMatches := regex.FindAllStringIndex(plainLine, -1)
+		regexMatches := regex.FindAllStringIndex(item, -1)
 		for _, regexMatch := range regexMatches {
 			matches = append(matches, Match{
 				ItemIndex:       i,
