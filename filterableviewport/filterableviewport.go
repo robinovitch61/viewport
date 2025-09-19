@@ -397,7 +397,8 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 
 	contentNoAnsiStrings := make([]string, len(m.objects))
 	for i := range m.objects {
-		contentNoAnsiStrings[i] = m.objects[i].GetItem().ContentNoAnsi()
+		contentNoAnsiStrings[i] = m.objects[i].GetItem().Content()
+		println(fmt.Sprintf("%q", contentNoAnsiStrings[i]))
 	}
 
 	var matches []item.Match
