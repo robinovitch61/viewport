@@ -15,9 +15,9 @@ type Highlight struct {
 
 // Match represents a match of a substring within an item
 type Match struct {
-	ItemIndex       int // index of the item containing the match
-	StartByteOffset int // start position of the match within the item's content
-	EndByteOffset   int // end position of the match within the item's content
+	ItemIndex                int // index of the item containing the match
+	StartByteUnstyledContent int // start position of the match within the item's unstyled content
+	EndByteUnstyledContent   int // end position of the match within the item's unstyled content
 }
 
 // ExtractMatches extracts highlights from a slice of strings and a match string
@@ -40,9 +40,9 @@ func ExtractMatches(vals []string, exactMatch string) []Match {
 			endIndex := actualStartIndex + len(exactMatch)
 
 			matches = append(matches, Match{
-				ItemIndex:       i,
-				StartByteOffset: actualStartIndex,
-				EndByteOffset:   endIndex,
+				ItemIndex:                i,
+				StartByteUnstyledContent: actualStartIndex,
+				EndByteUnstyledContent:   endIndex,
 			})
 			startIndex = actualStartIndex + 1
 		}
@@ -63,9 +63,9 @@ func ExtractMatchesRegex(vals []string, regexPattern string) ([]Match, error) {
 		regexMatches := regex.FindAllStringIndex(item, -1)
 		for _, regexMatch := range regexMatches {
 			matches = append(matches, Match{
-				ItemIndex:       i,
-				StartByteOffset: regexMatch[0],
-				EndByteOffset:   regexMatch[1],
+				ItemIndex:                i,
+				StartByteUnstyledContent: regexMatch[0],
+				EndByteUnstyledContent:   regexMatch[1],
 			})
 		}
 	}

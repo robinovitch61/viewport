@@ -294,9 +294,9 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		}
 		highlight := item.Highlight{
 			Match: item.Match{
-				ItemIndex:       itemIdx,
-				StartByteOffset: match.StartByteOffset,
-				EndByteOffset:   match.EndByteOffset,
+				ItemIndex:                itemIdx,
+				StartByteUnstyledContent: match.StartByteUnstyledContent,
+				EndByteUnstyledContent:   match.EndByteUnstyledContent,
 			},
 			Style: style,
 		}
@@ -518,7 +518,7 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 
 func (m *Model[T]) panToCurrentMatch(match item.Match) {
 	// TODO LEO: use widths, not byte offsets here
-	matchCenter := match.StartByteOffset + (match.EndByteOffset-match.StartByteOffset)/2
+	matchCenter := match.StartByteUnstyledContent + (match.EndByteUnstyledContent-match.StartByteUnstyledContent)/2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
 	m.Viewport.SetXOffsetWidth(centeredXOffset)

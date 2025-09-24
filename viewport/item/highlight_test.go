@@ -41,9 +41,9 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "world",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 			},
 		},
@@ -53,14 +53,14 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "world",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 12,
-					EndByteOffset:   17,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 12,
+					EndByteUnstyledContent:   17,
 				},
 			},
 		},
@@ -70,19 +70,19 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "world",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 				{
-					ItemIndex:       1,
-					StartByteOffset: 5,
-					EndByteOffset:   10,
+					ItemIndex:                1,
+					StartByteUnstyledContent: 5,
+					EndByteUnstyledContent:   10,
 				},
 				{
-					ItemIndex:       2,
-					StartByteOffset: 0,
-					EndByteOffset:   5,
+					ItemIndex:                2,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   5,
 				},
 			},
 		},
@@ -92,14 +92,14 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "aa",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   2,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   2,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 1,
-					EndByteOffset:   3,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 1,
+					EndByteUnstyledContent:   3,
 				},
 			},
 		},
@@ -109,9 +109,9 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "hello",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 12,
-					EndByteOffset:   17,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 12,
+					EndByteUnstyledContent:   17,
 				},
 			},
 		},
@@ -121,9 +121,9 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "hello",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 7,
-					EndByteOffset:   12,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 7,
+					EndByteUnstyledContent:   12,
 				},
 			},
 		},
@@ -133,14 +133,14 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "a",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   1,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   1,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 3,
-					EndByteOffset:   4,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 3,
+					EndByteUnstyledContent:   4,
 				},
 			},
 		},
@@ -150,14 +150,14 @@ func TestExtractMatches(t *testing.T) {
 			exactMatch: "test",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   4,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   4,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 12,
-					EndByteOffset:   16,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 12,
+					EndByteUnstyledContent:   16,
 				},
 			},
 		},
@@ -175,11 +175,11 @@ func TestExtractMatches(t *testing.T) {
 			for i, expected := range tt.expected {
 				actual := result[i]
 				if actual.ItemIndex != expected.ItemIndex ||
-					actual.StartByteOffset != expected.StartByteOffset ||
-					actual.EndByteOffset != expected.EndByteOffset {
-					t.Errorf("highlight %d: expected ItemIndex=%d StartByteOffset=%d EndByteOffset=%d, got ItemIndex=%d StartByteOffset=%d EndByteOffset=%d",
-						i, expected.ItemIndex, expected.StartByteOffset, expected.EndByteOffset,
-						actual.ItemIndex, actual.StartByteOffset, actual.EndByteOffset)
+					actual.StartByteUnstyledContent != expected.StartByteUnstyledContent ||
+					actual.EndByteUnstyledContent != expected.EndByteUnstyledContent {
+					t.Errorf("highlight %d: expected ItemIndex=%d StartByteUnstyledContent=%d EndByteUnstyledContent=%d, got ItemIndex=%d StartByteUnstyledContent=%d EndByteUnstyledContent=%d",
+						i, expected.ItemIndex, expected.StartByteUnstyledContent, expected.EndByteUnstyledContent,
+						actual.ItemIndex, actual.StartByteUnstyledContent, actual.EndByteUnstyledContent)
 				}
 			}
 		})
@@ -219,9 +219,9 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: "world",
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 			},
 		},
@@ -231,9 +231,9 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `\bworld\b`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 			},
 		},
@@ -243,14 +243,14 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `\d+`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 5,
-					EndByteOffset:   8,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 5,
+					EndByteUnstyledContent:   8,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 21,
-					EndByteOffset:   24,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 21,
+					EndByteUnstyledContent:   24,
 				},
 			},
 		},
@@ -260,19 +260,19 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `(?i)hello`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   5,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   5,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 6,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 6,
+					EndByteUnstyledContent:   11,
 				},
 				{
-					ItemIndex:       0,
-					StartByteOffset: 12,
-					EndByteOffset:   17,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 12,
+					EndByteUnstyledContent:   17,
 				},
 			},
 		},
@@ -282,14 +282,14 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `error:`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   6,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   6,
 				},
 				{
-					ItemIndex:       2,
-					StartByteOffset: 0,
-					EndByteOffset:   6,
+					ItemIndex:                2,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   6,
 				},
 			},
 		},
@@ -299,14 +299,14 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `user: (\w+)`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   10,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   10,
 				},
 				{
-					ItemIndex:       1,
-					StartByteOffset: 0,
-					EndByteOffset:   10,
+					ItemIndex:                1,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   10,
 				},
 			},
 		},
@@ -316,19 +316,19 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `a.b`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   3,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   3,
 				},
 				{
-					ItemIndex:       1,
-					StartByteOffset: 0,
-					EndByteOffset:   3,
+					ItemIndex:                1,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   3,
 				},
 				{
-					ItemIndex:       2,
-					StartByteOffset: 0,
-					EndByteOffset:   3,
+					ItemIndex:                2,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   3,
 				},
 			},
 		},
@@ -338,14 +338,14 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `^start`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   5,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   5,
 				},
 				{
-					ItemIndex:       2,
-					StartByteOffset: 0,
-					EndByteOffset:   5,
+					ItemIndex:                2,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   5,
 				},
 			},
 		},
@@ -355,14 +355,14 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `test`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 7,
-					EndByteOffset:   11,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 7,
+					EndByteUnstyledContent:   11,
 				},
 				{
-					ItemIndex:       1,
-					StartByteOffset: 0,
-					EndByteOffset:   4,
+					ItemIndex:                1,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   4,
 				},
 			},
 		},
@@ -372,9 +372,9 @@ func TestExtractMatchesRegex(t *testing.T) {
 			regexPattern: `aa`,
 			expected: []Match{
 				{
-					ItemIndex:       0,
-					StartByteOffset: 0,
-					EndByteOffset:   2,
+					ItemIndex:                0,
+					StartByteUnstyledContent: 0,
+					EndByteUnstyledContent:   2,
 				},
 			},
 		},
@@ -404,11 +404,11 @@ func TestExtractMatchesRegex(t *testing.T) {
 			for i, expected := range tt.expected {
 				actual := result[i]
 				if actual.ItemIndex != expected.ItemIndex ||
-					actual.StartByteOffset != expected.StartByteOffset ||
-					actual.EndByteOffset != expected.EndByteOffset {
-					t.Errorf("highlight %d: expected ItemIndex=%d StartByteOffset=%d EndByteOffset=%d, got ItemIndex=%d StartByteOffset=%d EndByteOffset=%d",
-						i, expected.ItemIndex, expected.StartByteOffset, expected.EndByteOffset,
-						actual.ItemIndex, actual.StartByteOffset, actual.EndByteOffset)
+					actual.StartByteUnstyledContent != expected.StartByteUnstyledContent ||
+					actual.EndByteUnstyledContent != expected.EndByteUnstyledContent {
+					t.Errorf("highlight %d: expected ItemIndex=%d StartByteUnstyledContent=%d EndByteUnstyledContent=%d, got ItemIndex=%d StartByteUnstyledContent=%d EndByteUnstyledContent=%d",
+						i, expected.ItemIndex, expected.StartByteUnstyledContent, expected.EndByteUnstyledContent,
+						actual.ItemIndex, actual.StartByteUnstyledContent, actual.EndByteUnstyledContent)
 				}
 			}
 		})

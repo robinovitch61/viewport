@@ -848,17 +848,17 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       1,
-				StartByteOffset: 4,
-				EndByteOffset:   10,
+				ItemIndex:                1,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   10,
 			},
 			Style: internal.RedFg,
 		},
 		{
 			Match: item.Match{
-				ItemIndex:       2,
-				StartByteOffset: 4,
-				EndByteOffset:   9,
+				ItemIndex:                2,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   9,
 			},
 			Style: internal.GreenFg,
 		},
@@ -867,8 +867,47 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first line",
-		"the \x1b[38;2;255;0;0msecond" + item.RST + " line",
-		"the \x1b[38;2;0;255;0mthird" + item.RST + " line",
+		"the " + internal.RedFg.Render("second") + " line",
+		"the " + internal.GreenFg.Render("third") + " line",
+		"75% (3/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_SetHighlightsStyledContent(t *testing.T) {
+	w, h := 15, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	setContent(vp, []string{
+		internal.RedFg.Render("the first line"),
+		internal.GreenFg.Render("the second line"),
+		internal.BlueFg.Render("the third line"),
+		internal.RedFg.Render("the fourth line"),
+	})
+	highlights := []item.Highlight{
+		{
+			Match: item.Match{
+				ItemIndex:                1,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   10,
+			},
+			Style: internal.BlueFg,
+		},
+		{
+			Match: item.Match{
+				ItemIndex:                2,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   9,
+			},
+			Style: internal.RedFg,
+		},
+	}
+	vp.SetHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.RedFg.Render("the first line"),
+		internal.GreenFg.Render("the ") + internal.BlueFg.Render("second") + internal.GreenFg.Render(" line"),
+		internal.BlueFg.Render("the ") + internal.RedFg.Render("third") + internal.BlueFg.Render(" line"),
 		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -886,9 +925,9 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 1,
-				EndByteOffset:   8,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 1,
+				EndByteUnstyledContent:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -2260,17 +2299,17 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 4,
-				EndByteOffset:   9,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   9,
 			},
 			Style: internal.GreenFg,
 		},
 		{
 			Match: item.Match{
-				ItemIndex:       1,
-				StartByteOffset: 4,
-				EndByteOffset:   10,
+				ItemIndex:                1,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   10,
 			},
 			Style: internal.RedFg,
 		},
@@ -2281,6 +2320,46 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 		"\x1b[38;2;0;0;255mthe " + item.RST + "\x1b[38;2;0;255;0mfirst" + item.RST + "\x1b[38;2;0;0;255m line" + item.RST,
 		"the \x1b[38;2;255;0;0msecond" + item.RST + " line",
 		"the third line",
+		"25% (1/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent(t *testing.T) {
+	w, h := 15, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		internal.RedFg.Render("the first line"),
+		internal.GreenFg.Render("the second line"),
+		internal.BlueFg.Render("the third line"),
+		internal.RedFg.Render("the fourth line"),
+	})
+	highlights := []item.Highlight{
+		{
+			Match: item.Match{
+				ItemIndex:                0,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   9,
+			},
+			Style: internal.GreenFg,
+		},
+		{
+			Match: item.Match{
+				ItemIndex:                1,
+				StartByteUnstyledContent: 4,
+				EndByteUnstyledContent:   10,
+			},
+			Style: internal.RedFg,
+		},
+	}
+	vp.SetHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.RedFg.Render("the ") + internal.GreenFg.Render("first") + internal.RedFg.Render(" line"),
+		internal.GreenFg.Render("the ") + internal.RedFg.Render("second") + internal.GreenFg.Render(" line"),
+		internal.BlueFg.Render("the third line"),
 		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2298,9 +2377,9 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 1,
-				EndByteOffset:   8,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 1,
+				EndByteUnstyledContent:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -3169,17 +3248,17 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       1,
-				StartByteOffset: 0,
-				EndByteOffset:   6,
+				ItemIndex:                1,
+				StartByteUnstyledContent: 0,
+				EndByteUnstyledContent:   6,
 			},
 			Style: internal.RedFg,
 		},
 		{
 			Match: item.Match{
-				ItemIndex:       1,
-				StartByteOffset: 12,
-				EndByteOffset:   16,
+				ItemIndex:                1,
+				StartByteUnstyledContent: 12,
+				EndByteUnstyledContent:   16,
 			},
 			Style: internal.GreenFg,
 		},
@@ -3190,6 +3269,45 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 		"first",
 		"\x1b[38;2;255;0;0msecond" + item.RST + " lin",
 		"e \x1b[38;2;0;255;0mthat" + item.RST + " wra",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_SetHighlightsStyledContent(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		internal.GreenFg.Render("first"),
+		internal.BlueFg.Render("second line that wraps"),
+		internal.RedFg.Render("third"),
+	})
+	highlights := []item.Highlight{
+		{
+			Match: item.Match{
+				ItemIndex:                1,
+				StartByteUnstyledContent: 0,
+				EndByteUnstyledContent:   6,
+			},
+			Style: internal.RedFg,
+		},
+		{
+			Match: item.Match{
+				ItemIndex:                1,
+				StartByteUnstyledContent: 12,
+				EndByteUnstyledContent:   16,
+			},
+			Style: internal.GreenFg,
+		},
+	}
+	vp.SetHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.GreenFg.Render("first"),
+		internal.RedFg.Render("second") + internal.BlueFg.Render(" lin"),
+		internal.BlueFg.Render("e ") + internal.GreenFg.Render("that") + internal.BlueFg.Render(" wra"),
 		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -3207,9 +3325,9 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 1,
-				EndByteOffset:   8,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 1,
+				EndByteUnstyledContent:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -4704,17 +4822,17 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 0,
-				EndByteOffset:   5,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 0,
+				EndByteUnstyledContent:   5,
 			},
 			Style: internal.GreenFg,
 		},
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 11,
-				EndByteOffset:   15,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 11,
+				EndByteUnstyledContent:   15,
 			},
 			Style: internal.RedFg,
 		},
@@ -4725,6 +4843,46 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 		"\x1b[38;2;0;255;0mfirst" + item.RST + "\x1b[38;2;0;0;255m line" + item.RST,
 		"\x1b[38;2;0;0;255m " + item.RST + "\x1b[38;2;255;0;0mthat" + item.RST + "\x1b[38;2;0;0;255m wrap" + item.RST,
 		"\x1b[38;2;0;0;255ms" + item.RST,
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_SetHighlightsStyledContent(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		internal.BlueFg.Render("first line that wraps"),
+		internal.GreenFg.Render("second"),
+		internal.RedFg.Render("third"),
+	})
+	highlights := []item.Highlight{
+		{
+			Match: item.Match{
+				ItemIndex:                0,
+				StartByteUnstyledContent: 0,
+				EndByteUnstyledContent:   5,
+			},
+			Style: internal.GreenFg,
+		},
+		{
+			Match: item.Match{
+				ItemIndex:                0,
+				StartByteUnstyledContent: 11,
+				EndByteUnstyledContent:   15,
+			},
+			Style: internal.RedFg,
+		},
+	}
+	vp.SetHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.GreenFg.Render("first") + internal.BlueFg.Render(" line"),
+		internal.BlueFg.Render(" ") + internal.RedFg.Render("that") + internal.BlueFg.Render(" wrap"),
+		internal.BlueFg.Render("s"),
 		"33% (1/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -4743,9 +4901,9 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []item.Highlight{
 		{
 			Match: item.Match{
-				ItemIndex:       0,
-				StartByteOffset: 1,
-				EndByteOffset:   8,
+				ItemIndex:                0,
+				StartByteUnstyledContent: 1,
+				EndByteUnstyledContent:   8,
 			},
 			Style: internal.RedFg,
 		},

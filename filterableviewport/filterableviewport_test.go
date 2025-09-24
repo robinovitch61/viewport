@@ -637,6 +637,33 @@ func TestSpecialKeysWhileFiltering(t *testing.T) {
 	internal.CmpStr(t, expectedViewAfterO, fv.View())
 }
 
+func TestAnsiEscapeCodesNotMatched(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		internal.RedFg.Render("apple"),
+		internal.RedFg.Render("book"),
+		internal.RedFg.Render("food"),
+		internal.RedFg.Render("cherry"),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "x1b" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] x1b  (no matches)",
+		internal.RedFg.Render("apple"),
+		internal.RedFg.Render("book"),
+		footerStyle.Render("50% (2/4)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
 func TestMatchNavigationWithNoMatches(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
