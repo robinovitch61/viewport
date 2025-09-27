@@ -2,7 +2,6 @@ package item
 
 import (
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/robinovitch61/bubbleo/internal"
@@ -260,118 +259,6 @@ func TestAnsi_reapplyAnsi(t *testing.T) {
 			ansiCodeIndexes := toUInt32(ansiRegex.FindAllStringIndex(tt.original, -1))
 			actual := reapplyAnsi(tt.original, tt.truncated, tt.truncByteOffset, ansiCodeIndexes)
 			internal.CmpStr(t, tt.expected, actual)
-		})
-	}
-}
-
-func TestAnsi_highlightLine(t *testing.T) {
-	for _, tt := range []struct {
-		name           string
-		line           string
-		highlight      string
-		highlightStyle lipgloss.Style
-		start          int
-		end            int
-		expected       string
-	}{
-		{
-			name:           "empty",
-			line:           "",
-			highlight:      "",
-			highlightStyle: internal.RedFg,
-			expected:       "",
-		},
-		{
-			name:           "no highlight",
-			line:           "hello",
-			highlight:      "",
-			highlightStyle: internal.RedFg,
-			expected:       "hello",
-		},
-		{
-			name:           "highlight",
-			line:           "hello",
-			highlight:      "ell",
-			highlightStyle: internal.RedFg,
-			expected:       "h" + internal.RedFg.Render("ell") + "o",
-		},
-		{
-			name:           "highlight already styled line",
-			line:           internal.RedFg.Render("first line"),
-			highlight:      "first",
-			highlightStyle: internal.BlueBg,
-			expected:       internal.BlueBg.Render("first") + internal.RedFg.Render(" line"),
-		},
-		{
-			name:           "highlight already partially styled line",
-			line:           "hi a " + internal.RedFg.Render("styled line") + " cool " + internal.RedFg.Render("and styled") + " more",
-			highlight:      "style",
-			highlightStyle: internal.BlueBg,
-			expected:       "hi a " + internal.BlueBg.Render("style") + internal.RedFg.Render("d line") + " cool " + internal.RedFg.Render("and ") + internal.BlueBg.Render("style") + internal.RedFg.Render("d") + " more",
-		},
-		{
-			name:           "dont highlight ansi escape codes themselves",
-			line:           internal.RedFg.Render("hi"),
-			highlight:      "38",
-			highlightStyle: internal.BlueBg,
-			expected:       internal.RedFg.Render("hi"),
-		},
-		{
-			name:           "single letter in partially styled line",
-			line:           "line " + internal.RedFg.Render("red") + " e again",
-			highlight:      "e",
-			highlightStyle: internal.BlueBg,
-			expected:       "lin" + internal.BlueBg.Render("e") + " " + internal.RedFg.Render("r") + internal.BlueBg.Render("e") + internal.RedFg.Render("d") + " " + internal.BlueBg.Render("e") + " again",
-		},
-		{
-			name:           "super long line",
-			line:           strings.Repeat("python generator code world world world code text test code words random words generator hello python generator", 10000),
-			highlight:      "e",
-			highlightStyle: internal.RedFg,
-			expected:       strings.Repeat("python g"+internal.RedFg.Render("e")+"n"+internal.RedFg.Render("e")+"rator cod"+internal.RedFg.Render("e")+" world world world cod"+internal.RedFg.Render("e")+" t"+internal.RedFg.Render("e")+"xt t"+internal.RedFg.Render("e")+"st cod"+internal.RedFg.Render("e")+" words random words g"+internal.RedFg.Render("e")+"n"+internal.RedFg.Render("e")+"rator h"+internal.RedFg.Render("e")+"llo python g"+internal.RedFg.Render("e")+"n"+internal.RedFg.Render("e")+"rator", 10000),
-		},
-		{
-			name:           "start and end",
-			line:           "my line",
-			highlight:      "line",
-			highlightStyle: internal.RedFg,
-			start:          0,
-			end:            2,
-			expected:       "my line",
-		},
-		{
-			name:           "start and end ansi, in range",
-			line:           internal.BlueBg.Render("my line"),
-			highlight:      "my",
-			highlightStyle: internal.RedFg,
-			start:          0,
-			end:            2,
-			expected:       internal.RedFg.Render("my") + internal.BlueBg.Render(" line"),
-		},
-		{
-			name:           "start and end ansi, out of range",
-			line:           internal.BlueBg.Render("my line"),
-			highlight:      "my",
-			highlightStyle: internal.RedFg,
-			start:          2,
-			end:            4,
-			expected:       internal.BlueBg.Render("my line"),
-		},
-		{
-			name:           "ansi across multiple styles",
-			line:           internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"),
-			highlight:      "lo wo",
-			highlightStyle: internal.GreenBg,
-			start:          0,
-			end:            11,
-			expected:       internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.start == 0 && tt.end == 0 {
-				tt.end = len(tt.line)
-			}
-			internal.CmpStr(t, tt.expected, highlightLine(tt.line, tt.highlight, tt.highlightStyle, tt.start, tt.end))
 		})
 	}
 }
