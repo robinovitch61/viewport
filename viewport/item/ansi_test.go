@@ -377,14 +377,7 @@ func TestHighlightString(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			var byteRanges []ByteRange
-			if tt.toHighlight != "" {
-				regex, err := regexp.Compile(tt.toHighlight)
-				if err != nil {
-					t.Fatalf("ExtractRegexMatches error: %v", err)
-				}
-				byteRanges = ExtractRegexMatches(tt.plainLine, regex)
-			}
+			byteRanges := extractExactMatches(tt.plainLine, tt.toHighlight)
 			highlights := toHighlights(byteRanges, tt.highlightStyle)
 			result := highlightString(
 				tt.styledSegment,

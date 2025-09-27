@@ -1,5 +1,7 @@
 package item
 
+import "regexp"
+
 // Item defines the interface for item implementations
 type Item interface {
 	// Width returns the total width in terminal cells
@@ -26,6 +28,12 @@ type Item interface {
 	// NumWrappedLines returns the number of wrapped lines given a wrap width
 	// TODO LEO: make this private
 	NumWrappedLines(wrapWidth int) int
+
+	// ExtractExactMatches extracts exact matches from the item's content without ANSI codes
+	ExtractExactMatches(exactMatch string) []ByteRange
+
+	// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
+	ExtractRegexMatches(regex *regexp.Regexp) []ByteRange
 
 	// repr returns a representation of the object as a string for debugging
 	repr() string

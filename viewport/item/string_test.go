@@ -123,7 +123,7 @@ func TestExtractExactMatches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ExtractExactMatches(tt.unstyled, tt.exactMatch)
+			result := extractExactMatches(tt.unstyled, tt.exactMatch)
 
 			if len(result) != len(tt.expected) {
 				t.Errorf("expected %d matches, got %d", len(tt.expected), len(result))
@@ -321,7 +321,7 @@ func TestExtractRegexMatches(t *testing.T) {
 				return
 			}
 
-			result := ExtractRegexMatches(tt.unstyled, regex)
+			result := extractRegexMatches(tt.unstyled, regex)
 
 			if len(result) != len(tt.expected) {
 				t.Errorf("expected %d matches, got %d", len(tt.expected), len(result))

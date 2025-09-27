@@ -407,12 +407,12 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		}
 	}
 
-	for itemIdx, s := range contentNoAnsiStrings {
+	for itemIdx := range contentNoAnsiStrings {
 		var byteRanges []item.ByteRange
 		if m.isRegexMode && regex != nil {
-			byteRanges = item.ExtractRegexMatches(s, regex)
+			byteRanges = m.objects[itemIdx].GetItem().ExtractRegexMatches(regex)
 		} else {
-			byteRanges = item.ExtractExactMatches(s, filterValue)
+			byteRanges = m.objects[itemIdx].GetItem().ExtractExactMatches(filterValue)
 		}
 		var newHighlights []viewport.Highlight
 		for i := range byteRanges {

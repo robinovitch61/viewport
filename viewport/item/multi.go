@@ -1,6 +1,7 @@
 package item
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -201,4 +202,14 @@ func (m MultiItem) repr() string {
 	}
 	v += ")"
 	return v
+}
+
+// ExtractExactMatches extracts exact matches from the item's content without ANSI codes
+func (m MultiItem) ExtractExactMatches(exactMatch string) []ByteRange {
+	return extractExactMatches(m.ContentNoAnsi(), exactMatch)
+}
+
+// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
+func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []ByteRange {
+	return extractRegexMatches(m.ContentNoAnsi(), regex)
 }

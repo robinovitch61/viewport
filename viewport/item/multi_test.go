@@ -430,10 +430,7 @@ func TestMultiItem_Take(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, eq := range getEquivalentItems()[tt.key] {
-				var byteRanges []ByteRange
-				if tt.toHighlight != "" {
-					byteRanges = ExtractExactMatches(eq.ContentNoAnsi(), tt.toHighlight)
-				}
+				byteRanges := eq.ExtractExactMatches(tt.toHighlight)
 				highlights := toHighlights(byteRanges, tt.highlightStyle)
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.repr()))

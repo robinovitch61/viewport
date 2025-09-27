@@ -2,6 +2,7 @@ package item
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -357,4 +358,14 @@ func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 	}
 
 	return left + 1
+}
+
+// ExtractExactMatches extracts exact matches from the item's content without ANSI codes
+func (l SingleItem) ExtractExactMatches(exactMatch string) []ByteRange {
+	return extractExactMatches(l.lineNoAnsi, exactMatch)
+}
+
+// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
+func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []ByteRange {
+	return extractRegexMatches(l.lineNoAnsi, regex)
 }

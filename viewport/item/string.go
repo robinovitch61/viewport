@@ -7,9 +7,9 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// ExtractExactMatches extracts exact matches from a string
+// extractExactMatches extracts exact matches from a string
 // Input should not contain ansi styling codes
-func ExtractExactMatches(unstyled string, exactMatch string) []ByteRange {
+func extractExactMatches(unstyled string, exactMatch string) []ByteRange {
 	var matches []ByteRange
 
 	if exactMatch == "" {
@@ -34,9 +34,9 @@ func ExtractExactMatches(unstyled string, exactMatch string) []ByteRange {
 	return matches
 }
 
-// ExtractRegexMatches extracts regex matches from a string
+// extractRegexMatches extracts regex matches from a string
 // Input should not contain ansi styling codes
-func ExtractRegexMatches(unstyled string, regex *regexp.Regexp) []ByteRange {
+func extractRegexMatches(unstyled string, regex *regexp.Regexp) []ByteRange {
 	var matchingByteRanges []ByteRange
 	regexMatches := regex.FindAllStringIndex(unstyled, -1)
 	for _, regexMatch := range regexMatches {
