@@ -1,10 +1,52 @@
 package item
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
 )
+
+// ExtractExactMatches extracts exact matches from a string
+// Input should not contain ansi styling codes
+func ExtractExactMatches(unstyled string, exactMatch string) []ByteRange {
+	var matches []ByteRange
+
+	if exactMatch == "" {
+		return matches
+	}
+
+	startIndex := 0
+	for {
+		foundIndex := strings.Index(unstyled[startIndex:], exactMatch)
+		if foundIndex == -1 {
+			break
+		}
+		actualStartIndex := startIndex + foundIndex
+		endIndex := actualStartIndex + len(exactMatch)
+
+		matches = append(matches, ByteRange{
+			Start: actualStartIndex,
+			End:   endIndex,
+		})
+		startIndex = actualStartIndex + 1
+	}
+	return matches
+}
+
+// ExtractRegexMatches extracts regex matches from a string
+// Input should not contain ansi styling codes
+func ExtractRegexMatches(unstyled string, regex *regexp.Regexp) []ByteRange {
+	var matchingByteRanges []ByteRange
+	regexMatches := regex.FindAllStringIndex(unstyled, -1)
+	for _, regexMatch := range regexMatches {
+		matchingByteRanges = append(matchingByteRanges, ByteRange{
+			Start: regexMatch[0],
+			End:   regexMatch[1],
+		})
+	}
+	return matchingByteRanges
+}
 
 // overflowsLeft checks if a substring overflows a string on the left if the string were to start at startByteIdx inclusive.
 // assumes s has no ansi codes.

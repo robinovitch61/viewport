@@ -119,9 +119,10 @@ func highlightString(
 
 	var applicableHighlights []highlightRange
 	for _, highlight := range highlights {
-		if highlight.Match.StartByteUnstyledContent < plainLineSegmentEndByte && highlight.Match.EndByteUnstyledContent > plainLineSegmentStartByte {
-			startByte := max(highlight.Match.StartByteUnstyledContent, plainLineSegmentStartByte) - plainLineSegmentStartByte
-			endByte := min(highlight.Match.EndByteUnstyledContent, plainLineSegmentEndByte) - plainLineSegmentStartByte
+		unstyledByteRange := highlight.ByteRangeUnstyledContent
+		if unstyledByteRange.Start < plainLineSegmentEndByte && unstyledByteRange.End > plainLineSegmentStartByte {
+			startByte := max(unstyledByteRange.Start, plainLineSegmentStartByte) - plainLineSegmentStartByte
+			endByte := min(unstyledByteRange.End, plainLineSegmentEndByte) - plainLineSegmentStartByte
 			applicableHighlights = append(applicableHighlights, highlightRange{
 				startByte: startByte,
 				endByte:   endByte,

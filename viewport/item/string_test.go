@@ -1,10 +1,343 @@
 package item
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/robinovitch61/bubbleo/internal"
 )
+
+func TestExtractExactMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		unstyled   string
+		exactMatch string
+		expected   []ByteRange
+	}{
+		{
+			name:       "empty exact match",
+			unstyled:   "hello world",
+			exactMatch: "",
+			expected:   []ByteRange{},
+		},
+		{
+			name:       "no matches",
+			unstyled:   "hell",
+			exactMatch: "lo",
+			expected:   []ByteRange{},
+		},
+		{
+			name:       "single match",
+			unstyled:   "hello world",
+			exactMatch: "world",
+			expected: []ByteRange{
+				{
+					Start: 6,
+					End:   11,
+				},
+			},
+		},
+		{
+			name:       "multiple matches in single string",
+			unstyled:   "hello world world",
+			exactMatch: "world",
+			expected: []ByteRange{
+				{
+					Start: 6,
+					End:   11,
+				},
+				{
+					Start: 12,
+					End:   17,
+				},
+			},
+		},
+		{
+			name:       "overlapping potential matches",
+			unstyled:   "aaa",
+			exactMatch: "aa",
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   2,
+				},
+				{
+					Start: 1,
+					End:   3,
+				},
+			},
+		},
+		{
+			name:       "case sensitive",
+			unstyled:   "Hello HELLO hello",
+			exactMatch: "hello",
+			expected: []ByteRange{
+				{
+					Start: 12,
+					End:   17,
+				},
+			},
+		},
+		{
+			name:       "unicode characters",
+			unstyled:   "世界 hello 🌟",
+			exactMatch: "界",
+			expected: []ByteRange{
+				{
+					Start: 3,
+					End:   6,
+				},
+			},
+		},
+		{
+			name:       "single character match",
+			unstyled:   "abcabc",
+			exactMatch: "a",
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   1,
+				},
+				{
+					Start: 3,
+					End:   4,
+				},
+			},
+		},
+		{
+			name:       "match at beginning and end",
+			unstyled:   "test middle test",
+			exactMatch: "test",
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   4,
+				},
+				{
+					Start: 12,
+					End:   16,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ExtractExactMatches(tt.unstyled, tt.exactMatch)
+
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				actual := result[i]
+				if actual.Start != expected.Start || actual.End != expected.End {
+					t.Errorf("match %d: expected Start=%d End=%d, got Start=%d End=%d",
+						i, expected.Start, expected.End, actual.Start, actual.End)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractRegexMatches(t *testing.T) {
+	tests := []struct {
+		name         string
+		unstyled     string
+		regexPattern string
+		expected     []ByteRange
+		expectError  bool
+	}{
+		{
+			name:         "invalid regex",
+			unstyled:     "hello world",
+			regexPattern: "[",
+			expected:     nil,
+			expectError:  true,
+		},
+		{
+			name:         "no matches",
+			unstyled:     "hello world",
+			regexPattern: "xyz",
+			expected:     []ByteRange{},
+		},
+		{
+			name:         "simple word match",
+			unstyled:     "hello world",
+			regexPattern: "world",
+			expected: []ByteRange{
+				{
+					Start: 6,
+					End:   11,
+				},
+			},
+		},
+		{
+			name:         "word boundary match",
+			unstyled:     "hello world worldly",
+			regexPattern: `\bworld\b`,
+			expected: []ByteRange{
+				{
+					Start: 6,
+					End:   11,
+				},
+			},
+		},
+		{
+			name:         "digit pattern",
+			unstyled:     "line 123 has numbers 456",
+			regexPattern: `\d+`,
+			expected: []ByteRange{
+				{
+					Start: 5,
+					End:   8,
+				},
+				{
+					Start: 21,
+					End:   24,
+				},
+			},
+		},
+		{
+			name:         "case insensitive pattern",
+			unstyled:     "Hello HELLO hello",
+			regexPattern: `(?i)hello`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   5,
+				},
+				{
+					Start: 6,
+					End:   11,
+				},
+				{
+					Start: 12,
+					End:   17,
+				},
+			},
+		},
+		{
+			name:         "capturing groups",
+			unstyled:     "user: john and user: jane",
+			regexPattern: `user: (\w+)`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   10,
+				},
+				{
+					Start: 15,
+					End:   25,
+				},
+			},
+		},
+		{
+			name:         "multiple capturing groups",
+			unstyled:     "user: john smith and user: jane doe",
+			regexPattern: `user: (\w+) (\w+)`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   16,
+				},
+				{
+					Start: 21,
+					End:   35,
+				},
+			},
+		},
+		{
+			name:         "dot metacharacter",
+			unstyled:     "a1b a.b axb",
+			regexPattern: `a.b`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   3,
+				},
+				{
+					Start: 4,
+					End:   7,
+				},
+				{
+					Start: 8,
+					End:   11,
+				},
+			},
+		},
+		{
+			name:         "anchored pattern",
+			unstyled:     "start middle end",
+			regexPattern: `^start`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   5,
+				},
+			},
+		},
+		{
+			name:         "unicode with regex",
+			unstyled:     "世界 test 🌟 and test 世界",
+			regexPattern: `界`,
+			expected: []ByteRange{
+				{
+					Start: 3,
+					End:   6,
+				},
+				{
+					Start: 29,
+					End:   32,
+				},
+			},
+		},
+		{
+			name:         "overlapping matches not possible with regex",
+			unstyled:     "aaa",
+			regexPattern: `aa`,
+			expected: []ByteRange{
+				{
+					Start: 0,
+					End:   2,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			regex, err := regexp.Compile(tt.regexPattern)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error compiling regex: %v", err)
+				return
+			}
+
+			result := ExtractRegexMatches(tt.unstyled, regex)
+
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				actual := result[i]
+				if actual.Start != expected.Start || actual.End != expected.End {
+					t.Errorf("match %d: expected Start=%d End=%d, got Start=%d End=%d",
+						i, expected.Start, expected.End, actual.Start, actual.End)
+				}
+			}
+		})
+	}
+}
 
 func TestString_overflowsLeft(t *testing.T) {
 	tests := []struct {

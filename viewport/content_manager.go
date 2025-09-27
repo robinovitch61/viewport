@@ -1,6 +1,8 @@
 package viewport
 
-import "github.com/robinovitch61/bubbleo/viewport/item"
+import (
+	"github.com/robinovitch61/bubbleo/viewport/item"
+)
 
 // contentManager manages the actual Item and selection state
 type contentManager[T Object] struct {
@@ -15,10 +17,10 @@ type contentManager[T Object] struct {
 	selectedIdx int
 
 	// highlights is what to highlight wherever it shows up within an item, even wrapped between lines
-	highlights []item.Highlight
+	highlights []Highlight
 
 	// highlightsByItem is a cache of highlights indexed by item index
-	highlightsByItem map[int][]item.Highlight
+	highlightsByItem map[int][]Highlight
 
 	// compareFn is an optional function to compare items for maintaining the selection when Item changes
 	// if set, the viewport will try to maintain the previous selected item when Item changes
@@ -31,7 +33,7 @@ func newContentManager[T Object]() *contentManager[T] {
 		objects:          make([]T, 0),
 		header:           []string{},
 		selectedIdx:      0,
-		highlightsByItem: make(map[int][]item.Highlight),
+		highlightsByItem: make(map[int][]Highlight),
 	}
 }
 
@@ -65,25 +67,32 @@ func (cm *contentManager[T]) isEmpty() bool {
 
 // rebuildHighlightsCache rebuilds the internal highlight cache
 func (cm *contentManager[T]) rebuildHighlightsCache() {
-	cm.highlightsByItem = make(map[int][]item.Highlight)
+	cm.highlightsByItem = make(map[int][]Highlight)
 	for _, highlight := range cm.highlights {
-		itemIdx := highlight.Match.ItemIndex
+		itemIdx := highlight.ItemIndex
 		cm.highlightsByItem[itemIdx] = append(cm.highlightsByItem[itemIdx], highlight)
 	}
 }
 
 // setHighlights sets the highlights
-func (cm *contentManager[T]) setHighlights(highlights []item.Highlight) {
+func (cm *contentManager[T]) setHighlights(highlights []Highlight) {
 	cm.highlights = highlights
 	cm.rebuildHighlightsCache()
 }
 
 // getHighlights returns all highlights
-func (cm *contentManager[T]) getHighlights() []item.Highlight {
+func (cm *contentManager[T]) getHighlights() []Highlight {
 	return cm.highlights
 }
 
-// getHighlightsForItem returns highlights for a specific item index
-func (cm *contentManager[T]) getHighlightsForItem(itemIndex int) []item.Highlight {
-	return cm.highlightsByItem[itemIndex]
+// getItemHighlightsForItem returns highlights for a specific item index
+func (cm *contentManager[T]) getItemHighlightsForItem(itemIndex int) []item.Highlight {
+	var highlights []item.Highlight
+	for _, h := range cm.highlightsByItem[itemIndex] {
+		highlights = append(highlights, item.Highlight{
+			Style:                    h.Style,
+			ByteRangeUnstyledContent: h.ByteRangeUnstyledContent,
+		})
+	}
+	return highlights
 }

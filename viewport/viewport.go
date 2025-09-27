@@ -529,12 +529,12 @@ func (m *Model[T]) SetXOffsetWidth(width int) {
 }
 
 // SetHighlights sets specific positions to highlight with custom styles in the viewport.
-func (m *Model[T]) SetHighlights(highlights []item.Highlight) {
+func (m *Model[T]) SetHighlights(highlights []Highlight) {
 	m.content.setHighlights(highlights)
 }
 
 // GetHighlights returns all highlights.
-func (m *Model[T]) GetHighlights() []item.Highlight {
+func (m *Model[T]) GetHighlights() []Highlight {
 	return m.content.getHighlights()
 }
 
@@ -997,7 +997,7 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 
 // getHighlightsForItem returns highlights for the specific item index
 func (m *Model[T]) getHighlightsForItem(itemIndex int) []item.Highlight {
-	return m.content.getHighlightsForItem(itemIndex)
+	return m.content.getItemHighlightsForItem(itemIndex)
 }
 
 func (m *Model[T]) getNumVisibleItems() int {

@@ -430,11 +430,11 @@ func TestMultiItem_Take(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, eq := range getEquivalentItems()[tt.key] {
-				var matches []Match
+				var byteRanges []ByteRange
 				if tt.toHighlight != "" {
-					matches = ExtractMatches([]string{eq.ContentNoAnsi()}, tt.toHighlight)
+					byteRanges = ExtractExactMatches(eq.ContentNoAnsi(), tt.toHighlight)
 				}
-				highlights := toHighlights(matches, tt.highlightStyle)
+				highlights := toHighlights(byteRanges, tt.highlightStyle)
 				actual, _ := eq.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for %s", eq.repr()))
 			}
@@ -535,12 +535,12 @@ func TestMultiItem_NumWrappedLines(t *testing.T) {
 	}
 }
 
-func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
+func toHighlights(byteRanges []ByteRange, style lipgloss.Style) []Highlight {
 	var highlights []Highlight
-	for _, match := range matches {
+	for _, byteRange := range byteRanges {
 		highlights = append(highlights, Highlight{
-			Match: match,
-			Style: style,
+			ByteRangeUnstyledContent: byteRange,
+			Style:                    style,
 		})
 	}
 	return highlights

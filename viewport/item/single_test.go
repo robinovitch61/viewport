@@ -876,11 +876,11 @@ func TestSingle_Take(t *testing.T) {
 			item := NewItem(tt.s)
 			startWidth := tt.startWidth
 
-			var matches []Match
+			var byteRanges []ByteRange
 			if tt.toHighlight != "" {
-				matches = ExtractMatches([]string{stripAnsi(tt.s)}, tt.toHighlight)
+				byteRanges = ExtractExactMatches(item.ContentNoAnsi(), tt.toHighlight)
 			}
-			highlights := toHighlights(matches, tt.highlightStyle)
+			highlights := toHighlights(byteRanges, tt.highlightStyle)
 			for i := 0; i < tt.numTakes; i++ {
 				actual, actualWidth := item.Take(startWidth, tt.width, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected[i], actual)

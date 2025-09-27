@@ -87,7 +87,7 @@ type Model[T viewport.Object] struct {
 
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
-	allMatches                 []item.Match
+	allMatches                 []viewport.Highlight
 	numMatchingItems           int
 	focusedMatchIdx            int
 	previousFocusedMatchIdx    int
@@ -117,7 +117,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		styles:                     defaultStyles,
 		matchingItemsOnly:          false,
 		canToggleMatchingItemsOnly: true,
-		allMatches:                 []item.Match{},
+		allMatches:                 []viewport.Highlight{},
 		numMatchingItems:           0,
 		focusedMatchIdx:            -1,
 		previousFocusedMatchIdx:    -1,
@@ -278,7 +278,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	// otherwise, rebuild all highlights
-	var highlights []item.Highlight
+	var highlights []viewport.Highlight
 	for matchIdx, match := range m.allMatches {
 		itemIdx := match.ItemIndex
 		if m.matchingItemsOnly {
@@ -292,13 +292,10 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		if matchIdx == m.focusedMatchIdx {
 			style = m.styles.Match.Focused
 		}
-		highlight := item.Highlight{
-			Match: item.Match{
-				ItemIndex:                itemIdx,
-				StartByteUnstyledContent: match.StartByteUnstyledContent,
-				EndByteUnstyledContent:   match.EndByteUnstyledContent,
-			},
-			Style: style,
+		highlight := viewport.Highlight{
+			ItemIndex:                itemIdx,
+			Style:                    style,
+			ByteRangeUnstyledContent: match.ByteRangeUnstyledContent,
 		}
 		highlights = append(highlights, highlight)
 	}
@@ -385,7 +382,7 @@ func (m *Model[T]) getModeIndicator() string {
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	prevFocusedMatchIdx := m.focusedMatchIdx
 
-	m.allMatches = []item.Match{}
+	m.allMatches = []viewport.Highlight{}
 	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
 	m.itemIdxToFilteredIdx = make(map[int]int)
@@ -400,21 +397,39 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		contentNoAnsiStrings[i] = m.objects[i].GetItem().ContentNoAnsi()
 	}
 
-	var matches []item.Match
+	var highlights []viewport.Highlight
+	var regex *regexp.Regexp
 	var err error
 	if m.isRegexMode {
-		matches, err = item.ExtractMatchesRegex(contentNoAnsiStrings, filterValue)
+		regex, err = regexp.Compile(filterValue)
 		if err != nil {
 			return []T{}
 		}
-	} else {
-		matches = item.ExtractMatches(contentNoAnsiStrings, filterValue)
+	}
+
+	for itemIdx, s := range contentNoAnsiStrings {
+		var byteRanges []item.ByteRange
+		if m.isRegexMode && regex != nil {
+			byteRanges = item.ExtractRegexMatches(s, regex)
+		} else {
+			byteRanges = item.ExtractExactMatches(s, filterValue)
+		}
+		var newHighlights []viewport.Highlight
+		for i := range byteRanges {
+			highlight := viewport.Highlight{
+				ItemIndex:                itemIdx,
+				Style:                    m.styles.Match.Unfocused,
+				ByteRangeUnstyledContent: byteRanges[i],
+			}
+			newHighlights = append(newHighlights, highlight)
+		}
+		highlights = append(highlights, newHighlights...)
 	}
 
 	filteredObjects := make([]T, 0, len(m.objects))
 	itemsWithMatches := make(map[int]bool)
 
-	for _, match := range matches {
+	for _, match := range highlights {
 		itemIdx := match.ItemIndex
 		if !itemsWithMatches[itemIdx] {
 			filteredObjects = append(filteredObjects, m.objects[itemIdx])
@@ -516,9 +531,9 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 }
 
-func (m *Model[T]) panToCurrentMatch(match item.Match) {
+func (m *Model[T]) panToCurrentMatch(match viewport.Highlight) {
 	// TODO LEO: use widths, not byte offsets here
-	matchCenter := match.StartByteUnstyledContent + (match.EndByteUnstyledContent-match.StartByteUnstyledContent)/2
+	matchCenter := match.ByteRangeUnstyledContent.Start + (match.ByteRangeUnstyledContent.End-match.ByteRangeUnstyledContent.Start)/2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
 	m.Viewport.SetXOffsetWidth(centeredXOffset)

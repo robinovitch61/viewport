@@ -845,20 +845,20 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 		"the third line",
 		"the fourth line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   10,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   10,
 			},
 			Style: internal.RedFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                2,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   9,
+			ItemIndex: 2,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   9,
 			},
 			Style: internal.GreenFg,
 		},
@@ -884,20 +884,20 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsStyledContent(t *testing.T) 
 		internal.BlueFg.Render("the third line"),
 		internal.RedFg.Render("the fourth line"),
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   10,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   10,
 			},
 			Style: internal.BlueFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                2,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   9,
+			ItemIndex: 2,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   9,
 			},
 			Style: internal.RedFg,
 		},
@@ -922,12 +922,12 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é line",
 		"another line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 1,
-				EndByteUnstyledContent:   8,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 1,
+				End:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -2296,20 +2296,20 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 		"the third line",
 		"the fourth line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   9,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   9,
 			},
 			Style: internal.GreenFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   10,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   10,
 			},
 			Style: internal.RedFg,
 		},
@@ -2336,20 +2336,20 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent(t *testing.T) {
 		internal.BlueFg.Render("the third line"),
 		internal.RedFg.Render("the fourth line"),
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   9,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   9,
 			},
 			Style: internal.GreenFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 4,
-				EndByteUnstyledContent:   10,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 4,
+				End:   10,
 			},
 			Style: internal.RedFg,
 		},
@@ -2374,12 +2374,12 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é line",
 		"another line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 1,
-				EndByteUnstyledContent:   8,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 1,
+				End:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -3245,20 +3245,20 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 		"second line that wraps",
 		"third",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 0,
-				EndByteUnstyledContent:   6,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 0,
+				End:   6,
 			},
 			Style: internal.RedFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 12,
-				EndByteUnstyledContent:   16,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 12,
+				End:   16,
 			},
 			Style: internal.GreenFg,
 		},
@@ -3284,20 +3284,20 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsStyledContent(t *testing.T) {
 		internal.BlueFg.Render("second line that wraps"),
 		internal.RedFg.Render("third"),
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 0,
-				EndByteUnstyledContent:   6,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 0,
+				End:   6,
 			},
 			Style: internal.RedFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                1,
-				StartByteUnstyledContent: 12,
-				EndByteUnstyledContent:   16,
+			ItemIndex: 1,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 12,
+				End:   16,
 			},
 			Style: internal.GreenFg,
 		},
@@ -3322,12 +3322,12 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é text that wraps",
 		"another line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 1,
-				EndByteUnstyledContent:   8,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 1,
+				End:   8,
 			},
 			Style: internal.RedFg,
 		},
@@ -4819,20 +4819,20 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 		"second",
 		"third",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 0,
-				EndByteUnstyledContent:   5,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 0,
+				End:   5,
 			},
 			Style: internal.GreenFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 11,
-				EndByteUnstyledContent:   15,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 11,
+				End:   15,
 			},
 			Style: internal.RedFg,
 		},
@@ -4859,20 +4859,20 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsStyledContent(t *testing.T) {
 		internal.GreenFg.Render("second"),
 		internal.RedFg.Render("third"),
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 0,
-				EndByteUnstyledContent:   5,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 0,
+				End:   5,
 			},
 			Style: internal.GreenFg,
 		},
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 11,
-				EndByteUnstyledContent:   15,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 11,
+				End:   15,
 			},
 			Style: internal.RedFg,
 		},
@@ -4898,12 +4898,12 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é text that wraps",
 		"another line",
 	})
-	highlights := []item.Highlight{
+	highlights := []Highlight{
 		{
-			Match: item.Match{
-				ItemIndex:                0,
-				StartByteUnstyledContent: 1,
-				EndByteUnstyledContent:   8,
+			ItemIndex: 0,
+			ByteRangeUnstyledContent: item.ByteRange{
+				Start: 1,
+				End:   8,
 			},
 			Style: internal.RedFg,
 		},
