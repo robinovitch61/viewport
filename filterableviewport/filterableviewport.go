@@ -266,10 +266,10 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		currentHighlights := m.Viewport.GetHighlights()
 		if len(currentHighlights) == len(m.allMatches) {
 			if m.previousFocusedMatchIdx < len(currentHighlights) {
-				currentHighlights[m.previousFocusedMatchIdx].Style = m.styles.Match.Unfocused
+				currentHighlights[m.previousFocusedMatchIdx].ItemHighlight.Style = m.styles.Match.Unfocused
 			}
 			if m.focusedMatchIdx < len(currentHighlights) {
-				currentHighlights[m.focusedMatchIdx].Style = m.styles.Match.Focused
+				currentHighlights[m.focusedMatchIdx].ItemHighlight.Style = m.styles.Match.Focused
 			}
 			m.Viewport.SetHighlights(currentHighlights)
 			m.previousFocusedMatchIdx = m.focusedMatchIdx
@@ -278,7 +278,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	}
 
 	// otherwise, rebuild all highlights
-	var highlights []viewport.Highlight
+	highlights := make([]viewport.Highlight, len(m.allMatches))
 	for matchIdx, match := range m.allMatches {
 		itemIdx := match.ItemIndex
 		if m.matchingItemsOnly {
@@ -293,11 +293,13 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 			style = m.styles.Match.Focused
 		}
 		highlight := viewport.Highlight{
-			ItemIndex:                itemIdx,
-			Style:                    style,
-			ByteRangeUnstyledContent: match.ByteRangeUnstyledContent,
+			ItemIndex: itemIdx,
+			ItemHighlight: item.Highlight{
+				Style:                    style,
+				ByteRangeUnstyledContent: match.ItemHighlight.ByteRangeUnstyledContent,
+			},
 		}
-		highlights = append(highlights, highlight)
+		highlights[matchIdx] = highlight
 	}
 
 	m.Viewport.SetHighlights(highlights)
@@ -417,9 +419,11 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		var newHighlights []viewport.Highlight
 		for i := range byteRanges {
 			highlight := viewport.Highlight{
-				ItemIndex:                itemIdx,
-				Style:                    m.styles.Match.Unfocused,
-				ByteRangeUnstyledContent: byteRanges[i],
+				ItemIndex: itemIdx,
+				ItemHighlight: item.Highlight{
+					Style:                    m.styles.Match.Unfocused,
+					ByteRangeUnstyledContent: byteRanges[i],
+				},
 			}
 			newHighlights = append(newHighlights, highlight)
 		}
@@ -533,7 +537,7 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 
 func (m *Model[T]) panToCurrentMatch(match viewport.Highlight) {
 	// TODO LEO: use widths, not byte offsets here
-	matchCenter := match.ByteRangeUnstyledContent.Start + (match.ByteRangeUnstyledContent.End-match.ByteRangeUnstyledContent.Start)/2
+	matchCenter := match.ItemHighlight.ByteRangeUnstyledContent.Start + (match.ItemHighlight.ByteRangeUnstyledContent.End-match.ItemHighlight.ByteRangeUnstyledContent.Start)/2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
 	m.Viewport.SetXOffsetWidth(centeredXOffset)

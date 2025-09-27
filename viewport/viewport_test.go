@@ -848,19 +848,23 @@ func TestViewport_SelectionOff_WrapOff_SetHighlights(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   10,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   10,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 		{
 			ItemIndex: 2,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   9,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   9,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -887,19 +891,23 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsStyledContent(t *testing.T) 
 	highlights := []Highlight{
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   10,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   10,
+				},
+				Style: internal.BlueFg,
 			},
-			Style: internal.BlueFg,
 		},
 		{
 			ItemIndex: 2,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   9,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   9,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -925,11 +933,13 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 1,
-				End:   8,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 1,
+					End:   8,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2299,19 +2309,23 @@ func TestViewport_SelectionOn_WrapOff_SetHighlights(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   9,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   9,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   10,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   10,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2339,19 +2353,23 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   9,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   9,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 4,
-				End:   10,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   10,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -2377,11 +2395,13 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 1,
-				End:   8,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 1,
+					End:   8,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3248,19 +3268,23 @@ func TestViewport_SelectionOff_WrapOn_SetHighlights(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 0,
-				End:   6,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 0,
+					End:   6,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 12,
-				End:   16,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 12,
+					End:   16,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3287,19 +3311,23 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsStyledContent(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 0,
-				End:   6,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 0,
+					End:   6,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 		{
 			ItemIndex: 1,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 12,
-				End:   16,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 12,
+					End:   16,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -3325,11 +3353,13 @@ func TestViewport_SelectionOff_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 1,
-				End:   8,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 1,
+					End:   8,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4822,19 +4852,23 @@ func TestViewport_SelectionOn_WrapOn_SetHighlights(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 0,
-				End:   5,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 0,
+					End:   5,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 11,
-				End:   15,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 11,
+					End:   15,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4862,19 +4896,23 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsStyledContent(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 0,
-				End:   5,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 0,
+					End:   5,
+				},
+				Style: internal.GreenFg,
 			},
-			Style: internal.GreenFg,
 		},
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 11,
-				End:   15,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 11,
+					End:   15,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
@@ -4901,11 +4939,13 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 	highlights := []Highlight{
 		{
 			ItemIndex: 0,
-			ByteRangeUnstyledContent: item.ByteRange{
-				Start: 1,
-				End:   8,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 1,
+					End:   8,
+				},
+				Style: internal.RedFg,
 			},
-			Style: internal.RedFg,
 		},
 	}
 	vp.SetHighlights(highlights)
