@@ -103,6 +103,7 @@ func getNonAnsiBytes(s string, startIdx, numBytes int) string {
 // Parameters:
 //   - styledSegment: the text segment to highlight, which may contain ANSI codes
 //   - highlights: a list of Highlight structs defining the styledLine byte offsets and styles to apply
+//     NOTE: highlight byte ranges should not overlap
 //   - plainLineSegmentStartByte: byte offset where styledSegment starts in full line without ansi codes
 //   - plainLineSegmentEndByte: byte offset where styledSegment ends in full line without ansi codes
 //

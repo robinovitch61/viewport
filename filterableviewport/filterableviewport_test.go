@@ -690,6 +690,26 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestMatchNavigationWithOverlappingMatches(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{"aaa"}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "aa" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] aa  (1/1 matches on 1 items)",
+		focusedStyle.Render("aa") + "a",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
+
 func TestMatchNavigationWithAllItemsWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		7,

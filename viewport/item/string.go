@@ -29,7 +29,7 @@ func extractExactMatches(unstyled string, exactMatch string) []ByteRange {
 			Start: actualStartIndex,
 			End:   endIndex,
 		})
-		startIndex = actualStartIndex + 1
+		startIndex = endIndex // overlapping matches are not considered
 	}
 	return matches
 }

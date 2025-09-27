@@ -192,8 +192,8 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.isRegexMode = false
 			m.filterTextInput.Blur()
 			m.filterTextInput.SetValue("")
-			m.updateHighlighting()
 			m.updateMatchingItems()
+			m.updateHighlighting()
 			return m, nil
 		}
 	}
@@ -203,8 +203,8 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		cmds = append(cmds, cmd)
 	} else {
 		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
-		m.updateHighlighting()
 		m.updateMatchingItems()
+		m.updateHighlighting()
 		cmds = append(cmds, cmd)
 	}
 

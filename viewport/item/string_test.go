@@ -53,7 +53,7 @@ func TestExtractExactMatches(t *testing.T) {
 			},
 		},
 		{
-			name:       "overlapping potential matches",
+			name:       "overlapping matches",
 			unstyled:   "aaa",
 			exactMatch: "aa",
 			expected: []ByteRange{
@@ -61,9 +61,20 @@ func TestExtractExactMatches(t *testing.T) {
 					Start: 0,
 					End:   2,
 				},
+			},
+		},
+		{
+			name:       "sequential matches",
+			unstyled:   "aaaa",
+			exactMatch: "aa",
+			expected: []ByteRange{
 				{
-					Start: 1,
-					End:   3,
+					Start: 0,
+					End:   2,
+				},
+				{
+					Start: 2,
+					End:   4,
 				},
 			},
 		},
