@@ -20,7 +20,7 @@ type MatchStyles struct {
 func DefaultMatchStyles() MatchStyles {
 	return MatchStyles{
 		Focused:   lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11")),
-		Unfocused: lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12")),
+		Unfocused: lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("7")),
 	}
 }
 
