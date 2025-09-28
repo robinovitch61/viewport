@@ -205,11 +205,13 @@ func (m MultiItem) repr() string {
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-func (m MultiItem) ExtractExactMatches(exactMatch string) []ByteRange {
+// TODO LEO: test
+func (m MultiItem) ExtractExactMatches(exactMatch string) []Match {
 	return extractExactMatches(m.ContentNoAnsi(), exactMatch)
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []ByteRange {
+// TODO LEO: test
+func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 	return extractRegexMatches(m.ContentNoAnsi(), regex)
 }

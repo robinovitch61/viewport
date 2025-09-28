@@ -361,11 +361,13 @@ func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-func (l SingleItem) ExtractExactMatches(exactMatch string) []ByteRange {
+// TODO LEO: test
+func (l SingleItem) ExtractExactMatches(exactMatch string) []Match {
 	return extractExactMatches(l.lineNoAnsi, exactMatch)
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []ByteRange {
+// TODO LEO: test
+func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 	return extractRegexMatches(l.lineNoAnsi, regex)
 }

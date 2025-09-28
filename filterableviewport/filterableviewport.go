@@ -93,6 +93,7 @@ type Model[T viewport.Object] struct {
 	previousFocusedMatchIdx    int
 	totalMatchesOnAllItems     int
 	itemIdxToFilteredIdx       map[int]int
+	matchWidthsByMatchIdx      map[int]item.WidthRange
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -409,20 +410,24 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		}
 	}
 
+	matchIdx := 0
 	for itemIdx := range contentNoAnsiStrings {
-		var byteRanges []item.ByteRange
+		var matches []item.Match
 		if m.isRegexMode && regex != nil {
-			byteRanges = m.objects[itemIdx].GetItem().ExtractRegexMatches(regex)
+			matches = m.objects[itemIdx].GetItem().ExtractRegexMatches(regex)
 		} else {
-			byteRanges = m.objects[itemIdx].GetItem().ExtractExactMatches(filterValue)
+			matches = m.objects[itemIdx].GetItem().ExtractExactMatches(filterValue)
 		}
 		var newHighlights []viewport.Highlight
-		for i := range byteRanges {
+		for i := range matches {
+			matchIdx++
+			m.matchWidthsByMatchIdx[matchIdx] = matches[i].WidthRange
+
 			highlight := viewport.Highlight{
 				ItemIndex: itemIdx,
 				ItemHighlight: item.Highlight{
 					Style:                    m.styles.Match.Unfocused,
-					ByteRangeUnstyledContent: byteRanges[i],
+					ByteRangeUnstyledContent: matches[i].ByteRange,
 				},
 			}
 			newHighlights = append(newHighlights, highlight)
@@ -433,15 +438,14 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	filteredObjects := make([]T, 0, len(m.objects))
 	itemsWithMatches := make(map[int]bool)
 
-	for _, match := range highlights {
-		itemIdx := match.ItemIndex
+	for _, highlight := range highlights {
+		itemIdx := highlight.ItemIndex
 		if !itemsWithMatches[itemIdx] {
 			filteredObjects = append(filteredObjects, m.objects[itemIdx])
 			m.itemIdxToFilteredIdx[itemIdx] = len(filteredObjects) - 1
 			itemsWithMatches[itemIdx] = true
 		}
-
-		m.allMatches = append(m.allMatches, match)
+		m.allMatches = append(m.allMatches, highlight)
 	}
 
 	m.totalMatchesOnAllItems = len(m.allMatches)
@@ -531,13 +535,16 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 
 	if !m.Viewport.GetWrapText() {
-		m.panToCurrentMatch(currentMatch)
+		m.panToFocusedMatch()
 	}
 }
 
-func (m *Model[T]) panToCurrentMatch(match viewport.Highlight) {
-	// TODO LEO: use widths, not byte offsets here
-	matchCenter := match.ItemHighlight.ByteRangeUnstyledContent.Start + (match.ItemHighlight.ByteRangeUnstyledContent.End-match.ItemHighlight.ByteRangeUnstyledContent.Start)/2
+func (m *Model[T]) panToFocusedMatch() {
+	widthRange, ok := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
+	if !ok {
+		return
+	}
+	matchCenter := (widthRange.Start + widthRange.End) / 2
 	viewportWidth := m.Viewport.GetWidth()
 	centeredXOffset := matchCenter - viewportWidth/2
 	m.Viewport.SetXOffsetWidth(centeredXOffset)

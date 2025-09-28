@@ -30,10 +30,10 @@ type Item interface {
 	NumWrappedLines(wrapWidth int) int
 
 	// ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-	ExtractExactMatches(exactMatch string) []ByteRange
+	ExtractExactMatches(exactMatch string) []Match
 
 	// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-	ExtractRegexMatches(regex *regexp.Regexp) []ByteRange
+	ExtractRegexMatches(regex *regexp.Regexp) []Match
 
 	// repr returns a representation of the object as a string for debugging
 	repr() string
