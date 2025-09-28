@@ -305,7 +305,6 @@ func (m MultiItem) findItemForByteOffset(byteOffset int, itemByteOffsets []int) 
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-// TODO LEO: test
 func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 	if len(m.items) == 0 {
 		return []Match{}
@@ -314,28 +313,57 @@ func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 		return m.items[0].ExtractRegexMatches(regex)
 	}
 
-	var allMatches []Match
-	byteOffset := 0
-	widthOffset := 0
+	concatenated := m.ContentNoAnsi()
 
-	for _, item := range m.items {
-		itemMatches := item.ExtractRegexMatches(regex)
-		for _, match := range itemMatches {
-			// adjust byte and width offsets to account for previous items
-			adjustedMatch := Match{
-				ByteRange: ByteRange{
-					Start: match.ByteRange.Start + byteOffset,
-					End:   match.ByteRange.End + byteOffset,
-				},
-				WidthRange: WidthRange{
-					Start: match.WidthRange.Start + widthOffset,
-					End:   match.WidthRange.End + widthOffset,
-				},
+	// precompute cumulative byte and width offsets for each item
+	itemByteOffsets := make([]int, len(m.items)+1)
+	itemWidthOffsets := make([]int, len(m.items)+1)
+	for i, item := range m.items {
+		itemByteOffsets[i+1] = itemByteOffsets[i] + len(item.ContentNoAnsi())
+		itemWidthOffsets[i+1] = itemWidthOffsets[i] + item.Width()
+	}
+
+	var allMatches []Match
+
+	// find all regex matches in the concatenated content
+	regexMatches := regex.FindAllStringIndex(concatenated, -1)
+	for _, regexMatch := range regexMatches {
+		actualStartIndex := regexMatch[0]
+		endIndex := regexMatch[1]
+
+		// map concatenated positions back to individual items and convert to width ranges
+		startItemIdx, startLocalByteOffset := m.findItemForByteOffset(actualStartIndex, itemByteOffsets)
+		endItemIdx, endLocalByteOffset := m.findItemForByteOffset(endIndex, itemByteOffsets)
+
+		// calculate width positions using individual item's efficient lookup methods
+		var startWidth, endWidth int
+
+		if startItemIdx >= 0 && startItemIdx < len(m.items) {
+			startRuneIdx := m.items[startItemIdx].getRuneIndexAtByteOffset(startLocalByteOffset)
+			if startRuneIdx > 0 {
+				startWidth = int(m.items[startItemIdx].getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
 			}
-			allMatches = append(allMatches, adjustedMatch)
+			startWidth += itemWidthOffsets[startItemIdx]
 		}
-		byteOffset += len(item.ContentNoAnsi())
-		widthOffset += item.Width()
+
+		if endItemIdx >= 0 && endItemIdx < len(m.items) {
+			endRuneIdx := m.items[endItemIdx].getRuneIndexAtByteOffset(endLocalByteOffset)
+			if endRuneIdx > 0 {
+				endWidth = int(m.items[endItemIdx].getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+			}
+			endWidth += itemWidthOffsets[endItemIdx]
+		}
+
+		allMatches = append(allMatches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
 	}
 
 	return allMatches

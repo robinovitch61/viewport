@@ -2,6 +2,7 @@ package item
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/robinovitch61/bubbleo/internal"
@@ -812,7 +813,335 @@ func TestMultiItem_ExtractExactMatches(t *testing.T) {
 }
 
 func TestMultiItem_ExtractRegexMatches(t *testing.T) {
-	// TODO
+	tests := []struct {
+		name         string
+		key          string
+		regexPattern string
+		expected     []Match
+		expectError  bool
+	}{
+		{
+			name:         "hello world no matches",
+			key:          "hello world",
+			regexPattern: "xyz",
+			expected:     []Match{},
+		},
+		{
+			name:         "hello world simple word match",
+			key:          "hello world",
+			regexPattern: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world word boundary match",
+			key:          "hello world",
+			regexPattern: `\bworld\b`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world character class match l",
+			key:          "hello world",
+			regexPattern: `l`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   3,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   3,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   4,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 9,
+						End:   10,
+					},
+					WidthRange: WidthRange{
+						Start: 9,
+						End:   10,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world case insensitive pattern",
+			key:          "hello world",
+			regexPattern: `(?i)HELLO`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world across boundary lo wo",
+			key:          "hello world",
+			regexPattern: `lo wo`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   8,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world capturing groups",
+			key:          "hello world",
+			regexPattern: `(hello) (world)`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world dot metacharacter",
+			key:          "hello world",
+			regexPattern: `l.o`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world anchored pattern start",
+			key:          "hello world",
+			regexPattern: `^hello`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:         "hello world anchored pattern end",
+			key:          "hello world",
+			regexPattern: `world$`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "ansi match hello",
+			key:          "ansi",
+			regexPattern: "hello",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:         "ansi match across boundary",
+			key:          "ansi",
+			regexPattern: "lo wo",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   8,
+					},
+				},
+			},
+		},
+		{
+			name:         "unicode_ansi match A with unicode",
+			key:          "unicode_ansi",
+			regexPattern: "A💖",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   3,
+					},
+				},
+			},
+		},
+		{
+			name:         "unicode_ansi match 中é",
+			key:          "unicode_ansi",
+			regexPattern: "中é",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 5,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   6,
+					},
+				},
+			},
+		},
+		{
+			name:         "unicode_ansi match unicode across boundary",
+			key:          "unicode_ansi",
+			regexPattern: "💖中",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 1,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 1,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:         "unicode_ansi wildcard match",
+			key:          "unicode_ansi",
+			regexPattern: ".💖",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   3,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			regex, err := regexp.Compile(tt.regexPattern)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error compiling regex: %v", err)
+				return
+			}
+
+			for _, eq := range getEquivalentItems()[tt.key] {
+				matches := eq.ExtractRegexMatches(regex)
+
+				if len(matches) != len(tt.expected) {
+					t.Errorf("for item %s: expected %d matches, got %d", eq.repr(), len(tt.expected), len(matches))
+					return
+				}
+
+				for i, expected := range tt.expected {
+					match := matches[i]
+
+					if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+						t.Errorf("for item %s, match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+							eq.repr(), i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+					}
+
+					if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+						t.Errorf("for item %s, match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+							eq.repr(), i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
+					}
+				}
+			}
+		})
+	}
 }
 
 func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
