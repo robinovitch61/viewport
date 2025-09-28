@@ -532,6 +532,289 @@ func TestMultiItem_NumWrappedLines(t *testing.T) {
 	}
 }
 
+func TestMultiItem_ExtractExactMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		key        string
+		exactMatch string
+		expected   []Match
+	}{
+		{
+			name:       "hello world empty exact match",
+			key:        "hello world",
+			exactMatch: "",
+			expected:   []Match{},
+		},
+		{
+			name:       "hello world no matches",
+			key:        "hello world",
+			exactMatch: "xyz",
+			expected:   []Match{},
+		},
+		{
+			name:       "hello world single match hello",
+			key:        "hello world",
+			exactMatch: "hello",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world single match world",
+			key:        "hello world",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world match full content",
+			key:        "hello world",
+			exactMatch: "hello world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world partial match lo wo",
+			key:        "hello world",
+			exactMatch: "lo wo",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   8,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world single character match l",
+			key:        "hello world",
+			exactMatch: "l",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   3,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   3,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   4,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 9,
+						End:   10,
+					},
+					WidthRange: WidthRange{
+						Start: 9,
+						End:   10,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world overlapping matches ll",
+			key:        "hello world",
+			exactMatch: "ll",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   4,
+					},
+				},
+			},
+		},
+		{
+			name:       "hello world case sensitive Hello",
+			key:        "hello world",
+			exactMatch: "Hello",
+			expected:   []Match{},
+		},
+		{
+			name:       "ansi match hello",
+			key:        "ansi",
+			exactMatch: "hello",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name:       "ansi match world",
+			key:        "ansi",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:       "ansi match across boundary lo wo",
+			key:        "ansi",
+			exactMatch: "lo wo",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   8,
+					},
+				},
+			},
+		},
+		{
+			name:       "unicode_ansi match A💖",
+			key:        "unicode_ansi",
+			exactMatch: "A💖",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   3,
+					},
+				},
+			},
+		},
+		{
+			name:       "unicode_ansi match 中é",
+			key:        "unicode_ansi",
+			exactMatch: "中é",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 5,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   6,
+					},
+				},
+			},
+		},
+		{
+			name:       "unicode_ansi match single character A",
+			key:        "unicode_ansi",
+			exactMatch: "A",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   1,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, eq := range getEquivalentItems()[tt.key] {
+				matches := eq.ExtractExactMatches(tt.exactMatch)
+
+				if len(matches) != len(tt.expected) {
+					t.Errorf("for item %s: expected %d matches, got %d", eq.repr(), len(tt.expected), len(matches))
+					return
+				}
+
+				for i, expected := range tt.expected {
+					match := matches[i]
+
+					if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+						t.Errorf("for item %s, match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+							eq.repr(), i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+					}
+
+					if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+						t.Errorf("for item %s, match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+							eq.repr(), i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestMultiItem_ExtractRegexMatches(t *testing.T) {
+	// TODO
+}
+
 func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
 	var highlights []Highlight
 	for _, match := range matches {

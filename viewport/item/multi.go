@@ -205,41 +205,103 @@ func (m MultiItem) repr() string {
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-// TODO LEO: test
-// TODO LEO: this won't work across item boundaries yet
 func (m MultiItem) ExtractExactMatches(exactMatch string) []Match {
-	if len(m.items) == 0 {
+	if len(m.items) == 0 || exactMatch == "" {
 		return []Match{}
 	}
 	if len(m.items) == 1 {
 		return m.items[0].ExtractExactMatches(exactMatch)
 	}
 
-	var allMatches []Match
-	byteOffset := 0
-	widthOffset := 0
+	concatenated := m.ContentNoAnsi()
 
-	for _, item := range m.items {
-		itemMatches := item.ExtractExactMatches(exactMatch)
-		for _, match := range itemMatches {
-			// adjust byte and width offsets to account for previous items
-			adjustedMatch := Match{
-				ByteRange: ByteRange{
-					Start: match.ByteRange.Start + byteOffset,
-					End:   match.ByteRange.End + byteOffset,
-				},
-				WidthRange: WidthRange{
-					Start: match.WidthRange.Start + widthOffset,
-					End:   match.WidthRange.End + widthOffset,
-				},
-			}
-			allMatches = append(allMatches, adjustedMatch)
+	// precompute cumulative byte and width offsets for each item
+	itemByteOffsets := make([]int, len(m.items)+1)
+	itemWidthOffsets := make([]int, len(m.items)+1)
+	for i, item := range m.items {
+		itemByteOffsets[i+1] = itemByteOffsets[i] + len(item.ContentNoAnsi())
+		itemWidthOffsets[i+1] = itemWidthOffsets[i] + item.Width()
+	}
+
+	var allMatches []Match
+	startIndex := 0
+
+	// find all matches in the concatenated content
+	for {
+		foundIndex := strings.Index(concatenated[startIndex:], exactMatch)
+		if foundIndex == -1 {
+			break
 		}
-		byteOffset += len(item.ContentNoAnsi())
-		widthOffset += item.Width()
+
+		actualStartIndex := startIndex + foundIndex
+		endIndex := actualStartIndex + len(exactMatch)
+
+		// map concatenated positions back to individual items and convert to width ranges
+		startItemIdx, startLocalByteOffset := m.findItemForByteOffset(actualStartIndex, itemByteOffsets)
+		endItemIdx, endLocalByteOffset := m.findItemForByteOffset(endIndex, itemByteOffsets)
+
+		// calculate width positions using individual item's efficient lookup methods
+		var startWidth, endWidth int
+
+		if startItemIdx >= 0 && startItemIdx < len(m.items) {
+			startRuneIdx := m.items[startItemIdx].getRuneIndexAtByteOffset(startLocalByteOffset)
+			if startRuneIdx > 0 {
+				startWidth = int(m.items[startItemIdx].getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+			}
+			startWidth += itemWidthOffsets[startItemIdx]
+		}
+
+		if endItemIdx >= 0 && endItemIdx < len(m.items) {
+			endRuneIdx := m.items[endItemIdx].getRuneIndexAtByteOffset(endLocalByteOffset)
+			if endRuneIdx > 0 {
+				endWidth = int(m.items[endItemIdx].getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+			}
+			endWidth += itemWidthOffsets[endItemIdx]
+		}
+
+		allMatches = append(allMatches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
+
+		startIndex = endIndex // overlapping matches are not considered
 	}
 
 	return allMatches
+}
+
+// findItemForByteOffset finds which item contains the given byte offset in concatenated content
+// Returns (itemIndex, localByteOffset) where localByteOffset is the offset within that item
+func (m MultiItem) findItemForByteOffset(byteOffset int, itemByteOffsets []int) (int, int) {
+	// binary search to find the item containing this byte offset
+	left, right := 0, len(m.items)-1
+
+	for left <= right {
+		mid := left + (right-left)/2
+		if byteOffset >= itemByteOffsets[mid] && byteOffset < itemByteOffsets[mid+1] {
+			return mid, byteOffset - itemByteOffsets[mid]
+		} else if byteOffset < itemByteOffsets[mid] {
+			right = mid - 1
+		} else {
+			left = mid + 1
+		}
+	}
+
+	// if not found within items, handle edge cases
+	if byteOffset >= itemByteOffsets[len(m.items)] {
+		// past the end - return last item with offset at end
+		lastItemIdx := len(m.items) - 1
+		return lastItemIdx, len(m.items[lastItemIdx].ContentNoAnsi())
+	}
+
+	// before the beginning
+	return 0, 0
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
