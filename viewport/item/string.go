@@ -1,46 +1,10 @@
 package item
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
 )
-
-// extractRegexMatches extracts regex matches from a string
-func extractRegexMatches(item SingleItem, regex *regexp.Regexp) []Match {
-	var matches []Match
-	regexMatches := regex.FindAllStringIndex(item.lineNoAnsi, -1)
-	for _, regexMatch := range regexMatches {
-		actualStartIndex := regexMatch[0]
-		endIndex := regexMatch[1]
-
-		// convert byte ranges to rune indices
-		startRuneIdx := item.getRuneIndexAtByteOffset(actualStartIndex)
-		endRuneIdx := item.getRuneIndexAtByteOffset(endIndex)
-
-		// convert rune indices to width positions
-		var startWidth, endWidth int
-		if startRuneIdx > 0 {
-			startWidth = int(item.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
-		}
-		if endRuneIdx > 0 {
-			endWidth = int(item.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
-		}
-
-		matches = append(matches, Match{
-			ByteRange: ByteRange{
-				Start: actualStartIndex,
-				End:   endIndex,
-			},
-			WidthRange: WidthRange{
-				Start: startWidth,
-				End:   endWidth,
-			},
-		})
-	}
-	return matches
-}
 
 // overflowsLeft checks if a substring overflows a string on the left if the string were to start at startByteIdx inclusive.
 // assumes s has no ansi codes.
