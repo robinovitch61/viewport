@@ -919,9 +919,30 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-//func TestMatchNavigationNoWrapUnicode(t *testing.T) {
-// TODO LEO: test unicode characters that take more than one terminal cell width
-//}
+func TestMatchNavigationNoWrapUnicode(t *testing.T) {
+	fv := makeFilterableViewport(
+		32,
+		10,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		// a (1w, 1b), 💖 (2w, 4b)
+		"💖💖💖💖💖💖💖💖 hi aaaaaaaaaaaaaaaa",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "hi" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] hi  (1/1 matches on 1...",
+		"..💖💖💖💖💖💖 " + focusedStyle.Render("hi") + " aaaaaaaaaaa...",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
 
 //func TestMatchNavigationSelectionEnabled(t *testing.T) {
 //	// TODO LEO
