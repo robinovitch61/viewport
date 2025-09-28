@@ -919,6 +919,10 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
+//func TestMatchNavigationNoWrapUnicode(t *testing.T) {
+// TODO LEO: test unicode characters that take more than one terminal cell width
+//}
+
 //func TestMatchNavigationSelectionEnabled(t *testing.T) {
 //	// TODO LEO
 //}

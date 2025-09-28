@@ -421,8 +421,8 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		}
 		var newHighlights []viewport.Highlight
 		for i := range matches {
-			matchIdx++
 			m.matchWidthsByMatchIdx[matchIdx] = matches[i].WidthRange
+			matchIdx++
 
 			highlight := viewport.Highlight{
 				ItemIndex: itemIdx,
