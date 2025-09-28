@@ -377,8 +377,8 @@ func TestHighlightString(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			byteRanges := extractExactMatches(tt.plainLine, tt.toHighlight)
-			highlights := toHighlights(byteRanges, tt.highlightStyle)
+			matches := NewItem(tt.plainLine).ExtractExactMatches(tt.toHighlight)
+			highlights := toHighlights(matches, tt.highlightStyle)
 			result := highlightString(
 				tt.styledSegment,
 				highlights,

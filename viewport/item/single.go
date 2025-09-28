@@ -286,6 +286,34 @@ func (l SingleItem) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
 	return byteOffset
 }
 
+// getRuneIndexAtByteOffset finds the rune index at the given byte offset
+func (l SingleItem) getRuneIndexAtByteOffset(byteOffset int) int {
+	if byteOffset <= 0 || len(l.lineNoAnsi) == 0 {
+		return 0
+	}
+	if byteOffset >= len(l.lineNoAnsi) {
+		return l.numNoAnsiRunes
+	}
+
+	// binary search to find the rune index
+	left, right := 0, l.numNoAnsiRunes-1
+	for left <= right {
+		mid := left + (right-left)/2
+		midByteOffset := int(l.getByteOffsetAtRuneIdx(mid))
+
+		if midByteOffset == byteOffset {
+			return mid
+		} else if midByteOffset < byteOffset {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	// if exact match not found, return the rune index where byteOffset would fall
+	return right
+}
+
 // getRuneWidth extracts the width of a rune from the packed array
 func (l SingleItem) getRuneWidth(runeIdx int) uint8 {
 	if runeIdx < 0 || runeIdx >= l.numNoAnsiRunes {
@@ -361,13 +389,82 @@ func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-// TODO LEO: test
 func (l SingleItem) ExtractExactMatches(exactMatch string) []Match {
-	return extractExactMatches(l.lineNoAnsi, exactMatch)
+	var matches []Match
+
+	if exactMatch == "" {
+		return matches
+	}
+
+	unstyled := l.lineNoAnsi
+	startIndex := 0
+	for {
+		foundIndex := strings.Index(unstyled[startIndex:], exactMatch)
+		if foundIndex == -1 {
+			break
+		}
+		actualStartIndex := startIndex + foundIndex
+		endIndex := actualStartIndex + len(exactMatch)
+
+		// convert byte ranges to rune indices
+		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
+		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
+
+		// convert rune indices to width positions
+		var startWidth, endWidth int
+		if startRuneIdx > 0 {
+			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+		}
+		if endRuneIdx > 0 {
+			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+		}
+
+		matches = append(matches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
+		startIndex = endIndex // overlapping matches are not considered
+	}
+	return matches
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-// TODO LEO: test
 func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
-	return extractRegexMatches(l.lineNoAnsi, regex)
+	var matches []Match
+	regexMatches := regex.FindAllStringIndex(l.lineNoAnsi, -1)
+	for _, regexMatch := range regexMatches {
+		actualStartIndex := regexMatch[0]
+		endIndex := regexMatch[1]
+
+		// convert byte ranges to rune indices
+		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
+		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
+
+		// convert rune indices to width positions
+		var startWidth, endWidth int
+		if startRuneIdx > 0 {
+			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+		}
+		if endRuneIdx > 0 {
+			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+		}
+
+		matches = append(matches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
+	}
+	return matches
 }

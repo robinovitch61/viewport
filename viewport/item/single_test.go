@@ -1,6 +1,7 @@
 package item
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -974,6 +975,533 @@ func TestSingle_NumWrappedLines(t *testing.T) {
 			actual := item.NumWrappedLines(tt.wrapWidth)
 			if actual != tt.expected {
 				t.Errorf("expected %d, got %d for item %s with wrap width %d", tt.expected, actual, item.repr(), tt.wrapWidth)
+			}
+		})
+	}
+}
+
+func TestSingleItem_ExtractExactMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		s          string
+		exactMatch string
+		expected   []Match
+	}{
+		{
+			name:       "empty exact match",
+			s:          "hello world",
+			exactMatch: "",
+			expected:   []Match{},
+		},
+		{
+			name:       "no matches",
+			s:          "hell",
+			exactMatch: "lo",
+			expected:   []Match{},
+		},
+		{
+			name:       "single match",
+			s:          "hello world",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:       "multiple matches in single string",
+			s:          "hello world world",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name:       "overlapping matches",
+			s:          "aaa",
+			exactMatch: "aa",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+			},
+		},
+		{
+			name:       "sequential matches",
+			s:          "aaaa",
+			exactMatch: "aa",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   4,
+					},
+				},
+			},
+		},
+		{
+			name:       "case sensitive",
+			s:          "Hello HELLO hello",
+			exactMatch: "hello",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name: "unicode characters",
+			// 世 is 3 bytes 2 width, 界 is 3 bytes 2 width, 🌟 is 4 bytes 2 width
+			s:          "世界 hello 🌟",
+			exactMatch: "界 hello 🌟",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   13,
+					},
+				},
+			},
+		},
+		{
+			name:       "single character match",
+			s:          "abcabc",
+			exactMatch: "a",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   1,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   1,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   4,
+					},
+				},
+			},
+		},
+		{
+			name:       "match at beginning and end",
+			s:          "test middle test",
+			exactMatch: "test",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   4,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   16,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := NewItem(tt.s).ExtractExactMatches(tt.exactMatch)
+
+			if len(matches) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(matches))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				match := matches[i]
+
+				if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+					t.Errorf("match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+				}
+
+				if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+					t.Errorf("match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
+				}
+			}
+		})
+	}
+}
+
+func TestSingleItem_ExtractRegexMatches(t *testing.T) {
+	tests := []struct {
+		name         string
+		s            string
+		regexPattern string
+		expected     []Match
+		expectError  bool
+	}{
+		{
+			name:         "invalid regex",
+			s:            "hello world",
+			regexPattern: "[",
+			expected:     nil,
+			expectError:  true,
+		},
+		{
+			name:         "no matches",
+			s:            "hello world",
+			regexPattern: "xyz",
+			expected:     []Match{},
+		},
+		{
+			name:         "simple word match",
+			s:            "hello world",
+			regexPattern: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "word boundary match",
+			s:            "hello world worldly",
+			regexPattern: `\bworld\b`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "digit pattern",
+			s:            "line 123 has numbers 456",
+			regexPattern: `\d+`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 5,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 5,
+						End:   8,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 21,
+						End:   24,
+					},
+					WidthRange: WidthRange{
+						Start: 21,
+						End:   24,
+					},
+				},
+			},
+		},
+		{
+			name:         "case insensitive pattern",
+			s:            "Hello HELLO hello",
+			regexPattern: `(?i)hello`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name:         "capturing groups",
+			s:            "user: john and user: jane",
+			regexPattern: `user: (\w+)`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   10,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   10,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 15,
+						End:   25,
+					},
+					WidthRange: WidthRange{
+						Start: 15,
+						End:   25,
+					},
+				},
+			},
+		},
+		{
+			name:         "multiple capturing groups",
+			s:            "user: john smith and user: jane doe",
+			regexPattern: `user: (\w+) (\w+)`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   16,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 21,
+						End:   35,
+					},
+					WidthRange: WidthRange{
+						Start: 21,
+						End:   35,
+					},
+				},
+			},
+		},
+		{
+			name:         "dot metacharacter",
+			s:            "a1b a.b axb",
+			regexPattern: `a.b`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   3,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   3,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 4,
+						End:   7,
+					},
+					WidthRange: WidthRange{
+						Start: 4,
+						End:   7,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 8,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 8,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "anchored pattern",
+			s:            "start middle end",
+			regexPattern: `^start`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name: "unicode with regex",
+			// 世 is 3 bytes 2 width, 界 is 3 bytes 2 width, 🌟 is 4 bytes 2 width
+			s:            "世界 test 🌟 and test 世界",
+			regexPattern: `界 test 🌟`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   12,
+					},
+				},
+			},
+		},
+		{
+			name:         "overlapping matches not possible with regex",
+			s:            "aaa",
+			regexPattern: `aa`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			regex, err := regexp.Compile(tt.regexPattern)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error compiling regex: %v", err)
+				return
+			}
+
+			matches := NewItem(tt.s).ExtractRegexMatches(regex)
+
+			if len(matches) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(matches))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				match := matches[i]
+
+				if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+					t.Errorf("match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+				}
+
+				if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+					t.Errorf("match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
+				}
 			}
 		})
 	}

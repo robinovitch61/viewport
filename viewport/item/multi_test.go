@@ -532,11 +532,11 @@ func TestMultiItem_NumWrappedLines(t *testing.T) {
 	}
 }
 
-func toHighlights(byteRanges []ByteRange, style lipgloss.Style) []Highlight {
+func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
 	var highlights []Highlight
-	for _, byteRange := range byteRanges {
+	for _, match := range matches {
 		highlights = append(highlights, Highlight{
-			ByteRangeUnstyledContent: byteRange,
+			ByteRangeUnstyledContent: match.ByteRange,
 			Style:                    style,
 		})
 	}

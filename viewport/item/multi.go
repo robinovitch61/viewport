@@ -206,12 +206,75 @@ func (m MultiItem) repr() string {
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
 // TODO LEO: test
+// TODO LEO: this won't work across item boundaries yet
 func (m MultiItem) ExtractExactMatches(exactMatch string) []Match {
-	return extractExactMatches(m.ContentNoAnsi(), exactMatch)
+	if len(m.items) == 0 {
+		return []Match{}
+	}
+	if len(m.items) == 1 {
+		return m.items[0].ExtractExactMatches(exactMatch)
+	}
+
+	var allMatches []Match
+	byteOffset := 0
+	widthOffset := 0
+
+	for _, item := range m.items {
+		itemMatches := item.ExtractExactMatches(exactMatch)
+		for _, match := range itemMatches {
+			// adjust byte and width offsets to account for previous items
+			adjustedMatch := Match{
+				ByteRange: ByteRange{
+					Start: match.ByteRange.Start + byteOffset,
+					End:   match.ByteRange.End + byteOffset,
+				},
+				WidthRange: WidthRange{
+					Start: match.WidthRange.Start + widthOffset,
+					End:   match.WidthRange.End + widthOffset,
+				},
+			}
+			allMatches = append(allMatches, adjustedMatch)
+		}
+		byteOffset += len(item.ContentNoAnsi())
+		widthOffset += item.Width()
+	}
+
+	return allMatches
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
 // TODO LEO: test
 func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
-	return extractRegexMatches(m.ContentNoAnsi(), regex)
+	if len(m.items) == 0 {
+		return []Match{}
+	}
+	if len(m.items) == 1 {
+		return m.items[0].ExtractRegexMatches(regex)
+	}
+
+	var allMatches []Match
+	byteOffset := 0
+	widthOffset := 0
+
+	for _, item := range m.items {
+		itemMatches := item.ExtractRegexMatches(regex)
+		for _, match := range itemMatches {
+			// adjust byte and width offsets to account for previous items
+			adjustedMatch := Match{
+				ByteRange: ByteRange{
+					Start: match.ByteRange.Start + byteOffset,
+					End:   match.ByteRange.End + byteOffset,
+				},
+				WidthRange: WidthRange{
+					Start: match.WidthRange.Start + widthOffset,
+					End:   match.WidthRange.End + widthOffset,
+				},
+			}
+			allMatches = append(allMatches, adjustedMatch)
+		}
+		byteOffset += len(item.ContentNoAnsi())
+		widthOffset += item.Width()
+	}
+
+	return allMatches
 }

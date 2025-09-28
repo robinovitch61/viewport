@@ -124,6 +124,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		previousFocusedMatchIdx:    -1,
 		totalMatchesOnAllItems:     0,
 		itemIdxToFilteredIdx:       make(map[int]int),
+		matchWidthsByMatchIdx:      make(map[int]item.WidthRange),
 	}
 	m.SetHeight(vp.GetHeight())
 
