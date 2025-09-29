@@ -441,7 +441,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so last item in view
-	vp.ScrollSoItemIdxInView(5)
+	vp.ScrollSoItemInView(5, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
@@ -451,12 +451,49 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so second item in view
-	vp.ScrollSoItemIdxInView(1)
+	vp.ScrollSoItemInView(1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
 		"third",
 		"50% (3/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_ScrollToItemWithLineOffset(t *testing.T) {
+	w, h := 15, 4
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"second",
+		"50% (2/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(2, 1) // line offset should have no effect
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"third",
+		"75% (3/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(3, -1) // negative line offset should have no effect
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"third",
+		"fourth",
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1352,7 +1389,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// attempting to scroll so selection out of view is no-op
-	vp.ScrollSoItemIdxInView(5)
+	vp.ScrollSoItemInView(5, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("first"),
@@ -1372,13 +1409,37 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so third item in view
-	vp.ScrollSoItemIdxInView(2)
+	vp.ScrollSoItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("second"),
 		"third",
 		"33% (2/6)",
 	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_ScrollToItemWithLineOffset(t *testing.T) {
+	w, h := 15, 4
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("first"),
+		"second",
+		"25% (1/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// attempting to scroll so selection out of view is no-op
+	vp.ScrollSoItemInView(2, 1) // line offset should have no effect
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
@@ -2815,7 +2876,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so last item in view
-	vp.ScrollSoItemIdxInView(2)
+	vp.ScrollSoItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the third",
@@ -2825,12 +2886,70 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so second item in view
-	vp.ScrollSoItemIdxInView(1)
+	vp.ScrollSoItemInView(1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the second",
 		" line",
 		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
+	w, h := 10, 4
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first",
+		"line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(1, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"line",
+		"the third",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll so second item in view
+	vp.ScrollSoItemInView(0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		" line",
+		"the second",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll so first item in view
+	vp.ScrollSoItemInView(-1, -1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first",
+		"line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll so last item in view
+	vp.ScrollSoItemInView(100, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the third",
+		"line",
+		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3814,7 +3933,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// attempting to scroll so selection out of view is no-op
-	vp.ScrollSoItemIdxInView(2)
+	vp.ScrollSoItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("the first "),
@@ -3838,7 +3957,65 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so third item in view
-	vp.ScrollSoItemIdxInView(2)
+	vp.ScrollSoItemInView(2, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the second"),
+		internal.BlueFg.Render(" line"),
+		"the third",
+		"line",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the first "),
+		internal.BlueFg.Render("line"),
+		"the second",
+		" line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// attempting to scroll so selection out of view is no-op
+	vp.ScrollSoItemInView(2, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the first "),
+		internal.BlueFg.Render("line"),
+		"the second",
+		" line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move selection down
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first",
+		"line",
+		internal.BlueFg.Render("the second"),
+		internal.BlueFg.Render(" line"),
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll so third item in view
+	vp.ScrollSoItemInView(2, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("the second"),

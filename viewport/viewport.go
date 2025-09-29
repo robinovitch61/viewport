@@ -477,10 +477,10 @@ func (m *Model[T]) SetHeader(header []string) {
 	m.content.header = header
 }
 
-// ScrollSoItemIdxInView scrolls the viewport to ensure the specified item index is visible.
+// ScrollSoItemInView scrolls the viewport to ensure the specified item index is visible.
 // If the desired item is above the current content, this scrolls so that the item is at the top. If it is below,
 // it scrolls so that the item is at the bottom.
-func (m *Model[T]) ScrollSoItemIdxInView(itemIdx int) {
+func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
 		return
@@ -609,7 +609,7 @@ func (m *Model[T]) scrollSoSelectionInView() {
 	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")
 	}
-	m.ScrollSoItemIdxInView(m.content.getSelectedIdx())
+	m.ScrollSoItemInView(m.content.getSelectedIdx(), 0)
 }
 
 func (m *Model[T]) selectedItemIdxDown(n int) {
