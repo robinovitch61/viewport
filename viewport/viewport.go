@@ -485,31 +485,44 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 		m.safelySetTopItemIdxAndOffset(0, 0)
 		return
 	}
+
+	// clamp itemIdx to valid range
+	itemIdx = max(0, min(itemIdx, m.content.numItems()-1))
+
+	// clamp lineOffset to valid range for the item
+	numLinesInItem := m.numLinesForItem(itemIdx)
+	lineOffset = max(0, min(lineOffset, numLinesInItem-1))
+
 	originalTopItemIdx, originalTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
 
 	visibleContent := m.getVisibleContent()
 	numLinesInViewForItem := 0
+	lineOffsetInView := false
 	for i := range visibleContent.itemIndexes {
 		if visibleContent.itemIndexes[i] == itemIdx {
+			if numLinesInViewForItem == lineOffset {
+				lineOffsetInView = true
+			}
 			numLinesInViewForItem++
 		}
 	}
 
-	numLinesInItem := m.numLinesForItem(itemIdx)
-	if numLinesInItem != numLinesInViewForItem {
+	if numLinesInItem != numLinesInViewForItem || !lineOffsetInView {
 		priorTopItemIdx := m.display.topItemIdx
 
-		// scroll so item is at the top of the content
+		// scroll so the specific line of the item is at the top of the content
 		m.display.topItemIdx = itemIdx
-		m.display.topItemLineOffset = 0
+		m.display.topItemLineOffset = lineOffset
 
 		if priorTopItemIdx < itemIdx {
 			// if the desired visible item is below the content previously on screen,
 			// scroll up so that item is at the bottom
-			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesInItem))
+			numLinesToShow := numLinesInItem - lineOffset
+			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesToShow))
 		}
 	}
 
+	// TODO LEO!!!: remove this
 	if m.navigation.selectionEnabled {
 		// if scrolled such that selection is now fully out of view, undo it
 		if m.selectionInViewInfo().numLinesSelectionInView == 0 {

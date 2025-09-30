@@ -479,7 +479,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItemWithLineOffset(t *testing.T) 
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 1) // line offset should have no effect
+	vp.ScrollSoItemInView(2, 100) // line offset should have no effect
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
@@ -2903,53 +2903,61 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	vp.SetWrapText(true)
 	setContent(vp, []string{
 		"the first line",
-		"the second line",
-		"the third line",
+		"the second very long line",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first",
 		"line",
-		"33% (1/3)",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(1, 1)
+	vp.ScrollSoItemInView(1, 2)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"line",
-		"the third",
-		"66% (2/3)",
+		" very long",
+		" line",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so second item in view
+	vp.ScrollSoItemInView(1, 1) // already in view
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the second",
+		" very long",
+		"99% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
 	vp.ScrollSoItemInView(0, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		" line",
+		"line",
 		"the second",
-		"33% (1/3)",
+		"99% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so first item in view
 	vp.ScrollSoItemInView(-1, -1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first",
 		"line",
-		"33% (1/3)",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so last item in view
 	vp.ScrollSoItemInView(100, 100)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"the third",
-		"line",
-		"100% (3/3)",
+		" very long",
+		" line",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
