@@ -480,6 +480,7 @@ func (m *Model[T]) SetHeader(header []string) {
 // ScrollSoItemInView scrolls the viewport to ensure the specified item index is visible.
 // If the desired item is above the current content, this scrolls so that the item is at the top. If it is below,
 // it scrolls so that the item is at the bottom.
+// It's possible to scroll such that the selection is out of view of the viewport.
 func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
@@ -492,8 +493,6 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 	// clamp lineOffset to valid range for the item
 	numLinesInItem := m.numLinesForItem(itemIdx)
 	lineOffset = max(0, min(lineOffset, numLinesInItem-1))
-
-	originalTopItemIdx, originalTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
 
 	visibleContent := m.getVisibleContent()
 	numLinesInViewForItem := 0
@@ -519,15 +518,6 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 			// scroll up so that item is at the bottom
 			numLinesToShow := numLinesInItem - lineOffset
 			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesToShow))
-		}
-	}
-
-	// TODO LEO!!!: remove this
-	if m.navigation.selectionEnabled {
-		// if scrolled such that selection is now fully out of view, undo it
-		if m.selectionInViewInfo().numLinesSelectionInView == 0 {
-			m.display.topItemIdx = originalTopItemIdx
-			m.display.topItemLineOffset = originalTopItemLineOffset
 		}
 	}
 }
@@ -622,7 +612,17 @@ func (m *Model[T]) scrollSoSelectionInView() {
 	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")
 	}
+	originalTopItemIdx, originalTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
+
 	m.ScrollSoItemInView(m.content.getSelectedIdx(), 0)
+
+	if m.navigation.selectionEnabled {
+		// if scrolled such that selection is now fully out of view, undo it
+		if m.selectionInViewInfo().numLinesSelectionInView == 0 {
+			m.display.topItemIdx = originalTopItemIdx
+			m.display.topItemLineOffset = originalTopItemLineOffset
+		}
+	}
 }
 
 func (m *Model[T]) selectedItemIdxDown(n int) {
