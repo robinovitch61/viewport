@@ -592,14 +592,18 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 func (m *Model[T]) setWidthHeight(width, height int) {
 	m.display.setBounds(rectangle{width: width, height: height})
 	if m.navigation.selectionEnabled {
-		m.scrollSoSelectionInView()
+		m.ScrollSoItemInView(m.content.getSelectedIdx(), 0)
 	}
 	m.safelySetTopItemIdxAndOffset(m.display.topItemIdx, m.display.topItemLineOffset)
 }
 
 func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset int) {
 	maxTopItemIdx, maxTopItemLineOffset := m.maxItemIdxAndMaxTopLineOffset()
-	m.display.safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset)
+	topItemIdx = clampValZeroToMax(topItemIdx, maxTopItemIdx)
+	if topItemIdx == maxTopItemIdx {
+		topItemLineOffset = clampValZeroToMax(topItemLineOffset, maxTopItemLineOffset)
+	}
+	m.display.setTopItemIdxAndOffset(topItemIdx, topItemLineOffset)
 }
 
 // getNumContentLinesWithFooterVisible returns the number of lines of between the header and footer
@@ -614,14 +618,37 @@ func (m *Model[T]) scrollSoSelectionInView() {
 
 	selectedIdx := m.content.getSelectedIdx()
 
+	visibleContent := m.getVisibleContent()
+	numLinesOfSelectionInView := 0
+	selectionTakesUpWholeContent := true
+	for i := range visibleContent.itemIndexes {
+		if visibleContent.itemIndexes[i] == selectedIdx {
+			numLinesOfSelectionInView++
+		} else {
+			selectionTakesUpWholeContent = false
+		}
+	}
+	// if selection is already fully in view or takes up whole content, nothing to do
+	numLinesInSelection := m.numLinesForItem(selectedIdx)
+	if numLinesOfSelectionInView == numLinesInSelection || selectionTakesUpWholeContent {
+		return
+	}
+
 	// if selection is above the visible content, scroll so it's at the top
 	selectionAboveTopItem := selectedIdx < m.display.topItemIdx
 	topItemSelectedWithLinesAbove := selectedIdx == m.display.topItemIdx && m.display.topItemLineOffset > 0
 	if selectionAboveTopItem || topItemSelectedWithLinesAbove {
-		m.ScrollSoItemInView(selectedIdx, 0)
+		m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
 	} else {
 		// if selection is below the visible content, scroll so it's at the bottom
-		m.ScrollSoItemInView(selectedIdx, m.numLinesForItem(selectedIdx)-1)
+		if numLinesInSelection >= m.getNumContentLinesWithFooterVisible() {
+			// if selection takes up more than the whole content, just put it at the top
+			m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
+		} else {
+			// otherwise, put it at the bottom
+			lastLineIdxInSelection := numLinesInSelection - 1
+			m.ScrollSoItemInView(selectedIdx, lastLineIdxInSelection)
+		}
 	}
 }
 

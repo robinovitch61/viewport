@@ -43,13 +43,9 @@ func (dm *displayManager) setBounds(r rectangle) {
 	dm.bounds = r
 }
 
-// safelySetTopItemIdxAndOffset safely sets the top item index and line offset
-func (dm *displayManager) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset, maxTopItemIdx, maxTopItemLineOffset int) {
-	dm.topItemIdx = clampValZeroToMax(topItemIdx, maxTopItemIdx)
-	dm.topItemLineOffset = topItemLineOffset
-	if dm.topItemIdx == maxTopItemIdx {
-		dm.topItemLineOffset = clampValZeroToMax(topItemLineOffset, maxTopItemLineOffset)
-	}
+// setTopItemIdxAndOffset sets the top item index and line offset
+func (dm *displayManager) setTopItemIdxAndOffset(topItemIdx, topItemLineOffset int) {
+	dm.topItemIdx, dm.topItemLineOffset = topItemIdx, topItemLineOffset
 }
 
 // getNumContentLines returns the number of lines in the content

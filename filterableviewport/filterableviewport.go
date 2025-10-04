@@ -530,7 +530,7 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 
 	currentMatch := m.allMatches[m.focusedMatchIdx]
-	m.Viewport.ScrollSoItemIdxInView(currentMatch.ItemIndex)
+	m.Viewport.ScrollSoItemInView(currentMatch.ItemIndex, 0)
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}

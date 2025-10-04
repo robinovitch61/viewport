@@ -2861,7 +2861,7 @@ func TestViewport_SelectionOff_WrapOn_Scrolling(t *testing.T) {
 }
 
 func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
-	w, h := 10, 4
+	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
@@ -2872,26 +2872,41 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"the first",
+		"the first ",
 		"line",
-		"33% (1/3)",
+		"the second",
+		" line",
+		"66% (2/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so last item in view
 	vp.ScrollSoItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
+		"line",
+		"the second",
+		" line",
 		"the third",
+		"99% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp, _ = vp.Update(goToBottomKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the second",
+		" line",
+		"the third ",
 		"line",
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so second item in view
-	vp.ScrollSoItemInView(1, 0)
+	vp.ScrollSoItemInView(0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
+		"the first ",
+		"line",
 		"the second",
 		" line",
 		"66% (2/3)",
@@ -4754,7 +4769,6 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 
-	// add Item
 	setContent(vp, []string{
 		"the second line",
 		"the first line",
@@ -4777,7 +4791,7 @@ func TestViewport_SelectionOn_WrapOn_RemoveLogsWhenSelectionBottom(t *testing.T)
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// remove Item
+	// remove bottom items
 	setContent(vp, []string{
 		"the second line",
 		"the first line",
