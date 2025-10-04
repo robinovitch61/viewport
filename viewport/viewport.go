@@ -495,25 +495,25 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 	lineOffset = max(0, min(lineOffset, numLinesInItem-1))
 
 	visibleContent := m.getVisibleContent()
+
+	// check if item and line offset already in view, if so do nothing
+	// TODO
+
 	numLinesInViewForItem := 0
-	lineOffsetInView := false
 	for i := range visibleContent.itemIndexes {
 		if visibleContent.itemIndexes[i] == itemIdx {
-			if numLinesInViewForItem == lineOffset {
-				lineOffsetInView = true
-			}
 			numLinesInViewForItem++
 		}
 	}
 
-	if numLinesInItem != numLinesInViewForItem || !lineOffsetInView {
+	if numLinesInItem != numLinesInViewForItem {
 		priorTopItemIdx := m.display.topItemIdx
 
 		// scroll so the specific line of the item is at the top of the content
 		m.display.topItemIdx = itemIdx
 		m.display.topItemLineOffset = lineOffset
 
-		if priorTopItemIdx < itemIdx {
+		if priorTopItemIdx <= itemIdx {
 			// if the desired visible item is below the content previously on screen,
 			// scroll up so that item is at the bottom
 			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-1))

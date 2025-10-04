@@ -530,7 +530,19 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 
 	currentMatch := m.allMatches[m.focusedMatchIdx]
-	m.Viewport.ScrollSoItemInView(currentMatch.ItemIndex, 0)
+
+	// calculate the line offset for wrapped text
+	lineOffset := 0
+	if m.Viewport.GetWrapText() {
+		if widthRange, ok := m.matchWidthsByMatchIdx[m.focusedMatchIdx]; ok {
+			wrapWidth := m.Viewport.GetWidth()
+			if wrapWidth > 0 {
+				lineOffset = widthRange.Start / wrapWidth
+			}
+		}
+	}
+
+	m.Viewport.ScrollSoItemInView(currentMatch.ItemIndex, lineOffset)
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
