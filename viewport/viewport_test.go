@@ -2943,41 +2943,41 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	vp.ScrollSoItemInView(1, 1) // already in view
 	internal.CmpStr(t, expectedView, vp.View())
 
-	//vp.ScrollSoItemInView(1, 0)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"the second",
-	//	" very long",
-	//	"99% (2/2)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
+	vp.ScrollSoItemInView(1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the second",
+		" very long",
+		"99% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 
-	//vp.ScrollSoItemInView(0, 1)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"line",
-	//	"the second",
-	//	"99% (2/2)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
-	//
-	//vp.ScrollSoItemInView(-1, -1)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"the first",
-	//	"line",
-	//	"50% (1/2)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
-	//
-	//vp.ScrollSoItemInView(100, 100)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	" very long",
-	//	" line",
-	//	"100% (2/2)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
+	vp.ScrollSoItemInView(0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"line",
+		"the second",
+		"99% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(-1, -1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first",
+		"line",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.ScrollSoItemInView(100, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		" very long",
+		" line",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOff_WrapOn_SetXOffsetWidth(t *testing.T) {
