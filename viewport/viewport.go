@@ -538,6 +538,14 @@ func (m *Model[T]) SetXOffsetWidth(width int) {
 	m.display.xOffset = max(0, min(maxXOffset, width))
 }
 
+// GetXOffsetWidth returns the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
+func (m *Model[T]) GetXOffsetWidth() int {
+	if m.config.wrapText {
+		return 0
+	}
+	return m.display.xOffset
+}
+
 // SetHighlights sets specific positions to highlight with custom styles in the viewport.
 func (m *Model[T]) SetHighlights(highlights []Highlight) {
 	m.content.setHighlights(highlights)

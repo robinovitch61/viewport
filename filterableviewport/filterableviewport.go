@@ -557,8 +557,20 @@ func (m *Model[T]) panToFocusedMatch() {
 	if !ok {
 		return
 	}
-	matchCenter := (widthRange.Start + widthRange.End) / 2
-	viewportWidth := m.Viewport.GetWidth()
-	centeredXOffset := matchCenter - viewportWidth/2
-	m.Viewport.SetXOffsetWidth(centeredXOffset)
+	// if match width wider than viewport, align left edge of match with left edge of viewport
+	if widthRange.End-widthRange.Start >= m.Viewport.GetWidth() {
+		m.Viewport.SetXOffsetWidth(widthRange.Start)
+		return
+	}
+	// if match end is to the right of the viewport, align right edge of match with right edge of viewport
+	if widthRange.End > m.Viewport.GetXOffsetWidth()+m.Viewport.GetWidth() {
+		newXOffset := widthRange.End - m.Viewport.GetWidth()
+		m.Viewport.SetXOffsetWidth(newXOffset)
+		return
+	}
+	// if match start is to the left of the viewport, align left edge of match with left edge of viewport
+	if widthRange.Start < m.Viewport.GetXOffsetWidth() {
+		m.Viewport.SetXOffsetWidth(widthRange.Start)
+		return
+	}
 }

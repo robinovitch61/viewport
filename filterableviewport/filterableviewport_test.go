@@ -901,9 +901,9 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	fv, _ = fv.Update(nextMatchKeyMsg)
 	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] goose  (2/3 matches...",
-		"...duck duck duck duck duck...",
-		"...duck duck " + focusedStyle.Render("goose") + " duck duc...",
-		"... duck duck duck duck duc...",
+		"...k duck duck duck duck " + unfocusedStyle.Render("goose"),
+		focusedStyle.Render("...se") + " duck duck duck duck duck",
+		"...ck duck duck duck duck duck",
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -940,7 +940,7 @@ func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] hi  (1/1 matches on 1...",
-		"..💖💖💖💖💖💖 " + focusedStyle.Render("hi") + " aaaaaaaaaaa...",
+		"💖💖💖💖💖💖💖💖 " + focusedStyle.Render("hi") + " aaaaaaaaa...",
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
