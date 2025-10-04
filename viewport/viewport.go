@@ -524,7 +524,8 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 	if scrollingDown {
 		// if the item was not fully visible and we're scrolling down,
 		// scroll up so that item is at the bottom
-		m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-1))
+		numContentLines := m.getNumContentLinesWithFooterVisible()
+		m.scrollUp(max(0, numContentLines-1))
 	}
 }
 

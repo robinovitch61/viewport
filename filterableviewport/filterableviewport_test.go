@@ -863,12 +863,13 @@ func TestMatchNavigationWrap_Overflow(t *testing.T) {
 		"[exact] goose  (1...",
 		strings.Repeat("a", 20),
 		strings.Repeat("a", 20),
-		strings.Repeat("a", 20),
 		focusedStyle.Render("goose") + strings.Repeat("a", 15),
 		footerStyle.Render("99% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
 }
+
+// TODO LEO: test that a match that overflows to the next line has all its lines shown in both directions (scrolling up and down)
 
 func TestMatchNavigationNoWrap(t *testing.T) {
 	fv := makeFilterableViewport(
