@@ -516,8 +516,7 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
 		if priorTopItemIdx < itemIdx {
 			// if the desired visible item is below the content previously on screen,
 			// scroll up so that item is at the bottom
-			numLinesToShow := numLinesInItem - lineOffset
-			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-numLinesToShow))
+			m.scrollUp(max(0, m.getNumContentLinesWithFooterVisible()-1))
 		}
 	}
 }
@@ -612,16 +611,17 @@ func (m *Model[T]) scrollSoSelectionInView() {
 	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")
 	}
-	originalTopItemIdx, originalTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
 
-	m.ScrollSoItemInView(m.content.getSelectedIdx(), 0)
+	selectedIdx := m.content.getSelectedIdx()
 
-	if m.navigation.selectionEnabled {
-		// if scrolled such that selection is now fully out of view, undo it
-		if m.selectionInViewInfo().numLinesSelectionInView == 0 {
-			m.display.topItemIdx = originalTopItemIdx
-			m.display.topItemLineOffset = originalTopItemLineOffset
-		}
+	// if selection is above the visible content, scroll so it's at the top
+	selectionAboveTopItem := selectedIdx < m.display.topItemIdx
+	topItemSelectedWithLinesAbove := selectedIdx == m.display.topItemIdx && m.display.topItemLineOffset > 0
+	if selectionAboveTopItem || topItemSelectedWithLinesAbove {
+		m.ScrollSoItemInView(selectedIdx, 0)
+	} else {
+		// if selection is below the visible content, scroll so it's at the bottom
+		m.ScrollSoItemInView(selectedIdx, m.numLinesForItem(selectedIdx)-1)
 	}
 }
 

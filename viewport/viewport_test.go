@@ -3958,11 +3958,35 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	vp, _ = vp.Update(downKeyMsg)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
+		"line",
 		internal.BlueFg.Render("the second"),
 		internal.BlueFg.Render(" line"),
 		"the third",
-		"line",
 		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move selection up
+	vp, _ = vp.Update(upKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the first "),
+		internal.BlueFg.Render("line"),
+		"the second",
+		" line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move selection to bottom
+	vp, _ = vp.Update(goToBottomKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the second",
+		" line",
+		internal.BlueFg.Render("the third "),
+		internal.BlueFg.Render("line"),
+		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -3971,9 +3995,9 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 		"header",
 		"the first ",
 		"line",
-		internal.BlueFg.Render("the second"),
-		internal.BlueFg.Render(" line"),
-		"66% (2/3)",
+		"the second",
+		" line",
+		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
