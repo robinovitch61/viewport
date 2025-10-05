@@ -536,8 +536,18 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	if m.Viewport.GetWrapText() {
 		if widthRange, ok := m.matchWidthsByMatchIdx[m.focusedMatchIdx]; ok {
 			wrapWidth := m.Viewport.GetWidth()
-			if wrapWidth > 0 {
-				lineOffset = widthRange.Start / wrapWidth
+
+			// calculate which lines within the item the match starts and ends
+			matchStartLine := widthRange.Start / wrapWidth
+			matchEndLine := widthRange.End / wrapWidth
+			matchHeight := matchEndLine - matchStartLine + 1
+
+			// if lines of match take up whole viewport height, put line where match starts at top of viewport
+			numContentLines := m.Viewport.GetContentHeight()
+			if matchHeight >= numContentLines {
+				lineOffset = matchStartLine
+			} else {
+
 			}
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 // Test helper colors and styles
@@ -30,7 +31,13 @@ var (
 func CmpStr(t *testing.T, expected, actual string, extra ...string) {
 	_, file, line, _ := runtime.Caller(1)
 	testName := t.Name()
-	if diff := cmp.Diff(expected, actual); diff != "" {
+	diff := cmp.Diff(expected, actual)
+	if len(expected) > 100 {
+		diff = cmp.Diff(expected, actual, cmpopts.AcyclicTransformer("SplitLines", func(s string) []string {
+			return strings.Split(s, "\n")
+		}))
+	}
+	if diff != "" {
 		t.Errorf("\nTest %q failed at %s:%d\nDiff (-expected +actual):\n%s%s", testName, file, line, diff, strings.Join(extra, "\n"))
 	}
 }

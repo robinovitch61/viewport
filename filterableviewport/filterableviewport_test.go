@@ -842,7 +842,7 @@ func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-func TestMatchNavigationWrap_Overflow(t *testing.T) {
+func TestMatchNavigationWrap_LineOffset(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
 		5,
@@ -870,6 +870,61 @@ func TestMatchNavigationWrap_Overflow(t *testing.T) {
 }
 
 // TODO LEO: test that a match that overflows to the next line has all its lines shown in both directions (scrolling up and down)
+func TestMatchNavigationWrap_MultiLineMatchOffset(t *testing.T) {
+	fv := makeFilterableViewport(
+		4,
+		6,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		strings.Repeat("a", 10),
+		strings.Repeat("b", 15),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "aaa" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		focusedStyle.Render("aaa") + unfocusedStyle.Render("a"),
+		unfocusedStyle.Render("aa") + unfocusedStyle.Render("aa"),
+		unfocusedStyle.Render("a") + "a",
+		"bbbb",
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("aaa") + focusedStyle.Render("a"),
+		focusedStyle.Render("aa") + unfocusedStyle.Render("aa"),
+		unfocusedStyle.Render("a") + "a",
+		"bbbb",
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "bbb" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("a") + "a",
+		unfocusedStyle.Render("bbb") + focusedStyle.Render("b"),
+		focusedStyle.Render("bb") + unfocusedStyle.Render("bb"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
 
 func TestMatchNavigationNoWrap(t *testing.T) {
 	fv := makeFilterableViewport(

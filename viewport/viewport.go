@@ -447,6 +447,18 @@ func (m *Model[T]) GetHeight() int {
 	return m.display.bounds.height
 }
 
+// GetContentHeight returns the height available for content, excluding header and footer
+// TODO LEO: test
+func (m *Model[T]) GetContentHeight() int {
+	visibleContent := m.getVisibleContent()
+	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), visibleContent.showFooter)
+}
+
+// GetTopItemIdxAndLineOffset returns the current top item index and line offset within that item
+func (m *Model[T]) GetTopItemIdxAndLineOffset() (int, int) {
+	return m.display.topItemIdx, m.display.topItemLineOffset
+}
+
 // SetSelectedItemIdx sets the selected context index. Automatically puts selection in view as necessary
 func (m *Model[T]) SetSelectedItemIdx(selectedItemIdx int) {
 	if !m.navigation.selectionEnabled {
@@ -608,7 +620,7 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 func (m *Model[T]) setWidthHeight(width, height int) {
 	m.display.setBounds(rectangle{width: width, height: height})
 	if m.navigation.selectionEnabled {
-		m.ScrollSoItemInView(m.content.getSelectedIdx(), 0)
+		m.safelySetTopItemIdxAndOffset(m.content.getSelectedIdx(), 0)
 	}
 	m.safelySetTopItemIdxAndOffset(m.display.topItemIdx, m.display.topItemLineOffset)
 }
@@ -960,17 +972,21 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentResu
 		return ""
 	}
 
+	var footerString string
+
 	// if selection is disabled, numerator should be item index of bottom visible line
 	if !m.navigation.selectionEnabled {
 		numerator = visibleContentLines.itemIndexes[len(visibleContentLines.itemIndexes)-1] + 1
 		if m.config.wrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
-			return m.display.styles.FooterStyle.Render(fmt.Sprintf("99%% (%d/%d)", numerator, denominator))
+			footerString = fmt.Sprintf("99%% (%d/%d)", numerator, denominator)
 		}
 	}
 
-	percentScrolled := percent(numerator, denominator)
-	footerString := fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
+	if footerString == "" {
+		percentScrolled := percent(numerator, denominator)
+		footerString = fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
+	}
 
 	footerItem := item.NewItem(footerString)
 	f, _ := footerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
