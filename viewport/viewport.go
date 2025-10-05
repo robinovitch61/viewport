@@ -489,11 +489,12 @@ func (m *Model[T]) SetHeader(header []string) {
 	m.content.header = header
 }
 
-// ScrollSoItemInView scrolls the viewport so that the specified portion of an item is visible.
-// If the desired item portion is above the current content, this scrolls so that the portion is at the top. If it is below,
-// it scrolls so that the portion is at the bottom.
-// It's possible to scroll such that the selection is out of view of the viewport.
-func (m *Model[T]) ScrollSoItemInView(itemIdx, startWidth, endWidth int) {
+// EnsureItemInView scrolls or pans the viewport so that the specified portion of an item is visible.
+// If the desired item portion is above or below the current view, it scrolls vertically to bring it into view.
+// If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view.
+// Afterwards, it's possible that the selection is out of view of the viewport.
+// TODO LEO: test this, prefer this everywhere to ScrollSoLineInItemInView
+func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
 		return
@@ -508,23 +509,101 @@ func (m *Model[T]) ScrollSoItemInView(itemIdx, startWidth, endWidth int) {
 	endWidth = max(startWidth, min(endWidth, itemWidth-1))
 
 	if m.config.wrapText {
+		// convert width positions to line offsets within the item
+		viewportWidth := m.display.bounds.width
+		if viewportWidth == 0 {
+			return
+		}
+		startLineOffset := startWidth / viewportWidth
+		endLineOffset := endWidth / viewportWidth
+
+		visibleContent := m.getVisibleContent()
+
+		// check if the portion is already in view
+		itemFirstSeenAt := -1
+		portionStartInView := false
+		portionEndInView := false
+		for i, visibleItemIdx := range visibleContent.itemIndexes {
+			if visibleItemIdx == itemIdx {
+				if itemFirstSeenAt == -1 {
+					itemFirstSeenAt = i
+				}
+				lineOffsetInItem := i - itemFirstSeenAt
+				if m.display.topItemIdx == itemIdx && itemFirstSeenAt == 0 {
+					lineOffsetInItem += m.display.topItemLineOffset
+				}
+				if lineOffsetInItem == startLineOffset {
+					portionStartInView = true
+				}
+				if lineOffsetInItem == endLineOffset {
+					portionEndInView = true
+				}
+			}
+		}
+
+		// if both start and end are in view, do nothing
+		if portionStartInView && portionEndInView {
+			return
+		}
+
+		priorTopItemIdx := m.display.topItemIdx
+		priorTopItemLineOffset := m.display.topItemLineOffset
+
+		numLinesInPortion := endLineOffset - startLineOffset + 1
+		numContentLines := m.getNumContentLinesWithFooterVisible()
+
 		// if lines taken up by portion is more than viewport height, align top of portion with top of viewport
-		// TODO
+		if numLinesInPortion >= numContentLines {
+			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
+			return
+		}
 
-		// else if line at the portion end is below the viewport, align bottom of portion with bottom of viewport
-		// TODO
+		// determine if we're scrolling down or need to adjust
+		scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < startLineOffset)
 
-		// else if line at the portion start is above the viewport, align top of portion with top of viewport
-		// TODO
+		if scrollingDown || !portionEndInView {
+			// align bottom of portion with bottom of viewport
+			m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
+			m.scrollUp(max(0, numContentLines-1))
+		} else {
+			// align top of portion with top of viewport
+			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
+		}
 	} else {
+		// non-wrapped mode: adjust horizontal offset (xOffset)
+		viewportWidth := m.display.bounds.width
+		currentXOffset := m.display.xOffset
+
+		// calculate the visible width range
+		visibleStartWidth := currentXOffset
+		visibleEndWidth := currentXOffset + viewportWidth - 1
+
+		// check if portion is already fully in view
+		portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
+		portionEndInView := endWidth >= visibleStartWidth && endWidth <= visibleEndWidth
+
+		if portionStartInView && portionEndInView {
+			return
+		}
+
+		portionWidth := endWidth - startWidth + 1
+
 		// if portion width wider than viewport, align left edge of portion with left edge of viewport
-		// TODO
+		if portionWidth > viewportWidth {
+			m.SetXOffsetWidth(startWidth)
+			return
+		}
 
-		// else if portion end is to the right of the viewport, align right edge of portion with right edge of viewport
-		// TODO
+		// determine if we need to pan right or left
+		panningRight := startWidth > visibleStartWidth
 
-		// else if portion start is to the left of the viewport, align left edge of portion with left edge of viewport
-		// TODO
+		if panningRight || !portionEndInView {
+			// align right edge of portion with right edge of viewport
+			m.SetXOffsetWidth(endWidth - viewportWidth + 1)
+		} else {
+			// align left edge of portion with left edge of viewport
+			m.SetXOffsetWidth(startWidth)
+		}
 	}
 }
 
@@ -678,6 +757,7 @@ func (m *Model[T]) getNumContentLinesWithFooterVisible() int {
 	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), true)
 }
 
+// TODO LEO: can use EnsureItemInView instead?
 func (m *Model[T]) scrollSoSelectionInView() {
 	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")

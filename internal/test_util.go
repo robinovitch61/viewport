@@ -32,7 +32,7 @@ func CmpStr(t *testing.T, expected, actual string, extra ...string) {
 	_, file, line, _ := runtime.Caller(1)
 	testName := t.Name()
 	diff := cmp.Diff(expected, actual)
-	if len(expected) > 100 {
+	if len(expected) > 80 {
 		diff = cmp.Diff(expected, actual, cmpopts.AcyclicTransformer("SplitLines", func(s string) []string {
 			return strings.Split(s, "\n")
 		}))

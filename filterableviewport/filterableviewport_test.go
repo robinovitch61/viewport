@@ -915,10 +915,21 @@ func TestMatchNavigationWrap_MultiLineMatchOffset(t *testing.T) {
 		fv, _ = fv.Update(internal.MakeKeyMsg(c))
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		"aaaa",
+		"aaaa",
+		"aa",
+		focusedStyle.Render("bbb") + unfocusedStyle.Render("b"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
 	fv, _ = fv.Update(nextMatchKeyMsg)
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[...",
-		unfocusedStyle.Render("a") + "a",
+		"aaaa",
+		"aa",
 		unfocusedStyle.Render("bbb") + focusedStyle.Render("b"),
 		focusedStyle.Render("bb") + unfocusedStyle.Render("bb"),
 		footerStyle.Render("9..."),

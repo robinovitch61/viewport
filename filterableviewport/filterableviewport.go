@@ -530,57 +530,10 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	}
 
 	currentMatch := m.allMatches[m.focusedMatchIdx]
+	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
 
-	// calculate the line offset for wrapped text
-	lineOffset := 0
-	if m.Viewport.GetWrapText() {
-		if widthRange, ok := m.matchWidthsByMatchIdx[m.focusedMatchIdx]; ok {
-			wrapWidth := m.Viewport.GetWidth()
-
-			// calculate which lines within the item the match starts and ends
-			matchStartLine := widthRange.Start / wrapWidth
-			matchEndLine := widthRange.End / wrapWidth
-			matchHeight := matchEndLine - matchStartLine + 1
-
-			// if lines of match take up whole viewport height, put line where match starts at top of viewport
-			numContentLines := m.Viewport.GetContentHeight()
-			if matchHeight >= numContentLines {
-				lineOffset = matchStartLine
-			} else {
-
-			}
-		}
-	}
-
-	m.Viewport.ScrollSoLineInItemInView(currentMatch.ItemIndex, lineOffset)
+	m.Viewport.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
-	}
-
-	if !m.Viewport.GetWrapText() {
-		m.panToFocusedMatch()
-	}
-}
-
-func (m *Model[T]) panToFocusedMatch() {
-	widthRange, ok := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
-	if !ok {
-		return
-	}
-	// if match width wider than viewport, align left edge of match with left edge of viewport
-	if widthRange.End-widthRange.Start >= m.Viewport.GetWidth() {
-		m.Viewport.SetXOffsetWidth(widthRange.Start)
-		return
-	}
-	// if match end is to the right of the viewport, align right edge of match with right edge of viewport
-	if widthRange.End > m.Viewport.GetXOffsetWidth()+m.Viewport.GetWidth() {
-		newXOffset := widthRange.End - m.Viewport.GetWidth()
-		m.Viewport.SetXOffsetWidth(newXOffset)
-		return
-	}
-	// if match start is to the left of the viewport, align left edge of match with left edge of viewport
-	if widthRange.Start < m.Viewport.GetXOffsetWidth() {
-		m.Viewport.SetXOffsetWidth(widthRange.Start)
-		return
 	}
 }
