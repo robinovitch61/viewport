@@ -420,7 +420,7 @@ func TestViewport_SelectionOff_WrapOff_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -441,7 +441,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so last item in view
-	vp.ScrollSoItemInView(5, 0)
+	vp.ScrollSoLineInItemInView(5, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
@@ -451,7 +451,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so second item in view
-	vp.ScrollSoItemInView(1, 0)
+	vp.ScrollSoLineInItemInView(1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
@@ -461,7 +461,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_ScrollToItemWithLineOffset(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -479,7 +479,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItemWithLineOffset(t *testing.T) 
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 100) // line offset should have no effect
+	vp.ScrollSoLineInItemInView(2, 100) // line offset should have no effect
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
@@ -488,7 +488,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollToItemWithLineOffset(t *testing.T) 
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(3, -1) // negative line offset should have no effect
+	vp.ScrollSoLineInItemInView(3, -1) // negative line offset should have no effect
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"third",
@@ -1367,7 +1367,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -1388,7 +1388,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(5, 0)
+	vp.ScrollSoLineInItemInView(5, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
@@ -1407,7 +1407,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(0, 0)
+	vp.ScrollSoLineInItemInView(0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"first",
@@ -1417,7 +1417,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOff_ScrollToItemWithLineOffset(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -1436,7 +1436,7 @@ func TestViewport_SelectionOn_WrapOff_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(3, 1) // line offset should have no effect
+	vp.ScrollSoLineInItemInView(3, 1) // line offset should have no effect
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"third",
@@ -2860,7 +2860,7 @@ func TestViewport_SelectionOff_WrapOn_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -2880,7 +2880,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 0)
+	vp.ScrollSoLineInItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
@@ -2902,7 +2902,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(0, 0)
+	vp.ScrollSoLineInItemInView(0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first ",
@@ -2914,7 +2914,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
 	w, h := 10, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -2931,7 +2931,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(1, 2)
+	vp.ScrollSoLineInItemInView(1, 2)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		" very long",
@@ -2940,10 +2940,10 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(1, 1) // already in view
+	vp.ScrollSoLineInItemInView(1, 1) // already in view
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(1, 0)
+	vp.ScrollSoLineInItemInView(1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the second",
@@ -2952,7 +2952,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(0, 1)
+	vp.ScrollSoLineInItemInView(0, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
@@ -2961,7 +2961,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(-1, -1)
+	vp.ScrollSoLineInItemInView(-1, -1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first",
@@ -2970,7 +2970,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(100, 100)
+	vp.ScrollSoLineInItemInView(100, 100)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		" very long",
@@ -3937,7 +3937,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -3958,7 +3958,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 0)
+	vp.ScrollSoLineInItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("line"),
@@ -4005,7 +4005,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(0, 0)
+	vp.ScrollSoLineInItemInView(0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first ",
@@ -4017,7 +4017,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItem(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -4038,7 +4038,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 0)
+	vp.ScrollSoLineInItemInView(2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("line"),
@@ -4049,7 +4049,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(2, 1)
+	vp.ScrollSoLineInItemInView(2, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the second",
@@ -4072,7 +4072,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollToItemWithLineOffset(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoItemInView(0, 1)
+	vp.ScrollSoLineInItemInView(0, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",

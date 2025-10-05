@@ -552,7 +552,7 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 		}
 	}
 
-	m.Viewport.ScrollSoItemInView(currentMatch.ItemIndex, lineOffset)
+	m.Viewport.ScrollSoLineInItemInView(currentMatch.ItemIndex, lineOffset)
 	if m.Viewport.GetSelectionEnabled() {
 		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}

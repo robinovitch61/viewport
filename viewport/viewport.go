@@ -489,11 +489,50 @@ func (m *Model[T]) SetHeader(header []string) {
 	m.content.header = header
 }
 
-// ScrollSoItemInView scrolls the viewport to ensure the specified item index is visible.
+// ScrollSoItemInView scrolls the viewport so that the specified portion of an item is visible.
+// If the desired item portion is above the current content, this scrolls so that the portion is at the top. If it is below,
+// it scrolls so that the portion is at the bottom.
+// It's possible to scroll such that the selection is out of view of the viewport.
+func (m *Model[T]) ScrollSoItemInView(itemIdx, startWidth, endWidth int) {
+	if m.content.isEmpty() {
+		m.safelySetTopItemIdxAndOffset(0, 0)
+		return
+	}
+
+	// clamp itemIdx to valid range
+	itemIdx = max(0, min(itemIdx, m.content.numItems()-1))
+
+	// clamp startWidth and endWidth to valid range for the item
+	itemWidth := m.content.objects[itemIdx].GetItem().Width()
+	startWidth = max(0, min(startWidth, itemWidth-1))
+	endWidth = max(startWidth, min(endWidth, itemWidth-1))
+
+	if m.config.wrapText {
+		// if lines taken up by portion is more than viewport height, align top of portion with top of viewport
+		// TODO
+
+		// else if line at the portion end is below the viewport, align bottom of portion with bottom of viewport
+		// TODO
+
+		// else if line at the portion start is above the viewport, align top of portion with top of viewport
+		// TODO
+	} else {
+		// if portion width wider than viewport, align left edge of portion with left edge of viewport
+		// TODO
+
+		// else if portion end is to the right of the viewport, align right edge of portion with right edge of viewport
+		// TODO
+
+		// else if portion start is to the left of the viewport, align left edge of portion with left edge of viewport
+		// TODO
+	}
+}
+
+// ScrollSoLineInItemInView scrolls the viewport to ensure the specified item index is visible.
 // If the desired item is above the current content, this scrolls so that the item is at the top. If it is below,
 // it scrolls so that the item is at the bottom.
 // It's possible to scroll such that the selection is out of view of the viewport.
-func (m *Model[T]) ScrollSoItemInView(itemIdx int, lineOffset int) {
+func (m *Model[T]) ScrollSoLineInItemInView(itemIdx int, lineOffset int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
 		return
@@ -668,14 +707,13 @@ func (m *Model[T]) scrollSoSelectionInView() {
 	if selectionAboveTopItem || topItemSelectedWithLinesAbove {
 		m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
 	} else {
-		// if selection is below the visible content, scroll so it's at the bottom
 		if numLinesInSelection >= m.getNumContentLinesWithFooterVisible() {
 			// if selection takes up more than the whole content, just put it at the top
 			m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
 		} else {
 			// otherwise, put it at the bottom
 			lastLineIdxInSelection := numLinesInSelection - 1
-			m.ScrollSoItemInView(selectedIdx, lastLineIdxInSelection)
+			m.ScrollSoLineInItemInView(selectedIdx, lastLineIdxInSelection)
 		}
 	}
 }
