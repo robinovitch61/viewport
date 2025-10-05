@@ -515,7 +515,10 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 			return
 		}
 		startLineOffset := startWidth / viewportWidth
-		endLineOffset := endWidth / viewportWidth
+		endLineOffset := (endWidth - 1) / viewportWidth
+		if endWidth == 0 {
+			endLineOffset = 0
+		}
 
 		visibleContent := m.getVisibleContent()
 
@@ -561,16 +564,52 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 		// determine if we're scrolling down or need to adjust
 		scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < startLineOffset)
 
-		if scrollingDown || !portionEndInView {
+		if scrollingDown {
 			// align bottom of portion with bottom of viewport
 			m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
-			m.scrollUp(max(0, numContentLines-1))
+
+			// calculate how many lines we are from the target
+			var linesFromTarget int
+			if m.display.topItemIdx == itemIdx {
+				linesFromTarget = endLineOffset - m.display.topItemLineOffset
+			} else if m.display.topItemIdx > itemIdx {
+				panic("should be scrolling down")
+			} else {
+				linesInTopItem := m.numLinesForItem(m.display.topItemIdx)
+				linesFromTarget = linesInTopItem - m.display.topItemLineOffset
+				for idx := m.display.topItemIdx + 1; idx < itemIdx; idx++ {
+					linesFromTarget += m.numLinesForItem(idx)
+				}
+				linesFromTarget += endLineOffset
+			}
+
+			linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
+			m.scrollUp(linesToScrollUp)
 		} else {
 			// align top of portion with top of viewport
 			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
 		}
 	} else {
-		// non-wrapped mode: adjust horizontal offset (xOffset)
+		// non-wrapped mode: first ensure item is vertically in view, then adjust horizontal offset
+		visibleContent := m.getVisibleContent()
+
+		// check if item is already vertically in view
+		itemInView := false
+		for _, visibleItemIdx := range visibleContent.itemIndexes {
+			if visibleItemIdx == itemIdx {
+				itemInView = true
+				break
+			}
+		}
+
+		// if item is not vertically in view, scroll to it
+		if !itemInView {
+			// use ScrollSoLineInItemInView to handle vertical scrolling
+			// lineOffset is 0 for non-wrapped mode since items are single lines
+			m.safelySetTopItemIdxAndOffset(itemIdx, 0)
+		}
+
+		// now handle horizontal offset (xOffset)
 		viewportWidth := m.display.bounds.width
 		currentXOffset := m.display.xOffset
 
@@ -578,7 +617,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 		visibleStartWidth := currentXOffset
 		visibleEndWidth := currentXOffset + viewportWidth - 1
 
-		// check if portion is already fully in view
+		// check if portion is already fully in view horizontally
 		portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
 		portionEndInView := endWidth >= visibleStartWidth && endWidth <= visibleEndWidth
 

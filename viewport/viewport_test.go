@@ -420,7 +420,7 @@ func TestViewport_SelectionOff_WrapOff_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -441,7 +441,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so last item in view
-	vp.ScrollSoLineInItemInView(5, 0)
+	vp.EnsureItemInView(5, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
@@ -451,7 +451,7 @@ func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// scroll so second item in view
-	vp.ScrollSoLineInItemInView(1, 0)
+	vp.EnsureItemInView(1, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"second",
@@ -459,42 +459,17 @@ func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 		"50% (3/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
-}
 
-func TestViewport_SelectionOff_WrapOff_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
-	w, h := 15, 4
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	setContent(vp, []string{
-		"first",
-		"second",
-		"third",
-		"fourth",
-	})
-	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"first",
-		"second",
-		"50% (2/4)",
-	})
+	// ensure idempotence
+	vp.EnsureItemInView(1, 0, 0)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(2, 100) // line offset should have no effect
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"second",
-		"third",
-		"75% (3/4)",
-	})
+	// invalid values truncated
+	vp.EnsureItemInView(1, -1, 1e9)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(3, -1) // negative line offset should have no effect
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"third",
-		"fourth",
-		"100% (4/4)",
-	})
+	// full width ok
+	vp.EnsureItemInView(1, 0, len("second"))
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
@@ -1367,7 +1342,7 @@ func TestViewport_SelectionOn_WrapOff_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_EnsureItemInView(t *testing.T) {
 	w, h := 15, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -1388,11 +1363,22 @@ func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(5, 0)
+	// scroll so last item in view
+	vp.EnsureItemInView(5, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
 		"sixth",
+		"16% (1/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll so second item in view
+	vp.EnsureItemInView(1, 0, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"third",
 		"16% (1/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -1407,42 +1393,16 @@ func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(0, 0)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"first",
-		internal.BlueFg.Render("second"),
-		"33% (2/6)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-}
-
-func TestViewport_SelectionOn_WrapOff_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
-	w, h := 15, 4
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetSelectionEnabled(true)
-	setContent(vp, []string{
-		"first",
-		"second",
-		"third",
-		"fourth",
-	})
-	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		internal.BlueFg.Render("first"),
-		"second",
-		"25% (1/4)",
-	})
+	// ensure idempotence
+	vp.EnsureItemInView(1, 0, 0)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(3, 1) // line offset should have no effect
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"third",
-		"fourth",
-		"25% (1/4)",
-	})
+	// invalid values truncated
+	vp.EnsureItemInView(1, -1, 1e9)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// full width ok
+	vp.EnsureItemInView(1, 0, len("second"))
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
@@ -2860,7 +2820,7 @@ func TestViewport_SelectionOff_WrapOn_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_EnsureItemInView(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -2869,6 +2829,7 @@ func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 		"the first line",
 		"the second line",
 		"the third line",
+		"the fourth line that is super long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -2876,106 +2837,62 @@ func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 		"line",
 		"the second",
 		" line",
-		"66% (2/3)",
+		"50% (2/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(2, 0)
+	vp.EnsureItemInView(2, 0, 9)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
 		"the second",
 		" line",
 		"the third",
-		"99% (3/3)",
+		"75% (3/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	vp, _ = vp.Update(goToBottomKeyMsg)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"the second",
-		" line",
-		"the third ",
-		"line",
-		"100% (3/3)",
+		"the fourth",
+		" line that",
+		" is super ",
+		"long",
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(0, 0)
+	vp.EnsureItemInView(1, len("the second"), len("the second line"))
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		" line",
+		"the third ",
+		"line",
+		"the fourth",
+		"99% (4/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.EnsureItemInView(0, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first ",
 		"line",
 		"the second",
 		" line",
-		"66% (2/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-}
-
-func TestViewport_SelectionOff_WrapOn_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
-	w, h := 10, 4
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetWrapText(true)
-	setContent(vp, []string{
-		"the first line",
-		"the second very long line",
-	})
-	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"the first",
-		"line",
-		"50% (1/2)",
+		"50% (2/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(1, 2)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		" very long",
-		" line",
-		"100% (2/2)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(1, 1) // already in view
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(1, 0)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"the second",
-		" very long",
-		"99% (2/2)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(0, 1)
+	vp.EnsureItemInView(3, 0, len("the fourth line that is super "))
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
-		"the second",
-		"99% (2/2)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(-1, -1)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"the first",
-		"line",
-		"50% (1/2)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(100, 100)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		" very long",
-		" line",
-		"100% (2/2)",
+		"the fourth",
+		" line that",
+		" is super ",
+		"99% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3937,7 +3854,7 @@ func TestViewport_SelectionOn_WrapOn_Scrolling(t *testing.T) {
 	validate(expectedView)
 }
 
-func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_EnsureItemInView(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -3947,6 +3864,7 @@ func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 		"the first line",
 		"the second line",
 		"the third line",
+		"the fourth line that is super long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -3954,132 +3872,62 @@ func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInView(t *testing.T) {
 		internal.BlueFg.Render("line"),
 		"the second",
 		" line",
-		"33% (1/3)",
+		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(2, 0)
+	vp.EnsureItemInView(2, 0, 9)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("line"),
 		"the second",
 		" line",
 		"the third",
-		"33% (1/3)",
+		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// move selection down
-	vp, _ = vp.Update(downKeyMsg)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"line",
-		internal.BlueFg.Render("the second"),
-		internal.BlueFg.Render(" line"),
-		"the third",
-		"66% (2/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	// move selection up
-	vp, _ = vp.Update(upKeyMsg)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		internal.BlueFg.Render("the first "),
-		internal.BlueFg.Render("line"),
-		"the second",
-		" line",
-		"33% (1/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	// move selection to bottom
 	vp, _ = vp.Update(goToBottomKeyMsg)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"the second",
-		" line",
-		internal.BlueFg.Render("the third "),
-		internal.BlueFg.Render("line"),
-		"100% (3/3)",
+		internal.BlueFg.Render("the fourth"),
+		internal.BlueFg.Render(" line that"),
+		internal.BlueFg.Render(" is super "),
+		internal.BlueFg.Render("long"),
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(0, 0)
+	vp.EnsureItemInView(1, len("the second"), len("the second line"))
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		" line",
+		"the third ",
+		"line",
+		internal.BlueFg.Render("the fourth"),
+		"100% (4/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.EnsureItemInView(0, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"the first ",
 		"line",
 		"the second",
 		" line",
-		"100% (3/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-}
-
-func TestViewport_SelectionOn_WrapOn_ScrollSoLineInItemInViewWithLineOffset(t *testing.T) {
-	w, h := 10, 6
-	vp := newViewport(w, h)
-	vp.SetHeader([]string{"header"})
-	vp.SetWrapText(true)
-	vp.SetSelectionEnabled(true)
-	setContent(vp, []string{
-		"the first line",
-		"the second line",
-		"the third line",
-	})
-	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		internal.BlueFg.Render("the first "),
-		internal.BlueFg.Render("line"),
-		"the second",
-		" line",
-		"33% (1/3)",
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.ScrollSoLineInItemInView(2, 0)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		internal.BlueFg.Render("line"),
-		"the second",
-		" line",
-		"the third",
-		"33% (1/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(2, 1)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		"the second",
-		" line",
-		"the third",
-		"line",
-		"33% (1/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	// move selection down
-	vp, _ = vp.Update(downKeyMsg)
-	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-		"header",
-		internal.BlueFg.Render("the second"),
-		internal.BlueFg.Render(" line"),
-		"the third",
-		"line",
-		"66% (2/3)",
-	})
-	internal.CmpStr(t, expectedView, vp.View())
-
-	vp.ScrollSoLineInItemInView(0, 1)
+	vp.EnsureItemInView(3, 0, len("the fourth line that is super "))
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"line",
-		internal.BlueFg.Render("the second"),
-		internal.BlueFg.Render(" line"),
-		"the third",
-		"66% (2/3)",
+		internal.BlueFg.Render("the fourth"),
+		internal.BlueFg.Render(" line that"),
+		internal.BlueFg.Render(" is super "),
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
