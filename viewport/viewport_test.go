@@ -440,7 +440,6 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so last item in view
 	vp.EnsureItemInView(5, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -450,7 +449,6 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scroll so second item in view
 	vp.EnsureItemInView(1, 0, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -460,16 +458,25 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
+	vp.EnsureItemInView(4, 0, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"fourth",
+		"fifth",
+		"83% (5/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
 	// ensure idempotence
-	vp.EnsureItemInView(1, 0, 0)
+	vp.EnsureItemInView(4, 0, 0)
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// invalid values truncated
-	vp.EnsureItemInView(1, -1, 1e9)
+	vp.EnsureItemInView(4, -1, 1e9)
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// full width ok
-	vp.EnsureItemInView(1, 0, len("second"))
+	vp.EnsureItemInView(4, 0, len("fifth"))
 	internal.CmpStr(t, expectedView, vp.View())
 }
 

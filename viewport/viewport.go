@@ -447,13 +447,6 @@ func (m *Model[T]) GetHeight() int {
 	return m.display.bounds.height
 }
 
-// GetContentHeight returns the height available for content, excluding header and footer
-// TODO LEO: test
-func (m *Model[T]) GetContentHeight() int {
-	visibleContent := m.getVisibleContent()
-	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), visibleContent.showFooter)
-}
-
 // GetTopItemIdxAndLineOffset returns the current top item index and line offset within that item
 func (m *Model[T]) GetTopItemIdxAndLineOffset() (int, int) {
 	return m.display.topItemIdx, m.display.topItemLineOffset
@@ -493,7 +486,6 @@ func (m *Model[T]) SetHeader(header []string) {
 // If the desired item portion is above or below the current view, it scrolls vertically to bring it into view.
 // If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view.
 // Afterwards, it's possible that the selection is out of view of the viewport.
-// TODO LEO: test this, prefer this everywhere to ScrollSoLineInItemInView
 func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
@@ -508,13 +500,18 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 	startWidth = max(0, min(startWidth, itemWidth-1))
 	endWidth = max(startWidth, min(endWidth, itemWidth-1))
 
+	// determine if we're scrolling down
+	viewportWidth := m.display.bounds.width
+	if viewportWidth == 0 {
+		return
+	}
+	startLineOffset := startWidth / viewportWidth
+	priorTopItemIdx := m.display.topItemIdx
+	priorTopItemLineOffset := m.display.topItemLineOffset
+	scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < startLineOffset)
+
 	if m.config.wrapText {
 		// convert width positions to line offsets within the item
-		viewportWidth := m.display.bounds.width
-		if viewportWidth == 0 {
-			return
-		}
-		startLineOffset := startWidth / viewportWidth
 		endLineOffset := (endWidth - 1) / viewportWidth
 		if endWidth == 0 {
 			endLineOffset = 0
@@ -549,9 +546,6 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 			return
 		}
 
-		priorTopItemIdx := m.display.topItemIdx
-		priorTopItemLineOffset := m.display.topItemLineOffset
-
 		numLinesInPortion := endLineOffset - startLineOffset + 1
 		numContentLines := m.getNumContentLinesWithFooterVisible()
 
@@ -560,9 +554,6 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
 			return
 		}
-
-		// determine if we're scrolling down or need to adjust
-		scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < startLineOffset)
 
 		if scrollingDown {
 			// align bottom of portion with bottom of viewport
@@ -604,9 +595,27 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 
 		// if item is not vertically in view, scroll to it
 		if !itemInView {
-			// use ScrollSoLineInItemInView to handle vertical scrolling
 			// lineOffset is 0 for non-wrapped mode since items are single lines
 			m.safelySetTopItemIdxAndOffset(itemIdx, 0)
+			if scrollingDown {
+				// calculate how many lines we are from the target
+				var linesFromTarget int
+				if m.display.topItemIdx == itemIdx {
+					linesFromTarget = -m.display.topItemLineOffset
+				} else if m.display.topItemIdx > itemIdx {
+					panic("should be scrolling down")
+				} else {
+					linesInTopItem := m.numLinesForItem(m.display.topItemIdx)
+					linesFromTarget = linesInTopItem - m.display.topItemLineOffset
+					for idx := m.display.topItemIdx + 1; idx < itemIdx; idx++ {
+						linesFromTarget += m.numLinesForItem(idx)
+					}
+				}
+
+				numContentLines := m.getNumContentLinesWithFooterVisible()
+				linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
+				m.scrollUp(linesToScrollUp)
+			}
 		}
 
 		// now handle horizontal offset (xOffset)
@@ -643,58 +652,6 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 			// align left edge of portion with left edge of viewport
 			m.SetXOffsetWidth(startWidth)
 		}
-	}
-}
-
-// ScrollSoLineInItemInView scrolls the viewport to ensure the specified item index is visible.
-// If the desired item is above the current content, this scrolls so that the item is at the top. If it is below,
-// it scrolls so that the item is at the bottom.
-// It's possible to scroll such that the selection is out of view of the viewport.
-func (m *Model[T]) ScrollSoLineInItemInView(itemIdx int, lineOffset int) {
-	if m.content.isEmpty() {
-		m.safelySetTopItemIdxAndOffset(0, 0)
-		return
-	}
-
-	// clamp itemIdx to valid range
-	itemIdx = max(0, min(itemIdx, m.content.numItems()-1))
-
-	// clamp lineOffset to valid range for the item
-	numLinesInItem := m.numLinesForItem(itemIdx)
-	lineOffset = max(0, min(lineOffset, numLinesInItem-1))
-
-	visibleContent := m.getVisibleContent()
-
-	// check if item and line offset already in view, if so do nothing
-	itemFirstSeenAt := -1
-	for i, visibleItemIdx := range visibleContent.itemIndexes {
-		if visibleItemIdx == itemIdx {
-			if itemFirstSeenAt == -1 {
-				itemFirstSeenAt = i
-			}
-			lineOffsetInItem := i - itemFirstSeenAt
-			if m.display.topItemIdx == itemIdx && itemFirstSeenAt == 0 {
-				lineOffsetInItem += m.display.topItemLineOffset
-			}
-			if lineOffsetInItem == lineOffset {
-				return
-			}
-		}
-	}
-
-	priorTopItemIdx := m.display.topItemIdx
-	priorTopItemLineOffset := m.display.topItemLineOffset
-
-	// scroll so the specific line of the item is at the top of the content
-	m.display.topItemIdx = itemIdx
-	m.display.topItemLineOffset = lineOffset
-
-	scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < lineOffset)
-	if scrollingDown {
-		// if the item was not fully visible and we're scrolling down,
-		// scroll up so that item is at the bottom
-		numContentLines := m.getNumContentLinesWithFooterVisible()
-		m.scrollUp(max(0, numContentLines-1))
 	}
 }
 
@@ -784,7 +741,14 @@ func (m *Model[T]) setWidthHeight(width, height int) {
 
 func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset int) {
 	maxTopItemIdx, maxTopItemLineOffset := m.maxItemIdxAndMaxTopLineOffset()
-	topItemIdx = clampValZeroToMax(topItemIdx, maxTopItemIdx)
+	if topItemIdx < 0 {
+		topItemIdx = 0
+		topItemLineOffset = 0
+	}
+	if topItemIdx > maxTopItemIdx {
+		topItemIdx = maxTopItemIdx
+		topItemLineOffset = maxTopItemLineOffset
+	}
 	if topItemIdx == maxTopItemIdx {
 		topItemLineOffset = clampValZeroToMax(topItemLineOffset, maxTopItemLineOffset)
 	}
@@ -796,45 +760,29 @@ func (m *Model[T]) getNumContentLinesWithFooterVisible() int {
 	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), true)
 }
 
-// TODO LEO: can use EnsureItemInView instead?
 func (m *Model[T]) scrollSoSelectionInView() {
 	if !m.navigation.selectionEnabled {
 		panic("scrollSoSelectionInView called when selection is not enabled")
 	}
-
-	selectedIdx := m.content.getSelectedIdx()
-
-	visibleContent := m.getVisibleContent()
-	numLinesOfSelectionInView := 0
-	selectionTakesUpWholeContent := true
-	for i := range visibleContent.itemIndexes {
-		if visibleContent.itemIndexes[i] == selectedIdx {
-			numLinesOfSelectionInView++
-		} else {
-			selectionTakesUpWholeContent = false
-		}
-	}
-	// if selection is already fully in view or takes up whole content, nothing to do
-	numLinesInSelection := m.numLinesForItem(selectedIdx)
-	if numLinesOfSelectionInView == numLinesInSelection || selectionTakesUpWholeContent {
+	selectedItem := m.content.getSelectedItem()
+	if selectedItem == nil {
 		return
 	}
-
-	// if selection is above the visible content, scroll so it's at the top
-	selectionAboveTopItem := selectedIdx < m.display.topItemIdx
-	topItemSelectedWithLinesAbove := selectedIdx == m.display.topItemIdx && m.display.topItemLineOffset > 0
-	if selectionAboveTopItem || topItemSelectedWithLinesAbove {
-		m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
-	} else {
-		if numLinesInSelection >= m.getNumContentLinesWithFooterVisible() {
-			// if selection takes up more than the whole content, just put it at the top
-			m.safelySetTopItemIdxAndOffset(selectedIdx, 0)
-		} else {
-			// otherwise, put it at the bottom
-			lastLineIdxInSelection := numLinesInSelection - 1
-			m.ScrollSoLineInItemInView(selectedIdx, lastLineIdxInSelection)
+	selectedItemWidth := (*selectedItem).GetItem().Width()
+	startWidth := 0
+	endWidth := selectedItemWidth
+	if !m.config.wrapText && m.display.xOffset > 0 {
+		if selectedItemWidth < m.display.xOffset {
+			// ensure the selection is visible by scrolling, but don't pan
+			prevXOffset := m.display.xOffset
+			m.EnsureItemInView(m.content.selectedIdx, 0, 0)
+			m.SetXOffsetWidth(prevXOffset)
+			return
 		}
+		startWidth = m.display.xOffset
+		endWidth = m.display.xOffset + m.display.bounds.width - 1
 	}
+	m.EnsureItemInView(m.content.selectedIdx, startWidth, endWidth)
 }
 
 func (m *Model[T]) selectedItemIdxDown(n int) {
