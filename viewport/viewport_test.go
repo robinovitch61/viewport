@@ -449,16 +449,16 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.EnsureItemInView(5, 9, 10)
+	vp.EnsureItemInView(5, len("sixth line"), len("sixth line "))
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"...h",
-		"...h li...", // 's|ixth line ' // TODO LEO: this seems wrong?
+		"...h li...", // 's|ixth line '
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.EnsureItemInView(5, len("sixth line that is r"), len("sixth line that is really long"))
+	vp.EnsureItemInView(5, len("sixth line that is really lon"), len("sixth line that is really long"))
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"...",

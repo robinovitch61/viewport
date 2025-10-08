@@ -623,8 +623,8 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 		currentXOffset := m.display.xOffset
 
 		// calculate the visible width range
-		visibleStartWidth := currentXOffset
-		visibleEndWidth := currentXOffset + viewportWidth - 1
+		visibleStartWidth := currentXOffset + 1
+		visibleEndWidth := currentXOffset + viewportWidth
 
 		// check if portion is already fully in view horizontally
 		portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
@@ -634,7 +634,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 			return
 		}
 
-		portionWidth := endWidth - startWidth + 1
+		portionWidth := endWidth - startWidth
 
 		// if portion width wider than viewport, align left edge of portion with left edge of viewport
 		if portionWidth > viewportWidth {
@@ -647,7 +647,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 
 		if panningRight || !portionEndInView {
 			// align right edge of portion with right edge of viewport
-			m.SetXOffsetWidth(endWidth - viewportWidth + 1) // TODO LEO: this +1 is wrong
+			m.SetXOffsetWidth(endWidth - viewportWidth)
 		} else {
 			// align left edge of portion with left edge of viewport
 			m.SetXOffsetWidth(startWidth)
