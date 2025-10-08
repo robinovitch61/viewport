@@ -497,8 +497,8 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 
 	// clamp startWidth and endWidth to valid range for the item
 	itemWidth := m.content.objects[itemIdx].GetItem().Width()
-	startWidth = max(0, min(startWidth, itemWidth-1))
-	endWidth = max(startWidth, min(endWidth, itemWidth-1))
+	startWidth = max(0, min(startWidth, itemWidth))
+	endWidth = max(startWidth, min(endWidth, itemWidth))
 
 	// determine if we're scrolling down
 	viewportWidth := m.display.bounds.width
@@ -619,7 +619,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 		}
 
 		// now handle horizontal offset (xOffset)
-		viewportWidth := m.display.bounds.width
+		viewportWidth = m.display.bounds.width
 		currentXOffset := m.display.xOffset
 
 		// calculate the visible width range
@@ -647,7 +647,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
 
 		if panningRight || !portionEndInView {
 			// align right edge of portion with right edge of viewport
-			m.SetXOffsetWidth(endWidth - viewportWidth + 1)
+			m.SetXOffsetWidth(endWidth - viewportWidth + 1) // TODO LEO: this +1 is wrong
 		} else {
 			// align left edge of portion with left edge of viewport
 			m.SetXOffsetWidth(startWidth)

@@ -421,7 +421,7 @@ func TestViewport_SelectionOff_WrapOff_Scrolling(t *testing.T) {
 }
 
 func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
-	w, h := 15, 4
+	w, h := 10, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	setContent(vp, []string{
@@ -430,7 +430,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 		"third",
 		"fourth",
 		"fifth",
-		"sixth",
+		"sixth line that is really long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -444,7 +444,25 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"fifth",
-		"sixth",
+		"sixth l...",
+		"100% (6/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.EnsureItemInView(5, 9, 10)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...h",
+		"...h li...", // 's|ixth line ' // TODO LEO: this seems wrong?
+		"100% (6/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.EnsureItemInView(5, len("sixth line that is r"), len("sixth line that is really long"))
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...",
+		"...ly long",
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
