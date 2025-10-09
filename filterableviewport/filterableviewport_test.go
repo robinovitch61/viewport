@@ -869,8 +869,7 @@ func TestMatchNavigationWrap_LineOffset(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
-// TODO LEO: test that a match that overflows to the next line has all its lines shown in both directions (scrolling up and down)
-func TestMatchNavigationWrap_MultiLineMatchOffset(t *testing.T) {
+func TestMatchNavigationWrap_WrappedLinesWithMatches(t *testing.T) {
 	fv := makeFilterableViewport(
 		4,
 		6,
@@ -933,6 +932,135 @@ func TestMatchNavigationWrap_MultiLineMatchOffset(t *testing.T) {
 		unfocusedStyle.Render("bbb") + focusedStyle.Render("b"),
 		focusedStyle.Render("bb") + unfocusedStyle.Render("bb"),
 		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
+func TestMatchNavigationWrap_WrappedLinesWithWrappedMatches(t *testing.T) {
+	fv := makeFilterableViewport(
+		4,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		strings.Repeat("a", 10),
+		strings.Repeat("a", 15),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for range 5 {
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		focusedStyle.Render("aaaa"),
+		focusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa"),
+		footerStyle.Render("5..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("aaaa"),
+		unfocusedStyle.Render("a") + focusedStyle.Render("aaa"),
+		focusedStyle.Render("aa"),
+		footerStyle.Render("5..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("aa"),
+		focusedStyle.Render("aaaa"),
+		focusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("aaaa"),
+		unfocusedStyle.Render("a") + focusedStyle.Render("aaa"),
+		focusedStyle.Render("aa") + unfocusedStyle.Render("aa"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa") + focusedStyle.Render("aa"),
+		focusedStyle.Render("aaa"),
+		footerStyle.Render("1..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("a") + focusedStyle.Render("aaa"),
+		focusedStyle.Render("aa") + unfocusedStyle.Render("aa"),
+		unfocusedStyle.Render("aaa"),
+		footerStyle.Render("1..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		focusedStyle.Render("aaaa"),
+		focusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa") + unfocusedStyle.Render("aa"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("a") + focusedStyle.Render("aaa"),
+		focusedStyle.Render("aa"),
+		unfocusedStyle.Render("aaaa"),
+		footerStyle.Render("9..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		focusedStyle.Render("aaaa"),
+		focusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa"),
+		footerStyle.Render("5..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// rollover
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		unfocusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa") + focusedStyle.Render("aa"),
+		focusedStyle.Render("aaa"),
+		footerStyle.Render("1..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[...",
+		focusedStyle.Render("aaaa"),
+		focusedStyle.Render("a") + unfocusedStyle.Render("aaa"),
+		unfocusedStyle.Render("aa"),
+		footerStyle.Render("5..."),
 	})
 	internal.CmpStr(t, expected, fv.View())
 }
@@ -1170,12 +1298,6 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 	}
 	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
 }
-
-// TODO LEO: add tests for match navigation with matches
-
-// TODO LEO: add test for match navigation showing only matches
-
-// TODO LEO: add test for when wrapped item goes off screen and focused match in the item is off screen (currently shows top lines item and not focused match)
 
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
 
