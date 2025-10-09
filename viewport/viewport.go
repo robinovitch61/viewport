@@ -487,171 +487,194 @@ func (m *Model[T]) SetHeader(header []string) {
 // If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view.
 // Afterwards, it's possible that the selection is out of view of the viewport.
 func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
+	if m.display.bounds.width == 0 {
+		return
+	}
 	if m.content.isEmpty() {
 		m.safelySetTopItemIdxAndOffset(0, 0)
 		return
 	}
 
-	// clamp itemIdx to valid range
-	itemIdx = max(0, min(itemIdx, m.content.numItems()-1))
+	itemIdx, startWidth, endWidth = m.clampItemAndWidthParams(itemIdx, startWidth, endWidth)
 
-	// clamp startWidth and endWidth to valid range for the item
+	if m.config.wrapText {
+		m.ensureWrappedPortionInView(itemIdx, startWidth, endWidth)
+	} else {
+		m.ensureUnwrappedItemVerticallyInView(itemIdx)
+		m.ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth)
+	}
+}
+
+// clampItemAndWidthParams clamps itemIdx, startWidth, and endWidth to valid ranges
+func (m *Model[T]) clampItemAndWidthParams(itemIdx, startWidth, endWidth int) (int, int, int) {
+	itemIdx = max(0, min(itemIdx, m.content.numItems()-1))
 	itemWidth := m.content.objects[itemIdx].GetItem().Width()
 	startWidth = max(0, min(startWidth, itemWidth))
 	endWidth = max(startWidth, min(endWidth, itemWidth))
+	return itemIdx, startWidth, endWidth
+}
 
-	// determine if we're scrolling down
+// ensureWrappedPortionInView ensures the specified portion is visible in wrapped mode
+func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth int) {
+	if !m.config.wrapText {
+		panic("ensureWrappedPortionInView called when wrapText is false")
+	}
 	viewportWidth := m.display.bounds.width
-	if viewportWidth == 0 {
+	startLineOffset := startWidth / viewportWidth
+	endLineOffset := (endWidth - 1) / viewportWidth
+	if endWidth == 0 {
+		endLineOffset = 0
+	}
+
+	// check if already in view
+	if m.isWrappedPortionInView(itemIdx, startLineOffset, endLineOffset) {
 		return
 	}
-	startLineOffset := startWidth / viewportWidth
-	priorTopItemIdx := m.display.topItemIdx
-	priorTopItemLineOffset := m.display.topItemLineOffset
-	scrollingDown := priorTopItemIdx < itemIdx || (priorTopItemIdx == itemIdx && priorTopItemLineOffset < startLineOffset)
 
-	if m.config.wrapText {
-		// convert width positions to line offsets within the item
-		endLineOffset := (endWidth - 1) / viewportWidth
-		if endWidth == 0 {
-			endLineOffset = 0
-		}
+	numLinesInPortion := endLineOffset - startLineOffset + 1
+	numContentLines := m.getNumContentLinesWithFooterVisible()
 
-		visibleContent := m.getVisibleContent()
+	// if portion larger than viewport, align top
+	if numLinesInPortion >= numContentLines {
+		m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
+		return
+	}
 
-		// check if the portion is already in view
-		itemFirstSeenAt := -1
-		portionStartInView := false
-		portionEndInView := false
-		for i, visibleItemIdx := range visibleContent.itemIndexes {
-			if visibleItemIdx == itemIdx {
-				if itemFirstSeenAt == -1 {
-					itemFirstSeenAt = i
-				}
-				lineOffsetInItem := i - itemFirstSeenAt
-				if m.display.topItemIdx == itemIdx && itemFirstSeenAt == 0 {
-					lineOffsetInItem += m.display.topItemLineOffset
-				}
-				if lineOffsetInItem == startLineOffset {
-					portionStartInView = true
-				}
-				if lineOffsetInItem == endLineOffset {
-					portionEndInView = true
-				}
-			}
-		}
-
-		// if both start and end are in view, do nothing
-		if portionStartInView && portionEndInView {
-			return
-		}
-
-		numLinesInPortion := endLineOffset - startLineOffset + 1
-		numContentLines := m.getNumContentLinesWithFooterVisible()
-
-		// if lines taken up by portion is more than viewport height, align top of portion with top of viewport
-		if numLinesInPortion >= numContentLines {
-			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
-			return
-		}
-
-		if scrollingDown {
-			// align bottom of portion with bottom of viewport
-			m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
-
-			// calculate how many lines we are from the target
-			var linesFromTarget int
-			if m.display.topItemIdx == itemIdx {
-				linesFromTarget = endLineOffset - m.display.topItemLineOffset
-			} else if m.display.topItemIdx > itemIdx {
-				panic("should be scrolling down")
-			} else {
-				linesInTopItem := m.numLinesForItem(m.display.topItemIdx)
-				linesFromTarget = linesInTopItem - m.display.topItemLineOffset
-				for idx := m.display.topItemIdx + 1; idx < itemIdx; idx++ {
-					linesFromTarget += m.numLinesForItem(idx)
-				}
-				linesFromTarget += endLineOffset
-			}
-
-			linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
-			m.scrollUp(linesToScrollUp)
-		} else {
-			// align top of portion with top of viewport
-			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
-		}
+	scrollingDown := m.isScrollingDown(itemIdx, startLineOffset)
+	if scrollingDown {
+		// align bottom of portion with bottom of viewport
+		m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
+		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, endLineOffset)
+		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
+		m.scrollUp(linesToScrollUp)
 	} else {
-		// non-wrapped mode: first ensure item is vertically in view, then adjust horizontal offset
-		visibleContent := m.getVisibleContent()
+		m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
+	}
+}
 
-		// check if item is already vertically in view
-		itemInView := false
-		for _, visibleItemIdx := range visibleContent.itemIndexes {
-			if visibleItemIdx == itemIdx {
-				itemInView = true
-				break
+// isWrappedPortionInView checks if both start and end of a wrapped portion are currently visible
+func (m *Model[T]) isWrappedPortionInView(itemIdx, startLineOffset, endLineOffset int) bool {
+	if !m.config.wrapText {
+		panic("isWrappedPortionInView called when wrapText is false")
+	}
+	visibleContent := m.getVisibleContent()
+	itemFirstSeenAt := -1
+	portionStartInView := false
+	portionEndInView := false
+
+	for i, visibleItemIdx := range visibleContent.itemIndexes {
+		if visibleItemIdx == itemIdx {
+			if itemFirstSeenAt == -1 {
+				itemFirstSeenAt = i
+			}
+			lineOffsetInItem := i - itemFirstSeenAt
+			if m.display.topItemIdx == itemIdx && itemFirstSeenAt == 0 {
+				lineOffsetInItem += m.display.topItemLineOffset
+			}
+			if lineOffsetInItem == startLineOffset {
+				portionStartInView = true
+			}
+			if lineOffsetInItem == endLineOffset {
+				portionEndInView = true
 			}
 		}
+	}
 
-		// if item is not vertically in view, scroll to it
-		if !itemInView {
-			// lineOffset is 0 for non-wrapped mode since items are single lines
-			m.safelySetTopItemIdxAndOffset(itemIdx, 0)
-			if scrollingDown {
-				// calculate how many lines we are from the target
-				var linesFromTarget int
-				if m.display.topItemIdx == itemIdx {
-					linesFromTarget = -m.display.topItemLineOffset
-				} else if m.display.topItemIdx > itemIdx {
-					panic("should be scrolling down")
-				} else {
-					linesInTopItem := m.numLinesForItem(m.display.topItemIdx)
-					linesFromTarget = linesInTopItem - m.display.topItemLineOffset
-					for idx := m.display.topItemIdx + 1; idx < itemIdx; idx++ {
-						linesFromTarget += m.numLinesForItem(idx)
-					}
-				}
+	return portionStartInView && portionEndInView
+}
 
-				numContentLines := m.getNumContentLinesWithFooterVisible()
-				linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
-				m.scrollUp(linesToScrollUp)
-			}
-		}
+// isScrollingDown determines if we're scrolling down based on current position
+func (m *Model[T]) isScrollingDown(itemIdx, startLineOffset int) bool {
+	if m.display.topItemIdx < itemIdx {
+		return true
+	}
+	if m.display.topItemIdx == itemIdx && m.display.topItemLineOffset < startLineOffset {
+		return true
+	}
+	return false
+}
 
-		// now handle horizontal offset (xOffset)
-		viewportWidth = m.display.bounds.width
-		currentXOffset := m.display.xOffset
+// linesBetweenCurrentTopAndTarget calculates how many lines separate current top line from target position
+func (m *Model[T]) linesBetweenCurrentTopAndTarget(targetItemIdx, targetLineOffset int) int {
+	if m.display.topItemIdx > targetItemIdx {
+		panic("current top item index is after target item index")
+	}
 
-		// calculate the visible width range
-		visibleStartWidth := currentXOffset + 1
-		visibleEndWidth := currentXOffset + viewportWidth
+	if m.display.topItemIdx == targetItemIdx {
+		return targetLineOffset - m.display.topItemLineOffset
+	}
 
-		// check if portion is already fully in view horizontally
-		portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
-		portionEndInView := endWidth >= visibleStartWidth && endWidth <= visibleEndWidth
+	// count lines from top item to target
+	linesFromTarget := m.numLinesForItem(m.display.topItemIdx) - m.display.topItemLineOffset
+	for idx := m.display.topItemIdx + 1; idx < targetItemIdx; idx++ {
+		linesFromTarget += m.numLinesForItem(idx)
+	}
+	linesFromTarget += targetLineOffset
 
-		if portionStartInView && portionEndInView {
+	return linesFromTarget
+}
+
+// ensureUnwrappedItemVerticallyInView scrolls vertically to bring item into view
+func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
+	if m.config.wrapText {
+		panic("ensureUnwrappedItemVerticallyInView called when wrapText is true")
+	}
+	visibleContent := m.getVisibleContent()
+
+	// check if already visible
+	for _, visibleItemIdx := range visibleContent.itemIndexes {
+		if visibleItemIdx == itemIdx {
 			return
 		}
+	}
 
-		portionWidth := endWidth - startWidth
+	// not visible, scroll to it
+	scrollingDown := m.display.topItemIdx < itemIdx
+	m.safelySetTopItemIdxAndOffset(itemIdx, 0)
 
-		// if portion width wider than viewport, align left edge of portion with left edge of viewport
-		if portionWidth > viewportWidth {
-			m.SetXOffsetWidth(startWidth)
-			return
-		}
+	if scrollingDown {
+		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, 0)
+		numContentLines := m.getNumContentLinesWithFooterVisible()
+		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
+		m.scrollUp(linesToScrollUp)
+	}
+}
 
-		// determine if we need to pan right or left
-		panningRight := startWidth > visibleStartWidth
+// ensureUnwrappedPortionHorizontallyInView pans horizontally to bring portion into view
+func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth int) {
+	if m.config.wrapText {
+		panic("ensureUnwrappedPortionHorizontallyInView called when wrapText is true")
+	}
+	viewportWidth := m.display.bounds.width
+	currentXOffset := m.display.xOffset
 
-		if panningRight || !portionEndInView {
-			// align right edge of portion with right edge of viewport
-			m.SetXOffsetWidth(endWidth - viewportWidth)
-		} else {
-			// align left edge of portion with left edge of viewport
-			m.SetXOffsetWidth(startWidth)
-		}
+	visibleStartWidth := currentXOffset + 1
+	visibleEndWidth := currentXOffset + viewportWidth
+
+	portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
+	portionEndInView := endWidth >= visibleStartWidth && endWidth <= visibleEndWidth
+
+	// already fully visible
+	if portionStartInView && portionEndInView {
+		return
+	}
+
+	portionWidth := endWidth - startWidth
+
+	// portion wider than viewport: align left edge
+	if portionWidth > viewportWidth {
+		m.SetXOffsetWidth(startWidth)
+		return
+	}
+
+	// portion fits: align based on panning direction
+	panningRight := startWidth > visibleStartWidth
+	if panningRight || !portionEndInView {
+		// align right edge with viewport right
+		m.SetXOffsetWidth(endWidth - viewportWidth)
+	} else {
+		// align left edge with viewport left
+		m.SetXOffsetWidth(startWidth)
 	}
 }
 
