@@ -659,7 +659,7 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 
 	// portion fits: align based on panning direction
 	panningRight := startWidth > visibleStartWidth
-	if panningRight || !portionEndInView {
+	if panningRight {
 		// align right edge with viewport right
 		m.SetXOffset(endWidth - viewportWidth)
 	} else {

@@ -1003,37 +1003,38 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
-	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expectedLeftmostMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		focusedStyle.Render("aaaa") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
 	})
-	internal.CmpStr(t, expected, fv.View())
+
+	internal.CmpStr(t, expectedLeftmostMatch, fv.View())
 
 	fv, _ = fv.Update(nextMatchKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("aaaa") + focusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
 	fv, _ = fv.Update(nextMatchKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expectedTravelingRight := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("a..."),
 	})
-	internal.CmpStr(t, expected, fv.View())
+	internal.CmpStr(t, expectedTravelingRight, fv.View())
 
 	for range 4 {
 		fv, _ = fv.Update(nextMatchKeyMsg)
-		internal.CmpStr(t, expected, fv.View())
+		internal.CmpStr(t, expectedTravelingRight, fv.View())
 	}
 
 	fv, _ = fv.Update(nextMatchKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expectedRightmostMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("aaaa"),
 	})
-	internal.CmpStr(t, expected, fv.View())
+	internal.CmpStr(t, expectedRightmostMatch, fv.View())
 
 	fv, _ = fv.Update(prevMatchKeyMsg)
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -1043,19 +1044,25 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 
 	fv, _ = fv.Update(prevMatchKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expectedTravelingLeft := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		focusedStyle.Render("...a") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
 	})
-	internal.CmpStr(t, expected, fv.View())
+	internal.CmpStr(t, expectedTravelingLeft, fv.View())
 
-	// this is bugged
+	for range 4 {
+		fv, _ = fv.Update(prevMatchKeyMsg)
+		internal.CmpStr(t, expectedTravelingLeft, fv.View())
+	}
+
 	fv, _ = fv.Update(prevMatchKeyMsg)
-	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact]...",
-		focusedStyle.Render("...a") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
-	})
-	internal.CmpStr(t, expected, fv.View())
+	internal.CmpStr(t, expectedLeftmostMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedRightmostMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedLeftmostMatch, fv.View())
 }
 
 func TestMatchNavigationNoWrapUnicode(t *testing.T) {
