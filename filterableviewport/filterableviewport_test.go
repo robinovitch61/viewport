@@ -29,13 +29,6 @@ func (i object) GetItem() item.Item {
 	return i.item
 }
 
-//func objectsEqual(a, b object) bool {
-//	if a.item == nil || b.item == nil {
-//		return a.item == b.item
-//	}
-//	return a.item.Content() == b.item.Content()
-//}
-
 var _ viewport.Object = object{}
 
 var (
@@ -1218,10 +1211,6 @@ func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-//func TestMatchNavigationSelectionEnabled(t *testing.T) {
-//	// TODO LEO
-//}
-
 func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
@@ -1299,13 +1288,13 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
 }
 
-// TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N
+// TODO LEO: test match navigation with selection enabled
+
+// TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
 
 // TODO LEO: test for multiple regex matches in a single line
 
 // TODO LEO: test for when toggling wrap, current match should still be visible
-
-// TODO LEO: with a huge block of sequential matches and wrapping on, highlighting disappears near the middle...
 
 // TODO LEO: add timing test for scrolling through a large number of highlighted matches
 
