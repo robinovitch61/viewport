@@ -498,7 +498,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_SetXOffsetWidth(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_SetXOffset(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -513,13 +513,13 @@ func TestViewport_SelectionOff_WrapOff_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(-1)
+	vp.SetXOffset(-1)
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(0)
+	vp.SetXOffset(0)
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(4)
+	vp.SetXOffset(4)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"...st line",
@@ -527,7 +527,7 @@ func TestViewport_SelectionOff_WrapOff_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(1000)
+	vp.SetXOffset(1000)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"...t line ",
@@ -669,7 +669,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffsetWidth(5)
+	vp.SetXOffset(5)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...ne t...",
@@ -693,7 +693,7 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffsetWidth(41)
+	vp.SetXOffset(41)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...e first",
@@ -1431,7 +1431,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOff_SetXOffsetWidth(t *testing.T) {
+func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -1447,13 +1447,13 @@ func TestViewport_SelectionOn_WrapOff_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(-1)
+	vp.SetXOffset(-1)
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(0)
+	vp.SetXOffset(0)
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
-	vp.SetXOffsetWidth(4)
+	vp.SetXOffset(4)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		selectionStyle.Render("...st line"),
@@ -1461,7 +1461,7 @@ func TestViewport_SelectionOn_WrapOff_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(1000)
+	vp.SetXOffset(1000)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		selectionStyle.Render("...t line"),
@@ -1615,7 +1615,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffsetWidth(5)
+	vp.SetXOffset(5)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		internal.BlueFg.Render("...ne t..."),
@@ -1639,7 +1639,7 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffsetWidth(41)
+	vp.SetXOffset(41)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...",
@@ -2922,7 +2922,7 @@ func TestViewport_SelectionOff_WrapOn_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOn_SetXOffsetWidth(t *testing.T) {
+func TestViewport_SelectionOff_WrapOn_SetXOffset(t *testing.T) {
 	w, h := 10, 8
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -2940,16 +2940,16 @@ func TestViewport_SelectionOff_WrapOn_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(-1)
+	vp.SetXOffset(-1)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(0)
+	vp.SetXOffset(0)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(4)
+	vp.SetXOffset(4)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(1000)
+	vp.SetXOffset(1000)
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
@@ -3086,7 +3086,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffsetWidth(5)
+	vp.SetXOffset(5)
 	validate(expectedView)
 
 	// scroll down
@@ -3103,7 +3103,7 @@ func TestViewport_SelectionOff_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffsetWidth(41)
+	vp.SetXOffset(41)
 	validate(expectedView)
 
 	// scroll down
@@ -3957,7 +3957,7 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOn_SetXOffsetWidth(t *testing.T) {
+func TestViewport_SelectionOn_WrapOn_SetXOffset(t *testing.T) {
 	w, h := 10, 8
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -3977,16 +3977,16 @@ func TestViewport_SelectionOn_WrapOn_SetXOffsetWidth(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(-1)
+	vp.SetXOffset(-1)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(0)
+	vp.SetXOffset(0)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(4)
+	vp.SetXOffset(4)
 	internal.CmpStr(t, expectedView, vp.View())
 
-	vp.SetXOffsetWidth(1000)
+	vp.SetXOffset(1000)
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
@@ -4113,7 +4113,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan right
-	vp.SetXOffsetWidth(5)
+	vp.SetXOffset(5)
 	validate(expectedView)
 
 	// scroll down
@@ -4130,7 +4130,7 @@ func TestViewport_SelectionOn_WrapOn_Panning(t *testing.T) {
 	validate(expectedView)
 
 	// pan all the way right
-	vp.SetXOffsetWidth(41)
+	vp.SetXOffset(41)
 	validate(expectedView)
 
 	// scroll down

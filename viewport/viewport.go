@@ -137,50 +137,38 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		switch navResult.action {
 		case actionUp:
 			if m.navigation.selectionEnabled {
-				m.selectedItemIdxUp(navResult.selectionAmount)
+				m.SetSelectedItemIdx(m.content.getSelectedIdx() - navResult.selectionAmount)
 			} else {
-				m.scrollUp(navResult.scrollAmount)
+				m.scrollDownLines(-navResult.scrollAmount)
 			}
 
 		case actionDown:
 			if m.navigation.selectionEnabled {
-				m.selectedItemIdxDown(navResult.selectionAmount)
+				m.SetSelectedItemIdx(m.content.getSelectedIdx() + navResult.selectionAmount)
 			} else {
-				m.scrollDown(navResult.scrollAmount)
+				m.scrollDownLines(navResult.scrollAmount)
 			}
 
 		case actionLeft:
 			if !m.config.wrapText {
-				m.viewLeft(navResult.scrollAmount)
+				m.SetXOffset(m.display.xOffset - navResult.scrollAmount)
 			}
 
 		case actionRight:
 			if !m.config.wrapText {
-				m.viewRight(navResult.scrollAmount)
+				m.SetXOffset(m.display.xOffset + navResult.scrollAmount)
 			}
 
-		case actionHalfPageUp:
-			m.scrollUp(navResult.scrollAmount)
+		case actionHalfPageUp, actionPageUp:
+			m.scrollDownLines(-navResult.scrollAmount)
 			if m.navigation.selectionEnabled {
-				m.selectedItemIdxUp(navResult.selectionAmount)
+				m.SetSelectedItemIdx(m.content.getSelectedIdx() - navResult.selectionAmount)
 			}
 
-		case actionHalfPageDown:
-			m.scrollDown(navResult.scrollAmount)
+		case actionHalfPageDown, actionPageDown:
+			m.scrollDownLines(navResult.scrollAmount)
 			if m.navigation.selectionEnabled {
-				m.selectedItemIdxDown(navResult.selectionAmount)
-			}
-
-		case actionPageUp:
-			m.scrollUp(navResult.scrollAmount)
-			if m.navigation.selectionEnabled {
-				m.selectedItemIdxUp(navResult.selectionAmount)
-			}
-
-		case actionPageDown:
-			m.scrollDown(navResult.scrollAmount)
-			if m.navigation.selectionEnabled {
-				m.selectedItemIdxDown(navResult.selectionAmount)
+				m.SetSelectedItemIdx(m.content.getSelectedIdx() + navResult.selectionAmount)
 			}
 
 		case actionTop:
@@ -193,10 +181,10 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 		case actionBottom:
 			if m.navigation.selectionEnabled {
-				m.selectedItemIdxDown(m.content.numItems())
+				m.SetSelectedItemIdx(m.content.getSelectedIdx() + m.content.numItems())
 			} else {
 				maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
-				m.safelySetTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
+				m.display.setTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
 			}
 
 		default:
@@ -269,7 +257,7 @@ func (m *Model[T]) View() string {
 		pannedPastAllWidth := lipgloss.Width(truncated) == 0
 		if !wrap && pannedRight && itemHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
-			continuation := item.NewItem(m.getLineContinuationIndicator())
+			continuation := item.NewItem(m.config.continuationIndicator)
 			truncated, _ = continuation.Take(0, m.display.bounds.width, "", []item.Highlight{})
 			if truncatedIsSelection {
 				truncated = m.styleSelection(truncated)
@@ -327,7 +315,7 @@ func (m *Model[T]) SetObjects(objects []T) {
 	m.safelySetTopItemIdxAndOffset(m.display.topItemIdx, m.display.topItemLineOffset)
 
 	// ensure xOffset is valid given new Item
-	m.SetXOffsetWidth(m.display.xOffset)
+	m.SetXOffset(m.display.xOffset)
 
 	if m.navigation.selectionEnabled {
 		if stayAtTop {
@@ -356,7 +344,8 @@ func (m *Model[T]) SetObjects(objects []T) {
 			m.content.selectedIdx = clampValZeroToMax(m.content.selectedIdx, len(m.content.objects)-1)
 			m.scrollSoSelectionInView()
 			if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
-				m.scrollUp(initialNumLinesAboveSelection - inView.numLinesAboveSelection)
+				deltaLinesAbove := initialNumLinesAboveSelection - inView.numLinesAboveSelection
+				m.scrollDownLines(-deltaLinesAbove)
 			}
 		}
 	}
@@ -415,7 +404,8 @@ func (m *Model[T]) SetWrapText(wrapText bool) {
 	if m.navigation.selectionEnabled {
 		m.scrollSoSelectionInView()
 		if inView := m.selectionInViewInfo(); inView.numLinesSelectionInView > 0 {
-			m.scrollUp(initialNumLinesAboveSelection - inView.numLinesAboveSelection)
+			deltaLinesAbove := initialNumLinesAboveSelection - inView.numLinesAboveSelection
+			m.scrollDownLines(-deltaLinesAbove)
 			m.scrollSoSelectionInView()
 		}
 	}
@@ -546,7 +536,7 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth int)
 		m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
 		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, endLineOffset)
 		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
-		m.scrollUp(linesToScrollUp)
+		m.scrollDownLines(-linesToScrollUp)
 	} else {
 		m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
 	}
@@ -636,7 +626,7 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
 		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, 0)
 		numContentLines := m.getNumContentLinesWithFooterVisible()
 		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
-		m.scrollUp(linesToScrollUp)
+		m.scrollDownLines(-linesToScrollUp)
 	}
 }
 
@@ -663,7 +653,7 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 
 	// portion wider than viewport: align left edge
 	if portionWidth > viewportWidth {
-		m.SetXOffsetWidth(startWidth)
+		m.SetXOffset(startWidth)
 		return
 	}
 
@@ -671,20 +661,20 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 	panningRight := startWidth > visibleStartWidth
 	if panningRight || !portionEndInView {
 		// align right edge with viewport right
-		m.SetXOffsetWidth(endWidth - viewportWidth)
+		m.SetXOffset(endWidth - viewportWidth)
 	} else {
 		// align left edge with viewport left
-		m.SetXOffsetWidth(startWidth)
+		m.SetXOffset(startWidth)
 	}
 }
 
-// SetXOffsetWidth sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
-func (m *Model[T]) SetXOffsetWidth(width int) {
+// SetXOffset sets the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
+func (m *Model[T]) SetXOffset(widthOffset int) {
 	if m.config.wrapText {
 		return
 	}
 	maxXOffset := m.maxItemWidth() - m.display.bounds.width
-	m.display.xOffset = max(0, min(maxXOffset, width))
+	m.display.xOffset = max(0, min(maxXOffset, widthOffset))
 }
 
 // GetXOffsetWidth returns the horizontal offset, in terminal cell width, for panning when text wrapping is disabled
@@ -796,40 +786,16 @@ func (m *Model[T]) scrollSoSelectionInView() {
 	endWidth := selectedItemWidth
 	if !m.config.wrapText && m.display.xOffset > 0 {
 		if selectedItemWidth < m.display.xOffset {
-			// ensure the selection is visible by scrolling, but don't pan
+			// ensure the selection is visible by scrolling, but maintain xOffset if possible
 			prevXOffset := m.display.xOffset
 			m.EnsureItemInView(m.content.selectedIdx, 0, 0)
-			m.SetXOffsetWidth(prevXOffset)
+			m.SetXOffset(prevXOffset)
 			return
 		}
 		startWidth = m.display.xOffset
 		endWidth = m.display.xOffset + m.display.bounds.width - 1
 	}
 	m.EnsureItemInView(m.content.selectedIdx, startWidth, endWidth)
-}
-
-func (m *Model[T]) selectedItemIdxDown(n int) {
-	m.SetSelectedItemIdx(m.content.getSelectedIdx() + n)
-}
-
-func (m *Model[T]) selectedItemIdxUp(n int) {
-	m.SetSelectedItemIdx(m.content.getSelectedIdx() - n)
-}
-
-func (m *Model[T]) scrollDown(n int) {
-	m.scrollByNLines(n)
-}
-
-func (m *Model[T]) scrollUp(n int) {
-	m.scrollByNLines(-n)
-}
-
-func (m *Model[T]) viewLeft(n int) {
-	m.SetXOffsetWidth(m.display.xOffset - n)
-}
-
-func (m *Model[T]) viewRight(n int) {
-	m.SetXOffsetWidth(m.display.xOffset + n)
 }
 
 // getItemIdxAbove consumes n lines by moving up through items, returning the final item index and line offset
@@ -871,50 +837,50 @@ func (m *Model[T]) getItemIdxBelow(startItemIdx, linesToConsume int) (finalItemI
 	return itemIdx, 0
 }
 
-// scrollByNLines edits topItemIdx and topItemLineOffset to scroll the viewport by n lines (negative for up, positive for down)
-func (m *Model[T]) scrollByNLines(n int) {
-	if n == 0 {
+// scrollDownLines edits topItemIdx and topItemLineOffset to scroll the viewport by n lines (negative for up, positive for down)
+func (m *Model[T]) scrollDownLines(numLinesDown int) {
+	if numLinesDown == 0 {
 		return
 	}
 
 	// scrolling down past bottom
-	if n > 0 && m.isScrolledToBottom() {
+	if numLinesDown > 0 && m.isScrolledToBottom() {
 		return
 	}
 
 	// scrolling up past top
-	if n < 0 && m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0 {
+	if numLinesDown < 0 && m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0 {
 		return
 	}
 
 	newTopItemIdx, newTopItemLineOffset := m.display.topItemIdx, m.display.topItemLineOffset
 	if !m.config.wrapText {
-		newTopItemIdx = m.display.topItemIdx + n
+		newTopItemIdx = m.display.topItemIdx + numLinesDown
 	} else {
 		// wrapped
-		if n < 0 { // negative n, scrolling up
-			if newTopItemLineOffset >= -n {
+		if numLinesDown < 0 { // scrolling up
+			if newTopItemLineOffset >= -numLinesDown {
 				// same item, just change offset
-				newTopItemLineOffset += n
+				newTopItemLineOffset += numLinesDown
 			} else {
 				// need to scroll up through multiple items
-				linesToConsume := -n - newTopItemLineOffset
+				linesToConsume := -numLinesDown - newTopItemLineOffset
 				newTopItemIdx, newTopItemLineOffset = m.getItemIdxAbove(newTopItemIdx, newTopItemLineOffset, linesToConsume)
 			}
-		} else { // positive n, scrolling down
+		} else { // scrolling down
 			numLinesInTopItem := m.numLinesForItem(newTopItemIdx)
-			if newTopItemLineOffset+n < numLinesInTopItem {
+			if newTopItemLineOffset+numLinesDown < numLinesInTopItem {
 				// same item, just change offset
-				newTopItemLineOffset += n
+				newTopItemLineOffset += numLinesDown
 			} else {
 				// need to scroll down through multiple items
-				linesToConsume := n - (numLinesInTopItem - (newTopItemLineOffset + 1))
+				linesToConsume := numLinesDown - (numLinesInTopItem - (newTopItemLineOffset + 1))
 				newTopItemIdx, newTopItemLineOffset = m.getItemIdxBelow(newTopItemIdx, linesToConsume)
 			}
 		}
 	}
 	m.safelySetTopItemIdxAndOffset(newTopItemIdx, newTopItemLineOffset)
-	m.SetXOffsetWidth(m.display.xOffset)
+	m.SetXOffset(m.display.xOffset)
 }
 
 // getVisibleHeaderLines returns the lines of header that are visible in the viewport as strings.
@@ -981,10 +947,7 @@ type visibleContentResult struct {
 
 // getVisibleContent returns visibleContentResult for the current scroll position
 func (m *Model[T]) getVisibleContent() visibleContentResult {
-	if m.display.bounds.width == 0 {
-		return visibleContentResult{itemIndexes: nil, showFooter: false}
-	}
-	if m.content.isEmpty() {
+	if m.display.bounds.width == 0 || m.content.isEmpty() {
 		return visibleContentResult{itemIndexes: nil, showFooter: false}
 	}
 
@@ -1119,13 +1082,6 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentResu
 	footerItem := item.NewItem(footerString)
 	f, _ := footerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 	return m.display.styles.FooterStyle.Render(f)
-}
-
-func (m *Model[T]) getLineContinuationIndicator() string {
-	if m.config.wrapText {
-		return ""
-	}
-	return m.config.continuationIndicator
 }
 
 func (m *Model[T]) isScrolledToBottom() bool {
