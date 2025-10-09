@@ -986,6 +986,78 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
+func TestMatchNavigationNoWrap_Panning(t *testing.T) {
+	fv := makeFilterableViewport(
+		10,
+		10,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		strings.Repeat("a", 32),
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for range 4 {
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		focusedStyle.Render("aaaa") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		unfocusedStyle.Render("aaaa") + focusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("a..."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	for range 4 {
+		fv, _ = fv.Update(nextMatchKeyMsg)
+		internal.CmpStr(t, expected, fv.View())
+	}
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("aaaa"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		unfocusedStyle.Render("..") + focusedStyle.Render(".aaa") + unfocusedStyle.Render("aaaa"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		focusedStyle.Render("...a") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// this is bugged
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		focusedStyle.Render("...a") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	fv := makeFilterableViewport(
 		32,
