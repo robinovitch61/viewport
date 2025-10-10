@@ -1329,6 +1329,61 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
+func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
+	fv := makeFilterableViewport(
+		20,
+		8,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"the quick brown fox",
+		"jumped over the lazy dog",
+		"the end",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "the" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] the  (1/3...",
+		focusedStyle.Render("the") + selectedItemStyle.Render(" quick brown fox"),
+		"jumped over " + unfocusedStyle.Render("the") + " lazy",
+		" dog",
+		unfocusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] the  (2/3...",
+		unfocusedStyle.Render("the") + " quick brown fox",
+		selectedItemStyle.Render("jumped over ") + focusedStyle.Render("the") + selectedItemStyle.Render(" lazy"),
+		selectedItemStyle.Render(" dog"),
+		unfocusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedThirdMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] the  (3/3...",
+		unfocusedStyle.Render("the") + " quick brown fox",
+		"jumped over " + unfocusedStyle.Render("the") + " lazy",
+		" dog",
+		focusedStyle.Render("the") + selectedItemStyle.Render(" end"),
+	})
+	internal.CmpStr(t, expectedThirdMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+}
+
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
 
 // TODO LEO: test for multiple regex matches in a single line
