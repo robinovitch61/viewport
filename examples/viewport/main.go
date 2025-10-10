@@ -120,7 +120,7 @@ func (m model) View() string {
 
 func getHeader(wrapped, selectionEnabled bool, bindings []key.Binding) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Viewport (q/ctrl+c/esc to quit)"))
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged vp (q/ctrl+c/esc to quit)"))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+" (w to toggle)")
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+" (s to toggle)")
 	header = append(header, getShortHelp(bindings))

@@ -73,7 +73,7 @@ func WithCanToggleMatchingItemsOnly[T viewport.Object](canToggleMatchingItemsOnl
 
 // Model is the state and logic for a filterable viewport
 type Model[T viewport.Object] struct {
-	Viewport *viewport.Model[T]
+	vp *viewport.Model[T]
 
 	height          int
 	keyMap          KeyMap
@@ -106,7 +106,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 	defaultStyles := DefaultStyles()
 
 	m := &Model[T]{
-		Viewport:                   vp,
+		vp:                         vp,
 		height:                     0, // set below in SetHeight
 		keyMap:                     defaultKeyMap,
 		filterTextInput:            ti,
@@ -201,7 +201,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	}
 
 	if m.filterMode != filterModeEditing {
-		m.Viewport, cmd = m.Viewport.Update(msg)
+		m.vp, cmd = m.vp.Update(msg)
 		cmds = append(cmds, cmd)
 	} else {
 		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
@@ -219,8 +219,68 @@ func (m *Model[T]) View() string {
 		return ""
 	}
 	filterLine := m.renderFilterLine()
-	viewportView := m.Viewport.View()
+	viewportView := m.vp.View()
 	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
+}
+
+// GetWidth returns the width of the filterable viewport
+func (m *Model[T]) GetWidth() int {
+	return m.vp.GetWidth()
+}
+
+// SetWidth updates the width of both the viewport and textinput
+func (m *Model[T]) SetWidth(width int) {
+	m.vp.SetWidth(width)
+}
+
+// GetHeight returns the height of the filterable viewport
+func (m *Model[T]) GetHeight() int {
+	if m.height <= 0 {
+		return 0
+	}
+	return m.vp.GetHeight() + filterLineHeight
+}
+
+// SetHeight updates the height, accounting for the filter line
+func (m *Model[T]) SetHeight(height int) {
+	m.height = height // TODO LEO: test this or remove height
+	m.vp.SetHeight(height - filterLineHeight)
+}
+
+// SetObjects sets the viewport objects
+func (m *Model[T]) SetObjects(objects []T) {
+	if objects == nil {
+		objects = []T{}
+	}
+	m.vp.SetObjects(objects)
+	m.objects = objects
+	m.updateMatchingItems()
+}
+
+// FilterFocused returns true if the filter text input is focused
+func (m *Model[T]) FilterFocused() bool {
+	return m.filterTextInput.Focused()
+}
+
+// GetWrapText returns whether text wrapping is enabled in the viewport
+func (m *Model[T]) GetWrapText() bool {
+	return m.vp.GetWrapText()
+}
+
+// SetWrapText sets whether text wrapping is enabled in the viewport
+func (m *Model[T]) SetWrapText(wrapText bool) {
+	m.vp.SetWrapText(wrapText)
+	m.ensureCurrentMatchInView()
+}
+
+// GetSelectionEnabled returns whether selection is enabled in the viewport
+func (m *Model[T]) GetSelectionEnabled() bool {
+	return m.vp.GetSelectionEnabled()
+}
+
+// SetSelectionEnabled sets whether selection is enabled in the viewport
+func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
+	m.vp.SetSelectionEnabled(selectionEnabled)
 }
 
 // updateMatchingItems recalculates the matching items and updates match tracking
@@ -230,9 +290,9 @@ func (m *Model[T]) updateMatchingItems() {
 	m.updateFocusedMatchHighlight()
 	m.numMatchingItems = len(matchingObjects)
 	if m.matchingItemsOnly {
-		m.Viewport.SetObjects(matchingObjects)
+		m.vp.SetObjects(matchingObjects)
 	} else {
-		m.Viewport.SetObjects(m.objects)
+		m.vp.SetObjects(m.objects)
 	}
 }
 
@@ -240,14 +300,14 @@ func (m *Model[T]) updateMatchingItems() {
 func (m *Model[T]) updateHighlighting() {
 	filterText := m.filterTextInput.Value()
 	if filterText == "" {
-		m.Viewport.SetHighlights(nil)
+		m.vp.SetHighlights(nil)
 		return
 	}
 
 	if m.isRegexMode {
 		_, err := regexp.Compile(filterText)
 		if err != nil {
-			m.Viewport.SetHighlights(nil)
+			m.vp.SetHighlights(nil)
 			return
 		}
 	}
@@ -257,7 +317,7 @@ func (m *Model[T]) updateHighlighting() {
 // updateFocusedMatchHighlight sets a specific highlight for the currently focused match
 func (m *Model[T]) updateFocusedMatchHighlight() {
 	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
-		m.Viewport.SetHighlights(nil)
+		m.vp.SetHighlights(nil)
 		return
 	}
 
@@ -265,7 +325,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 	if m.previousFocusedMatchIdx >= 0 && m.previousFocusedMatchIdx < len(m.allMatches) &&
 		m.focusedMatchIdx != m.previousFocusedMatchIdx &&
 		len(m.allMatches) > 0 {
-		currentHighlights := m.Viewport.GetHighlights()
+		currentHighlights := m.vp.GetHighlights()
 		if len(currentHighlights) == len(m.allMatches) {
 			if m.previousFocusedMatchIdx < len(currentHighlights) {
 				currentHighlights[m.previousFocusedMatchIdx].ItemHighlight.Style = m.styles.Match.Unfocused
@@ -273,7 +333,7 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 			if m.focusedMatchIdx < len(currentHighlights) {
 				currentHighlights[m.focusedMatchIdx].ItemHighlight.Style = m.styles.Match.Focused
 			}
-			m.Viewport.SetHighlights(currentHighlights)
+			m.vp.SetHighlights(currentHighlights)
 			m.previousFocusedMatchIdx = m.focusedMatchIdx
 			return
 		}
@@ -304,47 +364,8 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 		highlights[matchIdx] = highlight
 	}
 
-	m.Viewport.SetHighlights(highlights)
+	m.vp.SetHighlights(highlights)
 	m.previousFocusedMatchIdx = m.focusedMatchIdx
-}
-
-// GetWidth returns the width of the filterable viewport
-func (m *Model[T]) GetWidth() int {
-	return m.Viewport.GetWidth()
-}
-
-// GetHeight returns the height of the filterable viewport
-func (m *Model[T]) GetHeight() int {
-	if m.height <= 0 {
-		return 0
-	}
-	return m.Viewport.GetHeight() + filterLineHeight
-}
-
-// SetObjects sets the viewport objects
-func (m *Model[T]) SetObjects(objects []T) {
-	if objects == nil {
-		objects = []T{}
-	}
-	m.Viewport.SetObjects(objects)
-	m.objects = objects
-	m.updateMatchingItems()
-}
-
-// SetWidth updates the width of both the viewport and textinput
-func (m *Model[T]) SetWidth(width int) {
-	m.Viewport.SetWidth(width)
-}
-
-// SetHeight updates the height, accounting for the filter line
-func (m *Model[T]) SetHeight(height int) {
-	m.height = height // TODO LEO: test this or remove height
-	m.Viewport.SetHeight(height - filterLineHeight)
-}
-
-// FilterFocused returns true if the filter text input is focused
-func (m *Model[T]) FilterFocused() bool {
-	return m.filterTextInput.Focused()
 }
 
 func (m *Model[T]) renderFilterLine() string {
@@ -532,8 +553,8 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	currentMatch := m.allMatches[m.focusedMatchIdx]
 	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
 
-	m.Viewport.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
-	if m.Viewport.GetSelectionEnabled() {
-		m.Viewport.SetSelectedItemIdx(currentMatch.ItemIndex)
+	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
+	if m.vp.GetSelectionEnabled() {
+		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
 }

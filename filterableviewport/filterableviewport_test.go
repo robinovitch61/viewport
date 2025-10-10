@@ -37,6 +37,7 @@ var (
 	applyFilterKeyMsg   = tea.KeyMsg{Type: tea.KeyEnter}
 	cancelFilterKeyMsg  = tea.KeyMsg{Type: tea.KeyEsc}
 	toggleMatchesKeyMsg = internal.MakeKeyMsg('o')
+	toggleWrapKeyMsg    = internal.MakeKeyMsg('w')
 	nextMatchKeyMsg     = internal.MakeKeyMsg('n')
 	prevMatchKeyMsg     = internal.MakeKeyMsg('N')
 	downKeyMsg          = tea.KeyMsg{Type: tea.KeyDown}
@@ -1384,11 +1385,45 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 }
 
+func TestToggleWrap(t *testing.T) {
+	fv := makeFilterableViewport(
+		20,
+		6,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"the quick brown fox jumped over the lazy dog",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "lazy" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedNoWrap := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] lazy  (1/...",
+		"...ped over the " + focusedStyle.Render("l..."),
+	})
+	internal.CmpStr(t, expectedNoWrap, fv.View())
+
+	fv.SetWrapText(true)
+	expectedWrapped := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] lazy  (1/...",
+		"the quick brown fox ",
+		"jumped over the " + focusedStyle.Render("lazy"),
+		" dog",
+	})
+	internal.CmpStr(t, expectedWrapped, fv.View())
+
+	fv.SetWrapText(false)
+	internal.CmpStr(t, expectedNoWrap, fv.View())
+}
+
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
 
 // TODO LEO: test for multiple regex matches in a single line
-
-// TODO LEO: test for when toggling wrap, current match should still be visible
 
 // TODO LEO: add timing test for scrolling through a large number of highlighted matches
 

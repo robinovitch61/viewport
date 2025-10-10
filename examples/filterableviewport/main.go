@@ -88,10 +88,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch {
 		case key.Matches(msg, appKeyMap.toggleWrapTextKey):
-			m.fv.Viewport.SetWrapText(!m.fv.Viewport.GetWrapText())
+			m.fv.SetWrapText(!m.fv.GetWrapText())
 			return m, nil
 		case key.Matches(msg, appKeyMap.toggleSelectionKey):
-			m.fv.Viewport.SetSelectionEnabled(!m.fv.Viewport.GetSelectionEnabled())
+			m.fv.SetSelectionEnabled(!m.fv.GetSelectionEnabled())
 			return m, nil
 		}
 
@@ -119,8 +119,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
 			)
 			m.fv.SetObjects(m.objects)
-			m.fv.Viewport.SetSelectionEnabled(false)
-			m.fv.Viewport.SetWrapText(true)
+			m.fv.SetSelectionEnabled(false)
+			m.fv.SetWrapText(true)
 			m.ready = true
 		} else {
 			m.fv.SetWidth(viewportWidth)
@@ -140,8 +140,8 @@ func (m model) View() string {
 		return "Initializing filterable viewport..."
 	}
 	var header = strings.Join(getHeader(
-		m.fv.Viewport.GetWrapText(),
-		m.fv.Viewport.GetSelectionEnabled(),
+		m.fv.GetWrapText(),
+		m.fv.GetSelectionEnabled(),
 		viewportKeyMap,
 		[]key.Binding{
 			filterableViewportKeyMap.FilterKey,
@@ -160,7 +160,7 @@ func (m model) View() string {
 
 func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport"+fmt.Sprintf(" (%s to quit)", appKeyMap.quit.Help().Key)))
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable vp"+fmt.Sprintf(" (%s to quit)", appKeyMap.quit.Help().Key)))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleWrapTextKey.Help().Key))
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleSelectionKey.Help().Key))
 	header = append(header, getShortHelp([]key.Binding{
