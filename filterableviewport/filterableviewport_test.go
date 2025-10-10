@@ -1288,7 +1288,46 @@ func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
 	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
 }
 
-// TODO LEO: test match navigation with selection enabled
+func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
+	fv := makeFilterableViewport(
+		40,
+		10,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "apple" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] apple  (1/2 matches on 2 items)",
+		focusedStyle.Render("apple") + selectedItemStyle.Render(" pie"),
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] apple  (2/2 matches on 2 items)",
+		unfocusedStyle.Render("apple") + " pie",
+		"banana bread",
+		focusedStyle.Render("apple") + selectedItemStyle.Render(" cake"),
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
 
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
 
