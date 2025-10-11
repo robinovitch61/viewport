@@ -37,7 +37,6 @@ var (
 	applyFilterKeyMsg   = tea.KeyMsg{Type: tea.KeyEnter}
 	cancelFilterKeyMsg  = tea.KeyMsg{Type: tea.KeyEsc}
 	toggleMatchesKeyMsg = internal.MakeKeyMsg('o')
-	toggleWrapKeyMsg    = internal.MakeKeyMsg('w')
 	nextMatchKeyMsg     = internal.MakeKeyMsg('n')
 	prevMatchKeyMsg     = internal.MakeKeyMsg('N')
 	downKeyMsg          = tea.KeyMsg{Type: tea.KeyDown}
@@ -1287,6 +1286,56 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 		internal.CmpStr(t, expectedAfterNextView, fv.View())
 	}
 	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
+}
+
+func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
+	runTest := func(t *testing.T) {
+		width := 80
+		height := 20
+		fv := makeFilterableViewport(
+			width,
+			height,
+			[]viewport.Option[object]{
+				viewport.WithWrapText[object](false),
+			},
+			[]Option[object]{},
+		)
+
+		numItems := height * 5
+		items := make([]string, numItems)
+		for i := range items {
+			items[i] = strings.Repeat("a", width)
+		}
+		fv.SetObjects(stringsToItems(items))
+
+		// apply filter 'a' - everything on screen is now highlighted
+		fv, _ = fv.Update(filterKeyMsg)
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+		fv, _ = fv.Update(applyFilterKeyMsg)
+
+		// initial view - first 'a' should be focused, screen full of highlighted matches
+		firstView := fv.View()
+		if !strings.Contains(firstView, focusedStyle.Render("a")) {
+			t.Fatal("expected focused match in initial view")
+		}
+
+		// scroll down through multiple screens of highlighted matches
+		downMsg := tea.KeyMsg{Type: tea.KeyDown}
+		for i := 0; i < height; i++ { // scroll enough to move focused match out of view
+			fv, _ = fv.Update(downMsg)
+			view := fv.View()
+
+			// after first scroll, focused match should go out of view
+			// but unfocused matches should still be visible
+			if i > 0 && strings.Contains(view, focusedStyle.Render("a")) {
+				t.Errorf("focused match should be out of view after scrolling %d times", i+1)
+			}
+			if !strings.Contains(view, unfocusedStyle.Render("a")) {
+				t.Errorf("unfocused matches should still be visible after scrolling %d times", i+1)
+			}
+		}
+	}
+	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
 }
 
 func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
