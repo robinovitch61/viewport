@@ -405,8 +405,6 @@ func (m *Model[T]) getModeIndicator() string {
 
 // getMatchingObjectsAndUpdateMatches filters objects and updates match tracking
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
-	prevFocusedMatchIdx := m.focusedMatchIdx
-
 	m.allMatches = []viewport.Highlight{}
 	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
@@ -472,9 +470,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 
 	m.totalMatchesOnAllItems = len(m.allMatches)
 
-	if prevFocusedMatchIdx >= 0 && prevFocusedMatchIdx < len(m.allMatches) {
-		m.focusedMatchIdx = prevFocusedMatchIdx
-	} else if m.totalMatchesOnAllItems > 0 {
+	if m.totalMatchesOnAllItems > 0 {
 		m.focusedMatchIdx = 0
 	} else {
 		m.focusedMatchIdx = -1

@@ -1538,7 +1538,86 @@ func TestToggleWrap(t *testing.T) {
 	internal.CmpStr(t, expectedNoWrap, fv.View())
 }
 
-// TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
+func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"match here",
+		"line 8",
+	}))
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"No Filter",
+		"line 1",
+		"line 2",
+		"line 3",
+		footerStyle.Render("37% (3/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/1 matches...",
+		"line 5",
+		"line 6",
+		focusedStyle.Render("match") + " here",
+		footerStyle.Render("87% (7/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "lin" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] lin  (1/7 matches o...",
+		focusedStyle.Render("lin") + "e 1",
+		unfocusedStyle.Render("lin") + "e 2",
+		unfocusedStyle.Render("lin") + "e 3",
+		footerStyle.Render("37% (3/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] lin  (2/7 matches o...",
+		unfocusedStyle.Render("lin") + "e 1",
+		focusedStyle.Render("lin") + "e 2",
+		unfocusedStyle.Render("lin") + "e 3",
+		footerStyle.Render("37% (3/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('e'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] line  (1/7 matches ...",
+		focusedStyle.Render("line") + " 1",
+		unfocusedStyle.Render("line") + " 2",
+		unfocusedStyle.Render("line") + " 3",
+		footerStyle.Render("37% (3/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
 
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
