@@ -495,6 +495,76 @@ func TestRegexFilter_InvalidPattern(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"the cat sat on the mat",
+		"dog",
+		"another the and the end",
+	}))
+	fv, _ = fv.Update(regexFilterKeyMsg)
+	// use regex pattern \bthe\b to match whole word "the"
+	for _, c := range "\\bthe\\b" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// should focus on first match in first line
+	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: \\bthe\\b  (1/4 matches on 2 items)",
+		focusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
+		"dog",
+		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	// navigate to second match (still in first line)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedSecondMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: \\bthe\\b  (2/4 matches on 2 items)",
+		unfocusedStyle.Render("the") + " cat sat on " + focusedStyle.Render("the") + " mat",
+		"dog",
+		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedSecondMatch, fv.View())
+
+	// navigate to third match (third line, first match)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedThirdMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: \\bthe\\b  (3/4 matches on 2 items)",
+		unfocusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
+		"dog",
+		"another " + focusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedThirdMatch, fv.View())
+
+	// navigate to fourth match (third line, second match)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedFourthMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: \\bthe\\b  (4/4 matches on 2 items)",
+		unfocusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
+		"dog",
+		"another " + unfocusedStyle.Render("the") + " and " + focusedStyle.Render("the") + " end",
+	})
+	internal.CmpStr(t, expectedFourthMatch, fv.View())
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedFirstMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedFourthMatch, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedThirdMatch, fv.View())
+}
+
 func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
@@ -1469,8 +1539,6 @@ func TestToggleWrap(t *testing.T) {
 }
 
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
-
-// TODO LEO: test for multiple regex matches in a single line
 
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
