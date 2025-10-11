@@ -1619,6 +1619,53 @@ func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestSetObjectsPreservesMatchIndex(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"match one",
+		"match two",
+		"match three",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (2/3 matches...",
+		unfocusedStyle.Render("match") + " one",
+		focusedStyle.Render("match") + " two",
+		unfocusedStyle.Render("match") + " three",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// add a new item - should stay on match 2, now 2/4
+	fv.SetObjects(stringsToItems([]string{
+		"match one",
+		"match new",
+		"match two",
+		"match three",
+	}))
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (2/4 matches...",
+		unfocusedStyle.Render("match") + " one",
+		focusedStyle.Render("match") + " new",
+		unfocusedStyle.Render("match") + " two",
+		footerStyle.Render("75% (3/4)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
 	for i, s := range vals {

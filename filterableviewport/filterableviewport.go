@@ -94,6 +94,7 @@ type Model[T viewport.Object] struct {
 	totalMatchesOnAllItems     int
 	itemIdxToFilteredIdx       map[int]int
 	matchWidthsByMatchIdx      map[int]item.WidthRange
+	lastFilterValue            string
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -125,6 +126,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		totalMatchesOnAllItems:     0,
 		itemIdxToFilteredIdx:       make(map[int]int),
 		matchWidthsByMatchIdx:      make(map[int]item.WidthRange),
+		lastFilterValue:            "",
 	}
 	m.SetHeight(vp.GetHeight())
 
@@ -405,12 +407,16 @@ func (m *Model[T]) getModeIndicator() string {
 
 // getMatchingObjectsAndUpdateMatches filters objects and updates match tracking
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
+	filterValue := m.filterTextInput.Value()
+	filterChanged := filterValue != m.lastFilterValue
+	m.lastFilterValue = filterValue
+
 	m.allMatches = []viewport.Highlight{}
+	prevFocusedMatchIdx := m.focusedMatchIdx
 	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
 	m.itemIdxToFilteredIdx = make(map[int]int)
 
-	filterValue := m.filterTextInput.Value()
 	if m.filterMode == filterModeOff || filterValue == "" {
 		return m.objects
 	}
@@ -470,10 +476,20 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 
 	m.totalMatchesOnAllItems = len(m.allMatches)
 
-	if m.totalMatchesOnAllItems > 0 {
-		m.focusedMatchIdx = 0
+	if filterChanged {
+		if m.totalMatchesOnAllItems > 0 {
+			m.focusedMatchIdx = 0
+		} else {
+			m.focusedMatchIdx = -1
+		}
 	} else {
-		m.focusedMatchIdx = -1
+		if prevFocusedMatchIdx >= 0 && prevFocusedMatchIdx < len(m.allMatches) {
+			m.focusedMatchIdx = prevFocusedMatchIdx
+		} else if m.totalMatchesOnAllItems > 0 {
+			m.focusedMatchIdx = 0
+		} else {
+			m.focusedMatchIdx = -1
+		}
 	}
 
 	return filteredObjects
