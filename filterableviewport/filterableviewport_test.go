@@ -1241,7 +1241,7 @@ func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
-func TestMatchNavigationManyMatchesWrapTwoItems(t *testing.T) {
+func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 	runTest := func(t *testing.T) {
 		fv := makeFilterableViewport(
 			100,
