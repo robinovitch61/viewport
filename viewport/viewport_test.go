@@ -180,6 +180,8 @@ func TestViewport_SelectionOff_WrapOff_ShowFooter(t *testing.T) {
 		internal.RedFg.Render("second") + " line",
 		internal.RedFg.Render("a really rea..."),
 		internal.RedFg.Render("a") + " really rea...",
+		"",
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -313,6 +315,8 @@ func TestViewport_SelectionOff_WrapOff_MultiHeader(t *testing.T) {
 		"header2",
 		"line1",
 		"line2",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -329,6 +333,8 @@ func TestViewport_SelectionOff_WrapOff_OverflowLine(t *testing.T) {
 		"long header ...",
 		"123456789012345",
 		"123456789012...",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -510,6 +516,8 @@ func TestViewport_SelectionOff_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		"the fir...",
 		"the sec...",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
@@ -524,6 +532,8 @@ func TestViewport_SelectionOff_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		"...st line",
 		"...ond ...",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -532,6 +542,8 @@ func TestViewport_SelectionOff_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		"...t line ",
 		"...nd line",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -723,6 +735,10 @@ func TestViewport_SelectionOff_WrapOff_Panning(t *testing.T) {
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		"...rst one",
+		"",
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -845,6 +861,8 @@ func TestViewport_SelectionOff_WrapOff_ChangeContent(t *testing.T) {
 		"header",
 		"first",
 		"second",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -984,6 +1002,8 @@ func TestViewport_SelectionOff_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é",
 		"A" + internal.RedFg.Render("💖中") + "é line",
 		"another line",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1117,6 +1137,8 @@ func TestViewport_SelectionOn_WrapOff_ShowFooter(t *testing.T) {
 		internal.RedFg.Render("second") + " line",
 		internal.RedFg.Render("a really rea..."),
 		internal.RedFg.Render("a") + " really rea...",
+		"",
+		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1254,6 +1276,8 @@ func TestViewport_SelectionOn_WrapOff_MultiHeader(t *testing.T) {
 		"header2",
 		"line1",
 		internal.BlueFg.Render("line2"),
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1271,6 +1295,8 @@ func TestViewport_SelectionOn_WrapOff_OverflowLine(t *testing.T) {
 		"long header ...",
 		internal.BlueFg.Render("123456789012345"),
 		"123456789012...",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1444,6 +1470,8 @@ func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		selectionStyle.Render("the fir..."),
 		"the sec...",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, initialExpectedView, vp.View())
 
@@ -1458,6 +1486,8 @@ func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		selectionStyle.Render("...st line"),
 		"...ond ...",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1466,6 +1496,8 @@ func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
 		"header",
 		selectionStyle.Render("...t line"),
 		"...nd line",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1765,6 +1797,10 @@ func TestViewport_SelectionOn_WrapOff_Panning(t *testing.T) {
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header ...",
 		internal.BlueFg.Render("...rst one"),
+		"",
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1869,6 +1905,8 @@ func TestViewport_SelectionOn_WrapOff_StickyTop(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("first"),
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1924,6 +1962,8 @@ func TestViewport_SelectionOn_WrapOff_StickyBottom(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("first"),
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -2010,6 +2050,8 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("first"),
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -2270,6 +2312,9 @@ func TestViewport_SelectionOn_WrapOff_ChangeContent(t *testing.T) {
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("second"),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -2310,6 +2355,9 @@ func TestViewport_SelectionOn_WrapOff_AnsiOnSelection(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("line with ") + internal.RedFg.Render("red") + internal.BlueFg.Render(" text"),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2325,6 +2373,9 @@ func TestViewport_SelectionOn_WrapOff_SelectionEmpty(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render(" "),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2340,6 +2391,9 @@ func TestViewport_SelectionOn_WrapOff_ExtraSlash(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("|2024|") + internal.RedFg.Render("fl..lq") + internal.BlueFg.Render("/") + internal.RedFg.Render("flask-3") + internal.BlueFg.Render("|"),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2458,6 +2512,8 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 		"A💖中é",
 		internal.BlueFg.Render("A") + internal.RedFg.Render("💖中") + internal.BlueFg.Render("é line"),
 		"another line",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2594,6 +2650,8 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 		internal.RedFg.Render(" long line"),
 		internal.RedFg.Render("a") + " really really",
 		" long line",
+		"",
+		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2732,6 +2790,8 @@ func TestViewport_SelectionOff_WrapOn_MultiHeader(t *testing.T) {
 		"header2",
 		"line1",
 		"line2",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -2937,6 +2997,9 @@ func TestViewport_SelectionOff_WrapOn_SetXOffset(t *testing.T) {
 		"line",
 		"the second",
 		" line",
+		"",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -3606,6 +3669,8 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 		internal.RedFg.Render(" long line"),
 		internal.RedFg.Render("a") + " really really",
 		" long line",
+		"",
+		"25% (1/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3748,6 +3813,8 @@ func TestViewport_SelectionOn_WrapOn_MultiHeader(t *testing.T) {
 		"header2",
 		"line1",
 		internal.BlueFg.Render("line2"),
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -3974,6 +4041,9 @@ func TestViewport_SelectionOn_WrapOn_SetXOffset(t *testing.T) {
 		internal.BlueFg.Render("line"),
 		"the second",
 		" line",
+		"",
+		"",
+		"50% (1/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -4416,6 +4486,9 @@ func TestViewport_SelectionOn_WrapOn_StickyBottom(t *testing.T) {
 		"header",
 		internal.BlueFg.Render("the first "),
 		internal.BlueFg.Render("line"),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -4612,6 +4685,13 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 		"header",
 		"first line",
 		internal.BlueFg.Render("next line"),
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"100% (2/2)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -4877,6 +4957,9 @@ func TestViewport_SelectionOn_WrapOn_SelectionEmpty(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render(" "),
+		"",
+		"",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }

@@ -245,6 +245,8 @@ func TestWithMatchesOnly_True(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items) showing matches only",
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
@@ -303,6 +305,8 @@ func TestWithCanToggleMatchesOnly_True(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (1/2 matches on 1 items) showing matches only",
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
@@ -364,6 +368,8 @@ func TestDefaultText(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"No Filter",
 		"test",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
@@ -373,6 +379,8 @@ func TestDefaultText(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] p  (no matches)",
 		"test",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
@@ -522,6 +530,8 @@ func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
 		focusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
@@ -532,6 +542,8 @@ func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
 		unfocusedStyle.Render("the") + " cat sat on " + focusedStyle.Render("the") + " mat",
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -542,6 +554,8 @@ func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
 		unfocusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
 		"dog",
 		"another " + focusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
 
@@ -552,6 +566,8 @@ func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
 		unfocusedStyle.Render("the") + " cat sat on " + unfocusedStyle.Render("the") + " mat",
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + focusedStyle.Render("the") + " end",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFourthMatch, fv.View())
 
@@ -769,6 +785,8 @@ func TestMatchNavigationWithOverlappingMatches(t *testing.T) {
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] aa  (1/1 matches on 1 items)",
 		focusedStyle.Render("aa") + "a",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
@@ -1131,7 +1149,7 @@ func TestMatchNavigationWrap_WrappedLinesWithWrappedMatches(t *testing.T) {
 func TestMatchNavigationNoWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		30,
-		10,
+		6,
 		[]viewport.Option[object]{
 			viewport.WithWrapText[object](false),
 		},
@@ -1152,6 +1170,8 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		"...k duck duck duck duck " + focusedStyle.Render("goose"),
 		unfocusedStyle.Render("...se") + " duck duck duck duck duck",
 		"...ck duck duck duck duck duck",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
@@ -1161,6 +1181,8 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		"...k duck duck duck duck " + unfocusedStyle.Render("goose"),
 		focusedStyle.Render("...se") + " duck duck duck duck duck",
 		"...ck duck duck duck duck duck",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -1170,6 +1192,8 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		"duck duck duck duck duck du...",
 		"duck duck duck duck duck " + unfocusedStyle.Render("go..."),
 		focusedStyle.Render("goose") + " duck duck duck duck d...",
+		"",
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
 
@@ -1180,7 +1204,7 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	fv := makeFilterableViewport(
 		10,
-		10,
+		3,
 		[]viewport.Option[object]{
 			viewport.WithWrapText[object](false),
 		},
@@ -1197,6 +1221,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expectedLeftmostMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		focusedStyle.Render("aaaa") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+		footerStyle.Render("100% (1/1)"),
 	})
 
 	internal.CmpStr(t, expectedLeftmostMatch, fv.View())
@@ -1205,6 +1230,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("aaaa") + focusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -1212,6 +1238,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expectedTravelingRight := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("a..."),
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedTravelingRight, fv.View())
 
@@ -1224,6 +1251,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expectedRightmostMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("..") + unfocusedStyle.Render(".aaa") + focusedStyle.Render("aaaa"),
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedRightmostMatch, fv.View())
 
@@ -1231,6 +1259,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		unfocusedStyle.Render("..") + focusedStyle.Render(".aaa") + unfocusedStyle.Render("aaaa"),
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -1238,6 +1267,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 	expectedTravelingLeft := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact]...",
 		focusedStyle.Render("...a") + unfocusedStyle.Render("aaa.") + unfocusedStyle.Render(".."),
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedTravelingLeft, fv.View())
 
@@ -1259,7 +1289,7 @@ func TestMatchNavigationNoWrap_Panning(t *testing.T) {
 func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	fv := makeFilterableViewport(
 		32,
-		10,
+		3,
 		[]viewport.Option[object]{
 			viewport.WithWrapText[object](false),
 		},
@@ -1277,6 +1307,7 @@ func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] hi  (1/1 matches on 1...",
 		"💖💖💖💖💖💖💖💖 " + focusedStyle.Render("hi") + " aaaaaaaaa...",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
@@ -1358,6 +1389,7 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
 }
 
+// TODO LEO: test this with selection enabled too
 func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 	runTest := func(t *testing.T) {
 		width := 80
@@ -1409,7 +1441,7 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 	fv := makeFilterableViewport(
 		40,
-		10,
+		5,
 		[]viewport.Option[object]{
 			viewport.WithWrapText[object](false),
 			viewport.WithSelectionEnabled[object](true),
@@ -1431,6 +1463,7 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 		focusedStyle.Render("apple") + selectedItemStyle.Render(" pie"),
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
+		footerStyle.Render("33% (1/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
@@ -1440,6 +1473,7 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 		unfocusedStyle.Render("apple") + " pie",
 		"banana bread",
 		focusedStyle.Render("apple") + selectedItemStyle.Render(" cake"),
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -1450,7 +1484,7 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
-		8,
+		6,
 		[]viewport.Option[object]{
 			viewport.WithWrapText[object](true),
 			viewport.WithSelectionEnabled[object](true),
@@ -1475,6 +1509,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		"jumped over " + unfocusedStyle.Render("the") + " lazy",
 		" dog",
 		unfocusedStyle.Render("the") + " end",
+		footerStyle.Render("33% (1/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 
@@ -1485,6 +1520,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		selectedItemStyle.Render("jumped over ") + focusedStyle.Render("the") + selectedItemStyle.Render(" lazy"),
 		selectedItemStyle.Render(" dog"),
 		unfocusedStyle.Render("the") + " end",
+		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 
@@ -1495,6 +1531,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		"jumped over " + unfocusedStyle.Render("the") + " lazy",
 		" dog",
 		focusedStyle.Render("the") + selectedItemStyle.Render(" end"),
+		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
 
@@ -1522,6 +1559,10 @@ func TestToggleWrap(t *testing.T) {
 	expectedNoWrap := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] lazy  (1/...",
 		"...ped over the " + focusedStyle.Render("l..."),
+		"",
+		"",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedNoWrap, fv.View())
 
@@ -1531,6 +1572,8 @@ func TestToggleWrap(t *testing.T) {
 		"the quick brown fox ",
 		"jumped over the " + focusedStyle.Render("lazy"),
 		" dog",
+		"",
+		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedWrapped, fv.View())
 

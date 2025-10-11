@@ -129,7 +129,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		navCtx := navigationContext{
 			wrapText:        m.config.wrapText,
 			dimensions:      m.display.bounds,
-			numContentLines: m.getNumContentLinesWithFooterVisible(),
+			numContentLines: m.getNumContentLines(),
 			numVisibleItems: m.getNumVisibleItems(),
 		}
 		navResult := m.navigation.processKeyMsg(msg, navCtx)
@@ -202,10 +202,10 @@ func (m *Model[T]) View() string {
 	wrap := m.config.wrapText
 
 	visibleHeaderLines := m.getVisibleHeaderLines()
-	visibleContent := m.getVisibleContent()
+	itemIndexes := m.getVisibleContentItemIndexes()
 
 	// pre-allocate capacity based on estimated size
-	estimatedSize := (len(visibleHeaderLines) + len(visibleContent.itemIndexes) + 10) * (m.display.bounds.width + 1)
+	estimatedSize := (len(visibleHeaderLines) + len(itemIndexes) + 10) * (m.display.bounds.width + 1)
 	builder.Grow(estimatedSize)
 
 	// header lines
@@ -217,9 +217,9 @@ func (m *Model[T]) View() string {
 	}
 
 	// content lines
-	truncatedVisibleContentLines := make([]string, len(visibleContent.itemIndexes))
+	truncatedVisibleContentLines := make([]string, len(itemIndexes))
 	currentItemIdxWidthToLeft := m.display.bounds.width * m.display.topItemLineOffset
-	for idx, itemIdx := range visibleContent.itemIndexes {
+	for idx, itemIdx := range itemIndexes {
 		var truncated string
 		if wrap {
 			var widthTaken int
@@ -229,8 +229,8 @@ func (m *Model[T]) View() string {
 				"",
 				m.getHighlightsForItem(itemIdx),
 			)
-			if idx+1 < len(visibleContent.itemIndexes) {
-				nextItemIdx := visibleContent.itemIndexes[idx+1]
+			if idx+1 < len(itemIndexes) {
+				nextItemIdx := itemIndexes[idx+1]
 				if nextItemIdx != itemIdx {
 					currentItemIdxWidthToLeft = 0
 				} else {
@@ -243,11 +243,11 @@ func (m *Model[T]) View() string {
 				m.display.xOffset,
 				m.display.bounds.width,
 				m.config.continuationIndicator,
-				m.getHighlightsForItem(visibleContent.itemIndexes[idx]),
+				m.getHighlightsForItem(itemIndexes[idx]),
 			)
 		}
 
-		truncatedIsSelection := m.navigation.selectionEnabled && visibleContent.itemIndexes[idx] == m.content.getSelectedIdx()
+		truncatedIsSelection := m.navigation.selectionEnabled && itemIndexes[idx] == m.content.getSelectedIdx()
 		if truncatedIsSelection {
 			truncated = m.styleSelection(truncated)
 		}
@@ -277,14 +277,14 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
-	nVisibleLines := len(visibleContent.itemIndexes)
-	if visibleContent.showFooter {
+	nVisibleLines := len(itemIndexes)
+	if m.config.footerEnabled {
 		// pad so footer shows up at bottom
-		padCount := max(0, m.getNumContentLinesWithFooterVisible()-nVisibleLines)
+		padCount := max(0, m.getNumContentLines()-nVisibleLines)
 		for i := 0; i < padCount; i++ {
 			builder.WriteByte('\n')
 		}
-		builder.WriteString(m.getTruncatedFooterLine(visibleContent))
+		builder.WriteString(m.getTruncatedFooterLine(itemIndexes))
 	}
 
 	return m.display.render(strings.TrimSuffix(builder.String(), "\n"))
@@ -522,7 +522,7 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth int)
 	}
 
 	numLinesInPortion := endLineOffset - startLineOffset + 1
-	numContentLines := m.getNumContentLinesWithFooterVisible()
+	numContentLines := m.getNumContentLines()
 
 	// if portion larger than viewport, align top
 	if numLinesInPortion >= numContentLines {
@@ -547,12 +547,12 @@ func (m *Model[T]) isWrappedPortionInView(itemIdx, startLineOffset, endLineOffse
 	if !m.config.wrapText {
 		panic("isWrappedPortionInView called when wrapText is false")
 	}
-	visibleContent := m.getVisibleContent()
+	itemIndexes := m.getVisibleContentItemIndexes()
 	itemFirstSeenAt := -1
 	portionStartInView := false
 	portionEndInView := false
 
-	for i, visibleItemIdx := range visibleContent.itemIndexes {
+	for i, visibleItemIdx := range itemIndexes {
 		if visibleItemIdx == itemIdx {
 			if itemFirstSeenAt == -1 {
 				itemFirstSeenAt = i
@@ -609,10 +609,10 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
 	if m.config.wrapText {
 		panic("ensureUnwrappedItemVerticallyInView called when wrapText is true")
 	}
-	visibleContent := m.getVisibleContent()
+	itemIndexes := m.getVisibleContentItemIndexes()
 
 	// check if already visible
-	for _, visibleItemIdx := range visibleContent.itemIndexes {
+	for _, visibleItemIdx := range itemIndexes {
 		if visibleItemIdx == itemIdx {
 			return
 		}
@@ -624,7 +624,7 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
 
 	if scrollingDown {
 		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, 0)
-		numContentLines := m.getNumContentLinesWithFooterVisible()
+		numContentLines := m.getNumContentLines()
 		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
 		m.scrollDownLines(-linesToScrollUp)
 	}
@@ -768,8 +768,8 @@ func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset in
 	m.display.setTopItemIdxAndOffset(topItemIdx, topItemLineOffset)
 }
 
-// getNumContentLinesWithFooterVisible returns the number of lines of between the header and footer
-func (m *Model[T]) getNumContentLinesWithFooterVisible() int {
+// getNumContentLines returns the number of lines of between the header and footer
+func (m *Model[T]) getNumContentLines() int {
 	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), true)
 }
 
@@ -938,17 +938,10 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 	return headerLines
 }
 
-type visibleContentResult struct {
-	// itemIndexes is the indexes of m.content.objects for each line
-	itemIndexes []int
-	// showFooter indicates if the footer is visible
-	showFooter bool
-}
-
-// getVisibleContent returns visibleContentResult for the current scroll position
-func (m *Model[T]) getVisibleContent() visibleContentResult {
+// getVisibleContentItemIndexes returns the item indexes of content that are visible in the viewport
+func (m *Model[T]) getVisibleContentItemIndexes() []int {
 	if m.display.bounds.width == 0 || m.content.isEmpty() {
-		return visibleContentResult{itemIndexes: nil, showFooter: false}
+		return nil
 	}
 
 	numLinesAfterHeader := max(0, m.display.bounds.height-len(m.getVisibleHeaderLines()))
@@ -960,17 +953,14 @@ func (m *Model[T]) getVisibleContent() visibleContentResult {
 		renderAll(m.content.objects),
 	)
 	if len(itemIndexes) == 0 {
-		return visibleContentResult{itemIndexes: nil, showFooter: false}
+		return nil
 	}
 
-	scrolledToTop := m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0
-	contentFillsScreen := len(itemIndexes)+1 >= numLinesAfterHeader
-	showFooter := m.config.footerEnabled && (!scrolledToTop || contentFillsScreen)
-	if showFooter {
+	if m.config.footerEnabled {
 		// leave one line for the footer
 		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
 	}
-	return visibleContentResult{itemIndexes: itemIndexes, showFooter: showFooter}
+	return itemIndexes
 }
 
 func renderAll[T Object](itemGetters []T) []item.Item {
@@ -1053,13 +1043,16 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 //	return m.display.getHighlightStyle(m.navigation.selectionEnabled && itemIdx == m.content.getSelectedIdx())
 //}
 
-func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentResult) string {
+func (m *Model[T]) getTruncatedFooterLine(visibleContentItemIndexes []int) string {
 	numerator := m.content.getSelectedIdx() + 1 // 0 indexed
 	denominator := m.content.numItems()
-	if !visibleContentLines.showFooter {
+	if denominator == 0 {
+		return ""
+	}
+	if !m.config.footerEnabled {
 		panic("getTruncatedFooterLine called when footer should not be shown")
 	}
-	if len(visibleContentLines.itemIndexes) == 0 {
+	if len(visibleContentItemIndexes) == 0 {
 		return ""
 	}
 
@@ -1067,7 +1060,7 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentLines visibleContentResu
 
 	// if selection is disabled, numerator should be item index of bottom visible line
 	if !m.navigation.selectionEnabled {
-		numerator = visibleContentLines.itemIndexes[len(visibleContentLines.itemIndexes)-1] + 1
+		numerator = visibleContentItemIndexes[len(visibleContentItemIndexes)-1] + 1
 		if m.config.wrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
 			footerString = fmt.Sprintf("99%% (%d/%d)", numerator, denominator)
@@ -1104,12 +1097,12 @@ func (m *Model[T]) selectionInViewInfo() selectionInViewInfoResult {
 	if !m.navigation.selectionEnabled {
 		panic("selectionInViewInfo called when selection is disabled")
 	}
-	visibleContent := m.getVisibleContent()
+	itemIndexes := m.getVisibleContentItemIndexes()
 	numLinesSelectionInView := 0
 	numLinesAboveSelection := 0
 	assignedNumLinesAboveSelection := false
-	for i := range visibleContent.itemIndexes {
-		if visibleContent.itemIndexes[i] == m.content.getSelectedIdx() {
+	for i := range itemIndexes {
+		if itemIndexes[i] == m.content.getSelectedIdx() {
 			if !assignedNumLinesAboveSelection {
 				numLinesAboveSelection = i
 				assignedNumLinesAboveSelection = true
@@ -1130,7 +1123,6 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	}
 
 	headerLines := len(m.getVisibleHeaderLines())
-	// assume footer will be shown - if it isn't, max item idx and offset will both be 0
 	numContentLines := max(0, m.display.bounds.height-headerLines-1)
 
 	if !m.config.wrapText {
@@ -1158,12 +1150,12 @@ func (m *Model[T]) getHighlightsForItem(itemIndex int) []item.Highlight {
 
 func (m *Model[T]) getNumVisibleItems() int {
 	if !m.config.wrapText {
-		return m.getNumContentLinesWithFooterVisible()
+		return m.getNumContentLines()
 	}
-	visibleContent := m.getVisibleContent()
+	itemIndexes := m.getVisibleContentItemIndexes()
 	// return distinct number of items
 	itemIndexSet := make(map[int]struct{})
-	for _, i := range visibleContent.itemIndexes {
+	for _, i := range itemIndexes {
 		itemIndexSet[i] = struct{}{}
 	}
 	return len(itemIndexSet)
@@ -1190,6 +1182,9 @@ func (m *Model[T]) styleSelection(selection string) string {
 }
 
 func percent(a, b int) int {
+	if b == 0 {
+		return 100
+	}
 	return int(float32(a) / float32(b) * 100)
 }
 
