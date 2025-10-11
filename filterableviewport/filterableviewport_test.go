@@ -1285,7 +1285,7 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 		expectedAfterNextView := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(expectedAfterNext, restAfterNext...))
 		internal.CmpStr(t, expectedAfterNextView, fv.View())
 	}
-	internal.RunWithTimeout(t, runTest, 500*time.Millisecond)
+	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
 }
 
 func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
@@ -1308,20 +1308,18 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 		}
 		fv.SetObjects(stringsToItems(items))
 
-		// apply filter 'a' - everything on screen is now highlighted
+		// everything on screen highlighted
 		fv, _ = fv.Update(filterKeyMsg)
 		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 		fv, _ = fv.Update(applyFilterKeyMsg)
 
-		// initial view - first 'a' should be focused, screen full of highlighted matches
 		firstView := fv.View()
 		if !strings.Contains(firstView, focusedStyle.Render("a")) {
 			t.Fatal("expected focused match in initial view")
 		}
 
-		// scroll down through multiple screens of highlighted matches
 		downMsg := tea.KeyMsg{Type: tea.KeyDown}
-		for i := 0; i < height; i++ { // scroll enough to move focused match out of view
+		for i := 0; i < height; i++ {
 			fv, _ = fv.Update(downMsg)
 			view := fv.View()
 
@@ -1473,8 +1471,6 @@ func TestToggleWrap(t *testing.T) {
 // TODO LEO: add test that updating filter itself scrolls/pans screen to first match without needing to press n/N (should be centered vertically)
 
 // TODO LEO: test for multiple regex matches in a single line
-
-// TODO LEO: add timing test for scrolling through a large number of highlighted matches
 
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
