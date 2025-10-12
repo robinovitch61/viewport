@@ -1389,7 +1389,6 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
 }
 
-// TODO LEO: test this with selection enabled too
 func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 	runTest := func(t *testing.T) {
 		width := 80
@@ -1432,6 +1431,66 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 			}
 			if !strings.Contains(view, unfocusedStyle.Render("a")) {
 				t.Errorf("unfocused matches should still be visible after scrolling %d times", i+1)
+			}
+		}
+	}
+	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
+}
+
+func TestScrollingWithManyHighlightedMatchesPerformanceSelectionEnabled(t *testing.T) {
+	runTest := func(t *testing.T) {
+		width := 80
+		height := 20
+		fv := makeFilterableViewport(
+			width,
+			height,
+			[]viewport.Option[object]{
+				viewport.WithWrapText[object](false),
+				viewport.WithSelectionEnabled[object](true),
+			},
+			[]Option[object]{},
+		)
+
+		numItems := height * 5
+		items := make([]string, numItems)
+		for i := range items {
+			items[i] = strings.Repeat("a", width)
+		}
+		fv.SetObjects(stringsToItems(items))
+
+		// everything on screen highlighted
+		fv, _ = fv.Update(filterKeyMsg)
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+		fv, _ = fv.Update(applyFilterKeyMsg)
+
+		firstView := fv.View()
+		if !strings.Contains(firstView, focusedStyle.Render("a")) {
+			t.Fatal("expected focused match in initial view")
+		}
+
+		downMsg := tea.KeyMsg{Type: tea.KeyDown}
+		// with selection enabled, the viewport keeps the selected item (with focused match) in view
+		// height - 2 accounts for header and footer lines, leaving content lines
+		contentLines := height - 2
+		for i := 0; i < height; i++ {
+			fv, _ = fv.Update(downMsg)
+			view := fv.View()
+
+			// for first (contentLines - 1) scrolls, focused match stays in view
+			// after that, selection scrolls past visible area
+			if i < contentLines-1 {
+				if !strings.Contains(view, focusedStyle.Render("a")) {
+					t.Errorf("focused match should stay in view after moving selection down %d times", i+1)
+				}
+			} else {
+				if strings.Contains(view, focusedStyle.Render("a")) {
+					t.Errorf("focused match should be out of view after moving selection down %d times", i+1)
+				}
+			}
+
+			// unfocused matches should always be visible
+			if !strings.Contains(view, unfocusedStyle.Render("a")) {
+				t.Errorf("unfocused matches should still be visible after moving selection down %d times", i+1)
 			}
 		}
 	}
