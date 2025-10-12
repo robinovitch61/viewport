@@ -75,7 +75,6 @@ func WithCanToggleMatchingItemsOnly[T viewport.Object](canToggleMatchingItemsOnl
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
 
-	height          int
 	keyMap          KeyMap
 	filterTextInput textinput.Model
 	filterMode      filterMode
@@ -108,7 +107,6 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 
 	m := &Model[T]{
 		vp:                         vp,
-		height:                     0, // set below in SetHeight
 		keyMap:                     defaultKeyMap,
 		filterTextInput:            ti,
 		filterMode:                 filterModeOff,
@@ -217,7 +215,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 // View renders the filterable viewport model as a string
 func (m *Model[T]) View() string {
-	if m.height <= 0 {
+	if m.getHeight() <= filterLineHeight {
 		return ""
 	}
 	filterLine := m.renderFilterLine()
@@ -237,15 +235,15 @@ func (m *Model[T]) SetWidth(width int) {
 
 // GetHeight returns the height of the filterable viewport
 func (m *Model[T]) GetHeight() int {
-	if m.height <= 0 {
+	height := m.getHeight()
+	if height <= filterLineHeight {
 		return 0
 	}
-	return m.vp.GetHeight() + filterLineHeight
+	return height
 }
 
 // SetHeight updates the height, accounting for the filter line
 func (m *Model[T]) SetHeight(height int) {
-	m.height = height // TODO LEO: test this or remove height
 	m.vp.SetHeight(height - filterLineHeight)
 }
 
@@ -283,6 +281,11 @@ func (m *Model[T]) GetSelectionEnabled() bool {
 // SetSelectionEnabled sets whether selection is enabled in the viewport
 func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 	m.vp.SetSelectionEnabled(selectionEnabled)
+}
+
+// getHeight gets the height of the viewport including the filter line
+func (m *Model[T]) getHeight() int {
+	return m.vp.GetHeight() + filterLineHeight
 }
 
 // updateMatchingItems recalculates the matching items and updates match tracking
