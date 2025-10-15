@@ -196,7 +196,7 @@ func TestSetWidthSetHeight(t *testing.T) {
 	}
 }
 
-func TestFilterFocused_Initial(t *testing.T) {
+func TestFilterFocusedInitial(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
 		4,
@@ -225,7 +225,7 @@ func TestEmptyContent(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestWithMatchesOnly_True(t *testing.T) {
+func TestWithMatchesOnlyTrue(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
 		4,
@@ -251,7 +251,7 @@ func TestWithMatchesOnly_True(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestWithMatchesOnly_False(t *testing.T) {
+func TestWithMatchesOnlyFalse(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
 		4,
@@ -276,7 +276,7 @@ func TestWithMatchesOnly_False(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
-func TestWithCanToggleMatchesOnly_True(t *testing.T) {
+func TestWithCanToggleMatchesOnlyTrue(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
 		4,
@@ -311,7 +311,7 @@ func TestWithCanToggleMatchesOnly_True(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestWithCanToggleMatchesOnly_False(t *testing.T) {
+func TestWithCanToggleMatchesOnlyFalse(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
 		4,
@@ -459,7 +459,7 @@ func TestCancelFilterKey(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestRegexFilter_ValidPattern(t *testing.T) {
+func TestRegexFilterValidPattern(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -482,7 +482,7 @@ func TestRegexFilter_ValidPattern(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestRegexFilter_InvalidPattern(t *testing.T) {
+func TestRegexFilterInvalidPattern(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -503,7 +503,7 @@ func TestRegexFilter_InvalidPattern(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
+func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
 		6,
@@ -581,7 +581,7 @@ func TestRegexFilter_MultipleMatchesInSingleLine(t *testing.T) {
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
 }
 
-func TestNoMatches_ShowsNoMatchesText(t *testing.T) {
+func TestNoMatchesShowsNoMatchesText(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -644,7 +644,7 @@ func TestViewportControls(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestApplyEmptyFilter_ShowsWhenEmptyText(t *testing.T) {
+func TestApplyEmptyFilterShowsWhenEmptyText(t *testing.T) {
 	fv := makeFilterableViewport(
 		30,
 		4,
@@ -665,7 +665,7 @@ func TestApplyEmptyFilter_ShowsWhenEmptyText(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestEditingEmptyFilter_ShowsEditingMessage(t *testing.T) {
+func TestEditingEmptyFilterShowsEditingMessage(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -923,7 +923,7 @@ func TestMatchNavigationWithMatchingItemsOnlyWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-func TestMatchNavigationWrap_LineOffset(t *testing.T) {
+func TestMatchNavigationWrapLineOffset(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
 		5,
@@ -950,7 +950,7 @@ func TestMatchNavigationWrap_LineOffset(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
-func TestMatchNavigationWrap_WrappedLinesWithMatches(t *testing.T) {
+func TestMatchNavigationWrappedLinesWithMatches(t *testing.T) {
 	fv := makeFilterableViewport(
 		4,
 		6,
@@ -1017,7 +1017,7 @@ func TestMatchNavigationWrap_WrappedLinesWithMatches(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
-func TestMatchNavigationWrap_WrappedLinesWithWrappedMatches(t *testing.T) {
+func TestMatchNavigationWrappedLinesWithWrappedMatches(t *testing.T) {
 	fv := makeFilterableViewport(
 		4,
 		5,
@@ -1201,7 +1201,7 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
 }
 
-func TestMatchNavigationNoWrap_Panning(t *testing.T) {
+func TestMatchNavigationNoWrapPanning(t *testing.T) {
 	fv := makeFilterableViewport(
 		10,
 		3,

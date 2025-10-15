@@ -5,7 +5,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// TODO LEO: simple tests
 // navigationManager manages keyboard input and navigation logic
 type navigationManager struct {
 	// keyMap is the keymap for the viewport
