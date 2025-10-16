@@ -473,10 +473,12 @@ func (m *Model[T]) SetHeader(header []string) {
 }
 
 // EnsureItemInView scrolls or pans the viewport so that the specified portion of an item is visible.
-// If the desired item portion is above or below the current view, it scrolls vertically to bring it into view.
-// If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view.
+// If the desired item portion is above or below the current view, it scrolls vertically to bring it into view, leaving
+// scrollOff number of lines of context if possible.
+// If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view,
+// leaving panOff number of columns of context if possible.
 // Afterwards, it's possible that the selection is out of view of the viewport.
-func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth int) {
+func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth, scrollOff, panOff int) {
 	if m.display.bounds.width == 0 {
 		return
 	}
@@ -788,14 +790,14 @@ func (m *Model[T]) scrollSoSelectionInView() {
 		if selectedItemWidth < m.display.xOffset {
 			// ensure the selection is visible by scrolling, but maintain xOffset if possible
 			prevXOffset := m.display.xOffset
-			m.EnsureItemInView(m.content.selectedIdx, 0, 0)
+			m.EnsureItemInView(m.content.selectedIdx, 0, 0, 0, 0)
 			m.SetXOffset(prevXOffset)
 			return
 		}
 		startWidth = m.display.xOffset
 		endWidth = m.display.xOffset + m.display.bounds.width - 1
 	}
-	m.EnsureItemInView(m.content.selectedIdx, startWidth, endWidth)
+	m.EnsureItemInView(m.content.selectedIdx, startWidth, endWidth, 0, 0)
 }
 
 // getItemIdxAbove consumes n lines by moving up through items, returning the final item index and line offset

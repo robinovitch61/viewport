@@ -571,5 +571,5 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
 		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
-	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
+	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, 0, 0)
 }
