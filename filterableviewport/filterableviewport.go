@@ -568,8 +568,8 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	currentMatch := m.allMatches[m.focusedMatchIdx]
 	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
 
-	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
-	if m.vp.GetSelectionEnabled() {
+	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
 		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
+	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End)
 }

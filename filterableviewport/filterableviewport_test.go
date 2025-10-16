@@ -1598,6 +1598,49 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
 }
 
+func TestMatchNavigationWithSelectionEnabledWrapScrolling(t *testing.T) {
+	fv := makeFilterableViewport(
+		5,
+		4,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"long long long long ",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "long " {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedTopFocused := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[e...",
+		focusedStyle.Render("long "),
+		unfocusedStyle.Render("long "),
+		footerStyle.Render("10..."),
+	})
+	internal.CmpStr(t, expectedTopFocused, fv.View())
+
+	for range 2 {
+		fv, _ = fv.Update(nextMatchKeyMsg)
+		expectedBottomFocused := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+			"[e...",
+			unfocusedStyle.Render("long "),
+			focusedStyle.Render("long "),
+			footerStyle.Render("10..."),
+		})
+		internal.CmpStr(t, expectedBottomFocused, fv.View())
+	}
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	internal.CmpStr(t, expectedTopFocused, fv.View())
+}
+
 func TestToggleWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
