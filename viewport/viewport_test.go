@@ -504,7 +504,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
 	w, h := 10, 4
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
@@ -524,7 +524,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testin
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scrollOff: scroll down to item 4 with scrollOff=1 (should leave 1 line of context below)
+	// verticalPad: scroll down to item 4 with verticalPad=1 (should leave 1 line of context below)
 	vp.EnsureItemInView(4, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -534,7 +534,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testin
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scrollOff: scroll up to item 2 with scrollOff=1 (should leave 1 line of context above)
+	// verticalPad: scroll up to item 2 with verticalPad=1 (should leave 1 line of context above)
 	vp.EnsureItemInView(2, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -544,7 +544,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testin
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// scrollOff: not enough space for full scrollOff=3, use what fits (1 line below)
+	// verticalPad: not enough space for full verticalPad=3, use what fits (1 line below)
 	vp.EnsureItemInView(1, 0, 0, 0, 0) // reset to top
 	vp.EnsureItemInView(4, 0, 0, 3, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
@@ -555,17 +555,17 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testin
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// panOff: pan right to portion with panOff=2 (should leave 2 columns of context to the right)
+	// horizontalPad: pan right to portion with horizontalPad=2 (should leave 2 columns of context to the right)
 	vp.EnsureItemInView(5, len("sixth line"), len("sixth line "), 0, 2)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"...",
+		"..",         // 'fif|th'
 		"...line...", // 'six|th line_th'
 		"100% (6/6)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// panOff: pan left with panOff=1 (should leave 1 column of context to the left)
+	// horizontalPad: pan left with horizontalPad=1 (should leave 1 column of context to the left)
 	vp.EnsureItemInView(5, 3, len("sixth"), 0, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -575,7 +575,7 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewScrollOffPanOff(t *testin
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// panOff: not enough space for full panOff, use what fits
+	// horizontalPad: not enough space for full horizontalPad, use what fits
 	vp.EnsureItemInView(5, len("sixth line that is"), len("sixth line that is r"), 0, 100)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -1537,6 +1537,30 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInView(t *testing.T) {
 	// full width ok
 	vp.EnsureItemInView(1, 0, len("second"), 0, 0)
 	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
+	w, h := 15, 4
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+		"fifth",
+		"sixth",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("first"),
+		"second",
+		"16% (1/6)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// TODO LEO: complete
 }
 
 func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
@@ -3064,6 +3088,30 @@ func TestViewport_SelectionOff_WrapOn_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOff_WrapOn_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line that is super long",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first ",
+		"line",
+		"the second",
+		" line",
+		"50% (2/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// TODO LEO: complete
+}
+
 func TestViewport_SelectionOff_WrapOn_SetXOffset(t *testing.T) {
 	w, h := 10, 8
 	vp := newViewport(w, h)
@@ -4104,6 +4152,31 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInView(t *testing.T) {
 		"100% (4/4)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line that is super long",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the first "),
+		internal.BlueFg.Render("line"),
+		"the second",
+		" line",
+		"25% (1/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// TODO LEO: complete
 }
 
 func TestViewport_SelectionOn_WrapOn_SetXOffset(t *testing.T) {

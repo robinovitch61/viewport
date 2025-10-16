@@ -474,11 +474,11 @@ func (m *Model[T]) SetHeader(header []string) {
 
 // EnsureItemInView scrolls or pans the viewport so that the specified portion of an item is visible.
 // If the desired item portion is above or below the current view, it scrolls vertically to bring it into view, leaving
-// scrollOff number of lines of context if possible.
+// verticalPad number of lines of context if possible.
 // If the desired item portion is to the left or right of the current view, it pans horizontally to bring it into view,
-// leaving panOff number of columns of context if possible.
+// leaving horizontalPad number of columns of context if possible.
 // Afterwards, it's possible that the selection is out of view of the viewport.
-func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth, scrollOff, panOff int) {
+func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth, verticalPad, horizontalPad int) {
 	if m.display.bounds.width == 0 {
 		return
 	}
@@ -492,8 +492,8 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth, scrollOff, pa
 	if m.config.wrapText {
 		m.ensureWrappedPortionInView(itemIdx, startWidth, endWidth)
 	} else {
-		m.ensureUnwrappedItemVerticallyInView(itemIdx)
-		m.ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth)
+		m.ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad)
+		m.ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth, horizontalPad)
 	}
 }
 
@@ -607,7 +607,7 @@ func (m *Model[T]) linesBetweenCurrentTopAndTarget(targetItemIdx, targetLineOffs
 }
 
 // ensureUnwrappedItemVerticallyInView scrolls vertically to bring item into view
-func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
+func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int) {
 	if m.config.wrapText {
 		panic("ensureUnwrappedItemVerticallyInView called when wrapText is true")
 	}
@@ -622,18 +622,23 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx int) {
 
 	// not visible, scroll to it
 	scrollingDown := m.display.topItemIdx < itemIdx
-	m.safelySetTopItemIdxAndOffset(itemIdx, 0)
+	numContentLines := m.getNumContentLines()
 
 	if scrollingDown {
-		linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, 0)
-		numContentLines := m.getNumContentLines()
-		linesToScrollUp := max(0, numContentLines-1-linesFromTarget)
-		m.scrollDownLines(-linesToScrollUp)
+		// scrolling down: try to leave verticalPad lines below the target
+		desiredLinesBelow := min(verticalPad, numContentLines-1)
+		targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredLinesBelow)
+		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
+	} else {
+		// scrolling up: try to leave verticalPad lines above the target
+		desiredLinesAbove := min(verticalPad, numContentLines-1)
+		targetTopItemIdx := max(0, itemIdx-desiredLinesAbove)
+		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 	}
 }
 
 // ensureUnwrappedPortionHorizontallyInView pans horizontally to bring portion into view
-func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth int) {
+func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth, horizontalPad int) {
 	if m.config.wrapText {
 		panic("ensureUnwrappedPortionHorizontallyInView called when wrapText is true")
 	}
@@ -659,14 +664,18 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 		return
 	}
 
-	// portion fits: align based on panning direction
+	// portion fits: align based on panning direction with horizontalPad context
 	panningRight := startWidth > visibleStartWidth
 	if panningRight {
-		// align right edge with viewport right
-		m.SetXOffset(endWidth - viewportWidth)
+		// panning right: try to leave horizontalPad columns to the right of the portion
+		desiredColumnsRight := min(horizontalPad, viewportWidth-portionWidth)
+		targetXOffset := max(0, endWidth+desiredColumnsRight-viewportWidth)
+		m.SetXOffset(targetXOffset)
 	} else {
-		// align left edge with viewport left
-		m.SetXOffset(startWidth)
+		// panning left: try to leave horizontalPad columns to the left of the portion
+		desiredColumnsLeft := min(horizontalPad, viewportWidth-portionWidth)
+		targetXOffset := max(0, startWidth-desiredColumnsLeft)
+		m.SetXOffset(targetXOffset)
 	}
 }
 
