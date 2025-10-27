@@ -490,7 +490,7 @@ func (m *Model[T]) EnsureItemInView(itemIdx, startWidth, endWidth, verticalPad, 
 	itemIdx, startWidth, endWidth = m.clampItemAndWidthParams(itemIdx, startWidth, endWidth)
 
 	if m.config.wrapText {
-		m.ensureWrappedPortionInView(itemIdx, startWidth, endWidth)
+		m.ensureWrappedPortionInView(itemIdx, startWidth, endWidth, verticalPad)
 	} else {
 		m.ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad)
 		m.ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth, horizontalPad)
@@ -507,7 +507,8 @@ func (m *Model[T]) clampItemAndWidthParams(itemIdx, startWidth, endWidth int) (i
 }
 
 // ensureWrappedPortionInView ensures the specified portion is visible in wrapped mode
-func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth int) {
+// TODO LEO: use verticalPad
+func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, verticalPad int) {
 	if !m.config.wrapText {
 		panic("ensureWrappedPortionInView called when wrapText is false")
 	}
@@ -616,6 +617,7 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 	// check if already visible
 	for _, visibleItemIdx := range itemIndexes {
 		if visibleItemIdx == itemIdx {
+			// TODO LEO: if already visible, still ensure verticalPad is respected
 			return
 		}
 	}
@@ -653,6 +655,7 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 
 	// already fully visible
 	if portionStartInView && portionEndInView {
+		// TODO LEO: still make sure horizontalPad is respected
 		return
 	}
 
@@ -661,6 +664,7 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 	// portion wider than viewport: align left edge
 	if portionWidth > viewportWidth {
 		m.SetXOffset(startWidth)
+		// TODO LEO: still make sure horizontalPad is respected
 		return
 	}
 
