@@ -515,6 +515,10 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *
 		"fourth",
 		"fifth",
 		"sixth line that is really long",
+		"seventh",
+		"eighth",
+		"ninth",
+		"tenth",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -522,11 +526,11 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *
 		"second",
 		"third",
 		"fourth",
-		"66% (4/6)",
+		"40% (4/10)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll down to item 4 with verticalPad=1 (should leave 1 line of context below)
+	// verticalPad: scroll down to "fifth" with verticalPad=1 (should leave 1 line of context below)
 	vp.EnsureItemInView(4, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -534,11 +538,11 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *
 		"fourth",
 		"fifth",
 		"sixth l...",
-		"100% (6/6)",
+		"60% (6/10)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll up to item 2 with verticalPad=1 (should leave 1 line of context above)
+	// verticalPad: scroll up to "third" with verticalPad=1 (should leave 1 line of context above)
 	vp.EnsureItemInView(2, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
@@ -546,50 +550,75 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *
 		"third",
 		"fourth",
 		"fifth",
-		"50% (3/6)",
+		"50% (5/10)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	//// verticalPad: not enough space for full verticalPad=3, use what fits (1 line below)
-	//vp.EnsureItemInView(1, 0, 0, 0, 0) // reset to top
-	//vp.EnsureItemInView(4, 0, 0, 3, 0)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"fifth",
-	//	"sixth l...",
-	//	"100% (6/6)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
-	//
-	//// horizontalPad: pan right to portion with horizontalPad=2 (should leave 2 columns of context to the right)
-	//vp.EnsureItemInView(5, len("sixth line"), len("sixth line "), 0, 2)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"..",         // 'fif|th'
-	//	"...line...", // 'six|th line_th'
-	//	"100% (6/6)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
-	//
-	//// horizontalPad: pan left with horizontalPad=1 (should leave 1 column of context to the left)
-	//vp.EnsureItemInView(5, 3, len("sixth"), 0, 1)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"...",        // 'fi|fth'
-	//	"... lin...", // 'si|x__ line t'
-	//	"100% (6/6)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
-	//
-	//// horizontalPad: not enough space for full horizontalPad, use what fits
-	//vp.EnsureItemInView(5, len("sixth line that is"), len("sixth line that is r"), 0, 100)
-	//expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
-	//	"header",
-	//	"...",
-	//	"...ally...", // 'sixth line that is|__eally lo'
-	//	"100% (6/6)",
-	//})
-	//internal.CmpStr(t, expectedView, vp.View())
+	// verticalPad: scroll down to "ninth", not enough content below for verticalPad=3, pad below as much as possible
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(8, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"seventh",
+		"eighth",
+		"ninth",
+		"tenth",
+		"100% (1...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// verticalPad: scroll down to "fifth", request more padding than is available given viewport height -> center item
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(4, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"fourth",
+		"fifth",
+		"sixth l...",
+		"seventh",
+		"70% (7/10)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: pan right to space after "line" with horizontalPad=2
+	// should leave 2 columns of padding to the right
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(5, len("sixth line"), len("sixth line "), 0, 2)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"..",         // 'thi|rd'
+		"...",        // 'fou|rth'
+		"..",         // 'fif|th'
+		"...line...", // 'six|th line_th'
+		"60% (6/10)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: pan to the the visible "th" of "sixth" with horizontalPad=1
+	// should leave 1 column of context to the left
+	vp.EnsureItemInView(5, 3, len("sixth"), 0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...",        // 'th|ird'
+		"...h",       // 'fo|urth'
+		"...",        // 'fi|fth'
+		"... lin...", // 'si|x__ line t'
+		"60% (6/10)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: pan right to the " r" of "is really" with huge horizontalPad
+	// should center the target portion horizontally
+	vp.EnsureItemInView(5, len("sixth line that is"), len("sixth line that is r"), 0, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"...",
+		"...",
+		"...",
+		"...s re...", // 'sixth line tha|t is__eall|y long'
+		"60% (6/10)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOff_WrapOff_SetXOffset(t *testing.T) {

@@ -613,28 +613,57 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 		panic("ensureUnwrappedItemVerticallyInView called when wrapText is true")
 	}
 	itemIndexes := m.getVisibleContentItemIndexes()
+	numContentLines := m.getNumContentLines()
 
 	// check if already visible
-	for _, visibleItemIdx := range itemIndexes {
+	visiblePosition := -1
+	for i, visibleItemIdx := range itemIndexes {
 		if visibleItemIdx == itemIdx {
-			// TODO LEO: if already visible, still ensure verticalPad is respected
-			return
+			visiblePosition = i
+			break
 		}
 	}
 
-	// not visible, scroll to it
 	scrollingDown := m.display.topItemIdx < itemIdx
-	numContentLines := m.getNumContentLines()
 
+	// when padding can't be satisfied on both sides, center the item
+	if verticalPad*2+1 > numContentLines {
+		desiredLinesAbove := (numContentLines - 1) / 2
+		targetTopItemIdx := max(0, itemIdx-desiredLinesAbove)
+		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
+		return
+	}
+
+	desiredPad := min(verticalPad, numContentLines-1)
+
+	if visiblePosition >= 0 {
+		// item is visible, check if padding is respected
+		linesAbove := visiblePosition
+		linesBelow := len(itemIndexes) - visiblePosition - 1
+
+		if linesAbove >= desiredPad && linesBelow >= desiredPad {
+			return
+		}
+
+		// adjust position based on scrolling direction
+		if scrollingDown {
+			targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredPad)
+			m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
+		} else {
+			targetTopItemIdx := max(0, itemIdx-desiredPad)
+			m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
+		}
+		return
+	}
+
+	// not visible, position based on scrolling direction
 	if scrollingDown {
-		// scrolling down: try to leave verticalPad lines below the target
-		desiredLinesBelow := min(verticalPad, numContentLines-1)
-		targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredLinesBelow)
+		// scrolling down: leave desiredPad lines below
+		targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredPad)
 		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 	} else {
-		// scrolling up: try to leave verticalPad lines above the target
-		desiredLinesAbove := min(verticalPad, numContentLines-1)
-		targetTopItemIdx := max(0, itemIdx-desiredLinesAbove)
+		// scrolling up: leave desiredPad lines above
+		targetTopItemIdx := max(0, itemIdx-desiredPad)
 		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 	}
 }
@@ -653,32 +682,55 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 	portionStartInView := startWidth >= visibleStartWidth && startWidth <= visibleEndWidth
 	portionEndInView := endWidth >= visibleStartWidth && endWidth <= visibleEndWidth
 
-	// already fully visible
-	if portionStartInView && portionEndInView {
-		// TODO LEO: still make sure horizontalPad is respected
-		return
-	}
-
 	portionWidth := endWidth - startWidth
+	panningRight := startWidth > visibleStartWidth
 
-	// portion wider than viewport: align left edge
+	// portion wider than viewport: align left edge with padding
 	if portionWidth > viewportWidth {
-		m.SetXOffset(startWidth)
-		// TODO LEO: still make sure horizontalPad is respected
+		desiredColumnsLeft := min(horizontalPad, viewportWidth-1)
+		targetXOffset := max(0, startWidth-desiredColumnsLeft)
+		m.SetXOffset(targetXOffset)
 		return
 	}
 
-	// portion fits: align based on panning direction with horizontalPad context
-	panningRight := startWidth > visibleStartWidth
+	// when padding can't be satisfied on both sides, center the portion
+	if horizontalPad*2+portionWidth > viewportWidth {
+		desiredColumnsLeft := (viewportWidth - portionWidth) / 2
+		targetXOffset := max(0, startWidth-desiredColumnsLeft)
+		m.SetXOffset(targetXOffset)
+		return
+	}
+
+	desiredPad := min(horizontalPad, viewportWidth-portionWidth)
+
+	if portionStartInView && portionEndInView {
+		// already fully visible, check if padding is respected
+		columnsLeft := startWidth - currentXOffset
+		columnsRight := currentXOffset + viewportWidth - endWidth
+
+		if columnsLeft >= desiredPad && columnsRight >= desiredPad {
+			return
+		}
+
+		// adjust position based on panning direction
+		if panningRight {
+			targetXOffset := max(0, endWidth+desiredPad-viewportWidth)
+			m.SetXOffset(targetXOffset)
+		} else {
+			targetXOffset := max(0, startWidth-desiredPad)
+			m.SetXOffset(targetXOffset)
+		}
+		return
+	}
+
+	// not visible, position based on panning direction
 	if panningRight {
-		// panning right: try to leave horizontalPad columns to the right of the portion
-		desiredColumnsRight := min(horizontalPad, viewportWidth-portionWidth)
-		targetXOffset := max(0, endWidth+desiredColumnsRight-viewportWidth)
+		// panning right: leave desiredPad columns to the right
+		targetXOffset := max(0, endWidth+desiredPad-viewportWidth)
 		m.SetXOffset(targetXOffset)
 	} else {
-		// panning left: try to leave horizontalPad columns to the left of the portion
-		desiredColumnsLeft := min(horizontalPad, viewportWidth-portionWidth)
-		targetXOffset := max(0, startWidth-desiredColumnsLeft)
+		// panning left: leave desiredPad columns to the left
+		targetXOffset := max(0, startWidth-desiredPad)
 		m.SetXOffset(targetXOffset)
 	}
 }
