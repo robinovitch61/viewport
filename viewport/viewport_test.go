@@ -1,6 +1,7 @@
 package viewport
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -504,119 +505,136 @@ func TestViewport_SelectionOff_WrapOff_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
+func TestViewport_SelectionOff_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) {
 	w, h := 10, 6
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
-	setContent(vp, []string{
-		"first",
-		"second",
-		"third",
-		"fourth",
-		"fifth",
-		"sixth line that is really long",
-		"seventh",
-		"eighth",
-		"ninth",
-		"tenth",
-	})
+	numItems := 100
+	nums := make([]string, 0, numItems)
+	for i := 0; i < numItems; i++ {
+		nums = append(nums, strconv.Itoa(i+1))
+	}
+	setContent(vp, nums)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"first",
-		"second",
-		"third",
-		"fourth",
-		"40% (4/10)",
+		"1",
+		"2",
+		"3",
+		"4",
+		"4% (4/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll down to "fifth" with verticalPad=1 (should leave 1 line of context below)
+	// scroll down to "5" with verticalPad=1
+	// should leave 1 line of context below
 	vp.EnsureItemInView(4, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"third",
-		"fourth",
-		"fifth",
-		"sixth l...",
-		"60% (6/10)",
+		"3",
+		"4",
+		"5",
+		"6",
+		"6% (6/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll up to "third" with verticalPad=1 (should leave 1 line of context above)
+	// scroll up to "3" with verticalPad=1
+	// should leave 1 line of context above
 	vp.EnsureItemInView(2, 0, 0, 1, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"second",
-		"third",
-		"fourth",
-		"fifth",
-		"50% (5/10)",
+		"2",
+		"3",
+		"4",
+		"5",
+		"5% (5/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll down to "ninth", not enough content below for verticalPad=3, pad below as much as possible
-	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
-	vp.EnsureItemInView(8, 0, 0, 3, 0)
+	// scroll up to visible "8" with verticalPad=2
+	// should leave 2 lines of context above
+	vp.EnsureItemInView(9, 0, 0, 0, 0) // reset to bottom
+	vp.EnsureItemInView(7, 0, 0, 2, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"seventh",
-		"eighth",
-		"ninth",
-		"tenth",
+		"6",
+		"7",
+		"8",
+		"9",
+		"9% (9/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "99", not enough content below for verticalPad=3
+	// pad below as much as possible
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(98, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"97",
+		"98",
+		"99",
+		"100",
 		"100% (1...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// verticalPad: scroll down to "fifth", request more padding than is available given viewport height -> center item
+	// scroll down to "50", request more padding than is available given viewport height -> center item
 	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
-	vp.EnsureItemInView(4, 0, 0, 3, 0)
+	vp.EnsureItemInView(49, 0, 0, 3, 0)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"fourth",
-		"fifth",
-		"sixth l...",
-		"seventh",
-		"70% (7/10)",
+		"49",
+		"50",
+		"51",
+		"52",
+		"52% (52...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_EnsureItemInViewHorizontalPad(t *testing.T) {
+	w, h := 10, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	setContent(vp, []string{
+		"some line that is really long",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"some li...",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// horizontalPad: pan right to space after "line" with horizontalPad=2
 	// should leave 2 columns of padding to the right
 	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
-	vp.EnsureItemInView(5, len("sixth line"), len("sixth line "), 0, 2)
+	vp.EnsureItemInView(0, len("some line"), len("some line "), 0, 2)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"..",         // 'thi|rd'
-		"...",        // 'fou|rth'
-		"..",         // 'fif|th'
-		"...line...", // 'six|th line_th'
-		"60% (6/10)",
+		"...line...", // 'so|me line_th|at is really long'
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// horizontalPad: pan to the the visible "th" of "sixth" with horizontalPad=1
+	// horizontalPad: pan to the visible "me" of "some" with horizontalPad=1
 	// should leave 1 column of context to the left
-	vp.EnsureItemInView(5, 3, len("sixth"), 0, 1)
+	vp.EnsureItemInView(0, len("so"), len("some"), 0, 1)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"...",        // 'th|ird'
-		"...h",       // 'fo|urth'
-		"...",        // 'fi|fth'
-		"... lin...", // 'si|x__ line t'
-		"60% (6/10)",
+		"... lin...", // 's|o__ line t|hat is really long'
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
 	// horizontalPad: pan right to the " r" of "is really" with huge horizontalPad
 	// should center the target portion horizontally
-	vp.EnsureItemInView(5, len("sixth line that is"), len("sixth line that is r"), 0, 100)
+	vp.EnsureItemInView(0, len("some line that is"), len("some line that is r"), 0, 100)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"...",
-		"...",
-		"...",
-		"...s re...", // 'sixth line tha|t is__eall|y long'
-		"60% (6/10)",
+		"...s re...", // 'some line tha|t is__eall|y long'
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
@@ -1574,28 +1592,149 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
-	w, h := 15, 4
+func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	numItems := 100
+	nums := make([]string, 0, numItems)
+	for i := 0; i < numItems; i++ {
+		nums = append(nums, strconv.Itoa(i+1))
+	}
+	setContent(vp, nums)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("1"),
+		"2",
+		"3",
+		"4",
+		"4% (4/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "5" with verticalPad=1
+	// should leave 1 line of context below
+	vp.SetSelectedItemIdx(4)
+	vp.EnsureItemInView(4, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"3",
+		"4",
+		selectionStyle.Render("5"),
+		"6",
+		"6% (6/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to "3" with verticalPad=1
+	// should leave 1 line of context above
+	vp.SetSelectedItemIdx(2)
+	vp.EnsureItemInView(2, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"2",
+		selectionStyle.Render("3"),
+		"4",
+		"5",
+		"5% (5/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "8" with verticalPad=2
+	// should leave 2 lines of context above
+	vp.SetSelectedItemIdx(99) // reset to bottom
+	vp.EnsureItemInView(99, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(7)
+	vp.EnsureItemInView(7, 0, 0, 2, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"6",
+		"7",
+		selectionStyle.Render("8"),
+		"9",
+		"9% (9/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "99", not enough content below for verticalPad=3
+	// pad below as much as possible
+	vp.SetSelectedItemIdx(0) // reset to top
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(98)
+	vp.EnsureItemInView(98, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"97",
+		"98",
+		selectionStyle.Render("99"),
+		"100",
+		"100% (1...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "50", request more padding than is available given viewport height -> center item
+	vp.SetSelectedItemIdx(0) // reset to top
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(49)
+	vp.EnsureItemInView(49, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"49",
+		selectionStyle.Render("50"),
+		"51",
+		"52",
+		"52% (52...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_EnsureItemInViewHorizontalPad(t *testing.T) {
+	w, h := 10, 3
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
-		"first",
-		"second",
-		"third",
-		"fourth",
-		"fifth",
-		"sixth",
+		"some line that is really long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.BlueFg.Render("first"),
-		"second",
-		"16% (1/6)",
+		selectionStyle.Render("some li..."),
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// TODO LEO: complete
+	// horizontalPad: pan right to space after "line" with horizontalPad=2
+	// should leave 2 columns of padding to the right
+	vp.SetSelectedItemIdx(0) // reset to top
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.EnsureItemInView(0, len("some line"), len("some line "), 0, 2)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("...line..."), // 'so|me line_th|at is really long'
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: pan to the visible "me" of "some" with horizontalPad=1
+	// should leave 1 column of context to the left
+	vp.EnsureItemInView(0, len("so"), len("some"), 0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("... lin..."), // 's|o__ line t|hat is really long'
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: pan right to the " r" of "is really" with huge horizontalPad
+	// should center the target portion horizontally
+	vp.EnsureItemInView(0, len("some line that is"), len("some line that is r"), 0, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("...s re..."), // 'some line tha|t is__eall|y long'
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOn_WrapOff_SetXOffset(t *testing.T) {
@@ -3123,28 +3262,170 @@ func TestViewport_SelectionOff_WrapOn_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOff_WrapOn_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
-	w, h := 10, 6
+func TestViewport_SelectionOff_WrapOn_EnsureItemInViewVerticalPad(t *testing.T) {
+	w, h := 10, 10
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	numItems := 100
+	nums := make([]string, 0, numItems)
+	for i := 0; i < numItems; i++ {
+		nums = append(nums, strconv.Itoa(i+1))
+	}
+	setContent(vp, nums)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"1",
+		"2",
+		"3",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"8% (8/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "10" with verticalPad=1
+	// should leave 1 line of context below
+	vp.EnsureItemInView(9, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"9",
+		"10",
+		"11",
+		"11% (11...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to "5" with verticalPad=1
+	// should leave 1 line of context above
+	vp.EnsureItemInView(4, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"9",
+		"10",
+		"11",
+		"11% (11...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "15" with verticalPad=2
+	// should leave 2 lines of context above
+	vp.EnsureItemInView(99, 0, 0, 0, 0) // reset to bottom
+	vp.EnsureItemInView(14, 0, 0, 2, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"13",
+		"14",
+		"15",
+		"16",
+		"17",
+		"18",
+		"19",
+		"20",
+		"20% (20...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "99", not enough content below for verticalPad=3
+	// pad below as much as possible
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(98, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"93",
+		"94",
+		"95",
+		"96",
+		"97",
+		"98",
+		"99",
+		"100",
+		"100% (1...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "50", request more padding than is available given viewport height -> center item
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset to top
+	vp.EnsureItemInView(49, 0, 0, 5, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"47",
+		"48",
+		"49",
+		"50",
+		"51",
+		"52",
+		"53",
+		"54",
+		"54% (54...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_EnsureItemInViewHorizontalPad(t *testing.T) {
+	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	setContent(vp, []string{
-		"the first line",
-		"the second line",
-		"the third line",
-		"the fourth line that is super long",
+		"some line that is really long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		"the first ",
-		"line",
-		"the second",
-		" line",
-		"50% (2/4)",
+		"some line ",
+		"that is re",
+		"ally long",
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// TODO LEO: complete
+	// horizontalPad: ensure "line " is visible with horizontalPad=2
+	// in wrap mode, horizontal padding ensures character ranges are visible
+	vp.EnsureItemInView(0, 0, 0, 0, 0) // reset
+	vp.EnsureItemInView(0, len("some line"), len("some line "), 0, 2)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"some line ",
+		"that is re",
+		"ally long",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: ensure "really" is visible with horizontalPad=1
+	vp.EnsureItemInView(0, len("some line that is "), len("some line that is really"), 0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"some line ",
+		"that is re",
+		"ally long",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: ensure end of string is visible with large horizontalPad
+	vp.EnsureItemInView(0, len("some line that is really lon"), len("some line that is really long"), 0, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"some line ",
+		"that is re",
+		"ally long",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOff_WrapOn_SetXOffset(t *testing.T) {
@@ -4189,29 +4470,181 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInView(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
-func TestViewport_SelectionOn_WrapOn_EnsureItemInViewVerticalHorizontalPad(t *testing.T) {
-	w, h := 10, 6
+func TestViewport_SelectionOn_WrapOn_EnsureItemInViewVerticalPad(t *testing.T) {
+	w, h := 10, 10
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	numItems := 100
+	nums := make([]string, 0, numItems)
+	for i := 0; i < numItems; i++ {
+		nums = append(nums, strconv.Itoa(i+1))
+	}
+	setContent(vp, nums)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("1"),
+		"2",
+		"3",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"1% (1/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "10" with verticalPad=1
+	// should leave 1 line of context below
+	vp.SetSelectedItemIdx(9)
+	vp.EnsureItemInView(9, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"9",
+		selectionStyle.Render("10"),
+		"11",
+		"10% (10...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to "5" with verticalPad=1
+	// should leave 1 line of context above
+	vp.SetSelectedItemIdx(4)
+	vp.EnsureItemInView(4, 0, 0, 1, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"4",
+		selectionStyle.Render("5"),
+		"6",
+		"7",
+		"8",
+		"9",
+		"10",
+		"11",
+		"5% (5/100)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "15" with verticalPad=2
+	// should leave 2 lines of context above
+	vp.SetSelectedItemIdx(99) // reset to bottom
+	vp.EnsureItemInView(99, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(14)
+	vp.EnsureItemInView(14, 0, 0, 2, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"13",
+		"14",
+		selectionStyle.Render("15"),
+		"16",
+		"17",
+		"18",
+		"19",
+		"20",
+		"15% (15...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "99", not enough content below for verticalPad=3
+	// pad below as much as possible
+	vp.SetSelectedItemIdx(0) // reset to top
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(98)
+	vp.EnsureItemInView(98, 0, 0, 3, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"93",
+		"94",
+		"95",
+		"96",
+		"97",
+		"98",
+		selectionStyle.Render("99"),
+		"100",
+		"99% (99...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to "50", request more padding than is available given viewport height -> center item
+	vp.SetSelectedItemIdx(0) // reset to top
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.SetSelectedItemIdx(49)
+	vp.EnsureItemInView(49, 0, 0, 5, 0)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"47",
+		"48",
+		"49",
+		selectionStyle.Render("50"),
+		"51",
+		"52",
+		"53",
+		"54",
+		"50% (50...",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_EnsureItemInViewHorizontalPad(t *testing.T) {
+	w, h := 10, 5
 	vp := newViewport(w, h)
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
 	setContent(vp, []string{
-		"the first line",
-		"the second line",
-		"the third line",
-		"the fourth line that is super long",
+		"some line that is really long",
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.BlueFg.Render("the first "),
-		internal.BlueFg.Render("line"),
-		"the second",
-		" line",
-		"25% (1/4)",
+		selectionStyle.Render("some line "),
+		selectionStyle.Render("that is re"),
+		selectionStyle.Render("ally long"),
+		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// TODO LEO: complete
+	// horizontalPad: ensure "line " is visible with horizontalPad=2
+	// in wrap mode, horizontal padding ensures character ranges are visible
+	vp.SetSelectedItemIdx(0) // reset
+	vp.EnsureItemInView(0, 0, 0, 0, 0)
+	vp.EnsureItemInView(0, len("some line"), len("some line "), 0, 2)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("some line "),
+		selectionStyle.Render("that is re"),
+		selectionStyle.Render("ally long"),
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: ensure "really" is visible with horizontalPad=1
+	vp.EnsureItemInView(0, len("some line that is "), len("some line that is really"), 0, 1)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("some line "),
+		selectionStyle.Render("that is re"),
+		selectionStyle.Render("ally long"),
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// horizontalPad: ensure end of string is visible with large horizontalPad
+	vp.EnsureItemInView(0, len("some line that is really lon"), len("some line that is really long"), 0, 100)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("some line "),
+		selectionStyle.Render("that is re"),
+		selectionStyle.Render("ally long"),
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
 }
 
 func TestViewport_SelectionOn_WrapOn_SetXOffset(t *testing.T) {
