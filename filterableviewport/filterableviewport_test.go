@@ -1811,6 +1811,114 @@ func TestSetObjectsPreservesMatchIndex(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestVerticalPadding(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		10,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{
+			WithVerticalPad[object](2),
+		},
+	)
+
+	// create many items so we can test padding
+	items := make([]string, 50)
+	for i := 0; i < 50; i++ {
+		if i == 10 || i == 20 || i == 30 {
+			items[i] = fmt.Sprintf("match item %d", i)
+		} else {
+			items[i] = fmt.Sprintf("item %d", i)
+		}
+	}
+	fv.SetObjects(stringsToItems(items))
+
+	// apply filter to find "match"
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// first match at item 10 should have at least 2 lines above and below
+	// with 8 content lines and verticalPad=2, it shows items 5-12
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/3 matches...",
+		"item 5",
+		"item 6",
+		"item 7",
+		"item 8",
+		"item 9",
+		focusedStyle.Render("match") + " item 10",
+		"item 11",
+		"item 12",
+		footerStyle.Render("26% (13/50)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// navigate to second match at item 20
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (2/3 matches...",
+		"item 15",
+		"item 16",
+		"item 17",
+		"item 18",
+		"item 19",
+		focusedStyle.Render("match") + " item 20",
+		"item 21",
+		"item 22",
+		footerStyle.Render("46% (23/50)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestHorizontalPadding(t *testing.T) {
+	fv := makeFilterableViewport(
+		10,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{
+			WithHorizontalPad[object](3),
+		},
+	)
+
+	fv.SetObjects(stringsToItems([]string{
+		"short goose text with some more words here",
+		"another goose line with extra padding test",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "goose" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// first match attempted padding of 3 on each side
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		".." + focusedStyle.Render(".oose") + "...",
+		"... " + unfocusedStyle.Render("goo..") + ".",
+		"",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// second match attempted padding of 3 on each side
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact]...",
+		unfocusedStyle.Render("...se") + " t...",
+		".." + focusedStyle.Render(".oose") + "...",
+		"",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
 	for i, s := range vals {

@@ -71,6 +71,20 @@ func WithCanToggleMatchingItemsOnly[T viewport.Object](canToggleMatchingItemsOnl
 	}
 }
 
+// WithVerticalPad sets the number of lines of context to keep above/below the focused match (scrolloff)
+func WithVerticalPad[T viewport.Object](verticalPad int) Option[T] {
+	return func(m *Model[T]) {
+		m.verticalPad = verticalPad
+	}
+}
+
+// WithHorizontalPad sets the number of columns of context to keep left/right of the focused match (panoff)
+func WithHorizontalPad[T viewport.Object](horizontalPad int) Option[T] {
+	return func(m *Model[T]) {
+		m.horizontalPad = horizontalPad
+	}
+}
+
 // Model is the state and logic for a filterable viewport
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
@@ -94,6 +108,9 @@ type Model[T viewport.Object] struct {
 	itemIdxToFilteredIdx       map[int]int
 	matchWidthsByMatchIdx      map[int]item.WidthRange
 	lastFilterValue            string
+
+	verticalPad   int
+	horizontalPad int
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -125,6 +142,8 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		itemIdxToFilteredIdx:       make(map[int]int),
 		matchWidthsByMatchIdx:      make(map[int]item.WidthRange),
 		lastFilterValue:            "",
+		verticalPad:                0,
+		horizontalPad:              0,
 	}
 	m.SetHeight(vp.GetHeight())
 
@@ -571,5 +590,5 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
 		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
-	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, 0, 0) // TODO LEO: make this configurable
+	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)
 }
