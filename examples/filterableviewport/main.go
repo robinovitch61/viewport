@@ -56,6 +56,9 @@ type model struct {
 
 	// ready indicates whether the model has been initialized
 	ready bool
+
+	// width and height of the viewport
+	viewportWidth, viewportHeight int
 }
 
 func (m model) Init() tea.Cmd {
@@ -97,7 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		// 2 for border, 5 for content above viewport
-		viewportWidth, viewportHeight := msg.Width-2, msg.Height-5-2
+		m.viewportWidth, m.viewportHeight = msg.Width-2, msg.Height-5-2
 		if !m.ready {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
@@ -105,8 +108,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			vp := viewport.New[object](
-				viewportWidth,
-				viewportHeight,
+				m.viewportWidth,
+				m.viewportHeight,
 				viewport.WithKeyMap[object](viewportKeyMap),
 			)
 			m.fv = filterableviewport.New[object](
@@ -125,8 +128,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fv.SetWrapText(true)
 			m.ready = true
 		} else {
-			m.fv.SetWidth(viewportWidth)
-			m.fv.SetHeight(viewportHeight)
+			m.fv.SetWidth(m.viewportWidth)
+			m.fv.SetHeight(m.viewportHeight)
 		}
 	}
 
@@ -152,6 +155,8 @@ func (m model) View() string {
 			filterableViewportKeyMap.CancelFilterKey,
 			filterableViewportKeyMap.ToggleMatchingItemsOnlyKey,
 		},
+		m.viewportWidth,
+		m.viewportHeight,
 	), "\n")
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -160,9 +165,10 @@ func (m model) View() string {
 	)
 }
 
-func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding) []string {
+func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding, vpWidth, vpHeight int) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable vp"+fmt.Sprintf(" (%s to quit)", appKeyMap.quit.Help().Key)))
+	suffix := fmt.Sprintf(" (%s to quit) [viewport is %d by %d]", appKeyMap.quit.Help().Key, vpWidth, vpHeight)
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport"+suffix))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleWrapTextKey.Help().Key))
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleSelectionKey.Help().Key))
 	header = append(header, getShortHelp([]key.Binding{
