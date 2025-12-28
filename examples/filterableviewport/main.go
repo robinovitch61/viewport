@@ -117,6 +117,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithEmptyText[object]("No Current Filter"),
 				filterableviewport.WithMatchingItemsOnly[object](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
+				filterableviewport.WithVerticalPad[object](10),
+				filterableviewport.WithHorizontalPad[object](10),
 			)
 			m.fv.SetObjects(m.objects)
 			m.fv.SetSelectionEnabled(false)

@@ -535,15 +535,23 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 		return
 	}
 
-	// when padding can't be satisfied on both sides, center the portion
+	// when padding can't be satisfied on both sides, center based on scroll direction
 	if verticalPad*2+numLinesInPortion > numContentLines {
-		desiredLinesAbove := (numContentLines - numLinesInPortion) / 2
-		if startLineOffset >= desiredLinesAbove {
-			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset-desiredLinesAbove)
+		desiredPadding := numContentLines / 2
+		if scrollingDown {
+			// scrolling down: leave desiredPadding lines below
+			m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
+			linesFromTarget := m.linesBetweenCurrentTopAndTarget(itemIdx, endLineOffset)
+			linesToScrollUp := max(0, numContentLines-1-desiredPadding-linesFromTarget)
+			m.scrollDownLines(-linesToScrollUp)
 		} else {
-			// need to scroll up to previous items to center
-			m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
-			m.scrollDownLines(-desiredLinesAbove)
+			// scrolling up: leave desiredPadding lines above
+			if startLineOffset >= desiredPadding {
+				m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset-desiredPadding)
+			} else {
+				m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset)
+				m.scrollDownLines(-desiredPadding)
+			}
 		}
 		return
 	}
@@ -684,6 +692,7 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 	}
 
 	// determine scroll direction: true if item is at or below the bottom of current view
+	// TODO LEO: combine logic with m.isScrollingDown
 	scrollingDown := m.display.topItemIdx+numContentLines/2 <= itemIdx
 
 	// when padding can't be satisfied on both sides, center the item

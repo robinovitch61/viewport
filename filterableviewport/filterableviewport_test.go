@@ -1919,6 +1919,63 @@ func TestHorizontalPadding(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestMatchNavigationWithVerticalPadding(t *testing.T) {
+	fv := makeFilterableViewport(
+		100,
+		10,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+		},
+		[]Option[object]{
+			WithVerticalPad[object](10),
+		},
+	)
+	fv.SetSelectionEnabled(true)
+
+	nItems := 20
+	items := make([]string, nItems)
+	for i := 0; i < nItems; i++ {
+		items[i] = "hi"
+	}
+	fv.SetObjects(stringsToItems(items))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "hi" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] hi  (1/20 matches on 20 items)",
+		focusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		footerStyle.Render("5% (1/20)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// previous match (last one)
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expectedViewAfterScroll := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] hi  (20/20 matches on 20 items)",
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		unfocusedStyle.Render("hi"),
+		focusedStyle.Render("hi"),
+		footerStyle.Render("100% (20/20)"),
+	})
+	internal.CmpStr(t, expectedViewAfterScroll, fv.View())
+}
+
 func stringsToItems(vals []string) []object {
 	items := make([]object, len(vals))
 	for i, s := range vals {
