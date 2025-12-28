@@ -1920,6 +1920,76 @@ func TestHorizontalPadding(t *testing.T) {
 }
 
 func TestMatchNavigationWithVerticalPadding(t *testing.T) {
+	h := 34
+	fv := makeFilterableViewport(
+		100,
+		h,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](true),
+		},
+		[]Option[object]{
+			WithVerticalPad[object](10),
+		},
+	)
+
+	nItems := 50
+	items := make([]string, nItems)
+	for i := 0; i < nItems; i++ {
+		items[i] = "hi"
+	}
+	fv.SetObjects(stringsToItems(items))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "hi" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedStrings := []string{
+		"[exact] hi  (1/50 matches on 50 items)",
+		focusedStyle.Render("hi"),
+	}
+	for i := 0; i < h-3; i++ { // -3 for header, focused line, & footer
+		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
+	}
+	expectedStrings = append(expectedStrings, footerStyle.Render("64% (32/50)"))
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// go to bottom match, then previous match 21 times to reach the 10 padding above
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	nPrev := 21
+	for i := 0; i < nPrev; i++ {
+		fv, _ = fv.Update(prevMatchKeyMsg)
+	}
+	expectedStrings = []string{"[exact] hi  (29/50 matches on 50 items)"}
+	for i := 0; i < 10; i++ {
+		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
+	}
+	expectedStrings = append(expectedStrings, focusedStyle.Render("hi"))
+	for i := 0; i < h-10-3; i++ {
+		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
+	}
+	expectedStrings = append(expectedStrings, footerStyle.Render("100% (50/50)"))
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// next previous match should keep 10 lines above and scroll one up
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expectedStrings = []string{"[exact] hi  (28/50 matches on 50 items)"}
+	for i := 0; i < 10; i++ {
+		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
+	}
+	expectedStrings = append(expectedStrings, focusedStyle.Render("hi"))
+	for i := 0; i < h-10-3; i++ {
+		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
+	}
+	expectedStrings = append(expectedStrings, footerStyle.Render("98% (49/50)"))
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestMatchNavigationRolloverWithVerticalPadding(t *testing.T) {
 	fv := makeFilterableViewport(
 		100,
 		10,
