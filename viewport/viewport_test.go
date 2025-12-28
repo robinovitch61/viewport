@@ -1609,7 +1609,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		"2",
 		"3",
 		"4",
-		"4% (4/100)",
+		"1% (1/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1623,7 +1623,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		"4",
 		selectionStyle.Render("5"),
 		"6",
-		"6% (6/100)",
+		"5% (5/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1637,7 +1637,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		selectionStyle.Render("3"),
 		"4",
 		"5",
-		"5% (5/100)",
+		"3% (3/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1653,7 +1653,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		"7",
 		selectionStyle.Render("8"),
 		"9",
-		"9% (9/100)",
+		"8% (8/100)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1669,7 +1669,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		"98",
 		selectionStyle.Render("99"),
 		"100",
-		"100% (1...",
+		"99% (99...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
@@ -1684,7 +1684,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 		selectionStyle.Render("50"),
 		"51",
 		"52",
-		"52% (52...",
+		"50% (50...",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }

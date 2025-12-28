@@ -16,7 +16,7 @@ test:
 
 # Run all tests, show summary
 testsum:
-	go test ./... | grep -E "(FAIL|--- FAIL)"
+	gotestsum --format testname 2>&1 | grep -E "^FAIL" | sort | uniq
 
 # Build the project
 build:

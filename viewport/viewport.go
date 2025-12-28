@@ -683,13 +683,8 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 		}
 	}
 
-	// TODO LEO: wrap this in a helper
-	var scrollingDown bool
-	if m.GetSelectionEnabled() {
-		panic("TODO LEO")
-	} else {
-		scrollingDown = m.display.topItemIdx+numContentLines-1 < itemIdx
-	}
+	// determine scroll direction: true if item is at or below the bottom of current view
+	scrollingDown := m.display.topItemIdx+numContentLines/2 <= itemIdx
 
 	// when padding can't be satisfied on both sides, center the item
 	if verticalPad*2+1 > numContentLines {
@@ -715,6 +710,13 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 
 		if linesAbove >= desiredPad && linesBelow >= desiredPad {
 			return
+		}
+
+		// when item is visible but padding insufficient, determine direction by which side needs more padding
+		if linesBelow < desiredPad {
+			scrollingDown = true
+		} else {
+			scrollingDown = false
 		}
 
 		// adjust position based on scrolling direction
