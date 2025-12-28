@@ -503,6 +503,44 @@ func TestRegexFilterInvalidPattern(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
+func TestStyleOverlay(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetSelectionEnabled(true)
+
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		internal.RedFg.Render("apple"),
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "apple" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] apple  (1/2 matches on 2 items)",
+		selectedItemStyle.Render("apple"),
+		unfocusedStyle.Render("apple"),
+		footerStyle.Render("50% (1/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// move selection down to second item
+	fv, _ = fv.Update(downKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] apple  (1/2 matches on 2 items)",
+		focusedStyle.Render("apple"),
+		selectedItemStyle.Render("apple"),
+		footerStyle.Render("100% (2/2)"),
+	})
+}
+
 func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
