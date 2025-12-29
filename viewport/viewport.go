@@ -520,7 +520,7 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 
 	numLinesInPortion := endLineOffset - startLineOffset + 1
 	numContentLines := m.getNumContentLines()
-	scrollingDown := m.isScrollingDown(itemIdx, startLineOffset)
+	scrollingDown := m.targetBelowTop(itemIdx, startLineOffset)
 
 	// portion larger than viewport: align top with padding if possible
 	if numLinesInPortion >= numContentLines {
@@ -647,12 +647,12 @@ func (m *Model[T]) getWrappedPortionViewInfo(itemIdx, startLineOffset, endLineOf
 	return portionStartInView, portionEndInView, linesAbove, linesBelow
 }
 
-// isScrollingDown determines if we're scrolling down based on current position
-func (m *Model[T]) isScrollingDown(itemIdx, startLineOffset int) bool {
-	if m.display.topItemIdx < itemIdx {
+// targetBelowTop checks if a target item & line is below the current top of viewport
+func (m *Model[T]) targetBelowTop(targetItemIdx, targetStartLineOffset int) bool {
+	if m.display.topItemIdx < targetItemIdx {
 		return true
 	}
-	if m.display.topItemIdx == itemIdx && m.display.topItemLineOffset < startLineOffset {
+	if m.display.topItemIdx == targetItemIdx && m.display.topItemLineOffset < targetStartLineOffset {
 		return true
 	}
 	return false
@@ -695,19 +695,17 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 		}
 	}
 
-	// determine scroll direction: true if item is at or below the bottom of current view
-	// TODO LEO: combine logic with m.isScrollingDown
-	scrollingDown := m.display.topItemIdx+numContentLines/2 <= itemIdx
+	itemInBottomHalfOfViewport := m.display.topItemIdx+numContentLines/2 <= itemIdx
 
 	// when padding can't be satisfied on both sides, center the item
 	if verticalPad*2+1 > numContentLines {
 		desiredPadding := numContentLines / 2
-		if scrollingDown {
-			// scrolling down: leave desiredPadding lines below
+		if itemInBottomHalfOfViewport {
+			// leave desiredPadding lines below
 			targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredPadding)
 			m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 		} else {
-			// scrolling up: leave desiredPadding lines above
+			// leave desiredPadding lines above
 			targetTopItemIdx := max(0, itemIdx-desiredPadding)
 			m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 		}
@@ -725,15 +723,7 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 			return
 		}
 
-		// when item is visible but padding insufficient, determine direction by which side needs more padding
-		if linesBelow < desiredPad {
-			scrollingDown = true
-		} else {
-			scrollingDown = false
-		}
-
-		// adjust position based on scrolling direction
-		if scrollingDown {
+		if itemInBottomHalfOfViewport {
 			targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredPad)
 			m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 		} else {
@@ -743,13 +733,13 @@ func (m *Model[T]) ensureUnwrappedItemVerticallyInView(itemIdx, verticalPad int)
 		return
 	}
 
-	// not visible, position based on scrolling direction
-	if scrollingDown {
-		// scrolling down: leave desiredPad lines below
+	// not visible, position based on item position
+	if itemInBottomHalfOfViewport {
+		// leave desiredPad lines below
 		targetTopItemIdx := max(0, itemIdx-numContentLines+1+desiredPad)
 		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 	} else {
-		// scrolling up: leave desiredPad lines above
+		// leave desiredPad lines above
 		targetTopItemIdx := max(0, itemIdx-desiredPad)
 		m.safelySetTopItemIdxAndOffset(targetTopItemIdx, 0)
 	}
@@ -1191,11 +1181,6 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 	}
 	return itemIndexes
 }
-
-// TODO LEO: reuse this for selection styling
-//func (m *Model[T]) highlightStyle(itemIdx int) lipgloss.Style {
-//	return m.display.getHighlightStyle(m.navigation.selectionEnabled && itemIdx == m.content.getSelectedIdx())
-//}
 
 func (m *Model[T]) getTruncatedFooterLine(visibleContentItemIndexes []int) string {
 	numerator := m.content.getSelectedIdx() + 1 // 0 indexed
