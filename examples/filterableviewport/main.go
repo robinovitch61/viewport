@@ -122,7 +122,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithMatchingItemsOnly[object](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
 				filterableviewport.WithVerticalPad[object](10),
-				filterableviewport.WithHorizontalPad[object](10),
+				filterableviewport.WithHorizontalPad[object](50),
 			)
 			m.fv.SetObjects(m.objects)
 			m.fv.SetSelectionEnabled(false)
