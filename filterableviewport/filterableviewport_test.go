@@ -513,20 +513,21 @@ func TestStyleOverlay(t *testing.T) {
 	fv.SetSelectionEnabled(true)
 
 	fv.SetObjects(stringsToItems([]string{
-		"apple",
-		internal.RedFg.Render("apple"),
+		"apple pie",
+		internal.RedFg.Render("apple") + " pie " + internal.BlueFg.Render("yum"),
 	}))
 
 	fv, _ = fv.Update(filterKeyMsg)
-	for _, c := range "apple" {
+	for _, c := range "apple pie" {
 		fv, _ = fv.Update(internal.MakeKeyMsg(c))
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
 
+	// match highlighting overrides both selection style and styled sections
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] apple  (1/2 matches on 2 items)",
-		selectedItemStyle.Render("apple"),
-		unfocusedStyle.Render("apple"),
+		"[exact] apple pie  (1/2 matches on 2 items)",
+		focusedStyle.Render("apple pie"),
+		unfocusedStyle.Render("apple pie") + " " + internal.BlueFg.Render("yum"),
 		footerStyle.Render("50% (1/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -534,11 +535,12 @@ func TestStyleOverlay(t *testing.T) {
 	// move selection down to second item
 	fv, _ = fv.Update(downKeyMsg)
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] apple  (1/2 matches on 2 items)",
-		focusedStyle.Render("apple"),
-		selectedItemStyle.Render("apple"),
+		"[exact] apple pie  (1/2 matches on 2 items)",
+		focusedStyle.Render("apple pie"),
+		unfocusedStyle.Render("apple pie") + selectedItemStyle.Render(" ") + internal.BlueFg.Render("yum"),
 		footerStyle.Render("100% (2/2)"),
 	})
+	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {

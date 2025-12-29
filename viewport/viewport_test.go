@@ -5773,6 +5773,65 @@ func TestViewport_SelectionOn_WrapOn_SetHighlightsAnsiUnicode(t *testing.T) {
 
 // # OTHER
 
+func TestViewport_StyleOverlay(t *testing.T) {
+	w, h := 20, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"plain text",
+		internal.RedFg.Render("red text"),
+		"more plain",
+	})
+
+	// add highlight to the second item which already has red styling
+	highlights := []Highlight{
+		{
+			ItemIndex: 1,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 0,
+					End:   3,
+				},
+				Style: internal.GreenFg,
+			},
+		},
+	}
+	vp.SetHighlights(highlights)
+
+	// first item is selected, highlight should show on second item
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("plain text"),
+		internal.GreenFg.Render("red") + internal.RedFg.Render(" text"),
+		"more plain",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// selection style on second item should override both the red styling and green highlight
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"plain text",
+		internal.GreenFg.Render("red") + internal.RedFg.Render(" text"),
+		"more plain",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move selection to third item, highlight should show again on second item
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"plain text",
+		internal.GreenFg.Render("red") + internal.RedFg.Render(" text"),
+		internal.BlueFg.Render("more plain"),
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOn_ToggleWrap_PreserveSelection(t *testing.T) {
 	w, h := 15, 6
 	vp := newViewport(w, h)
