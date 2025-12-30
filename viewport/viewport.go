@@ -78,6 +78,20 @@ func WithFooterEnabled[T Object](enabled bool) Option[T] {
 	}
 }
 
+// WithStickyTop sets whether to automatically scroll to the top when content changes
+func WithStickyTop[T Object](stickyTop bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetTopSticky(stickyTop)
+	}
+}
+
+// WithStickyBottom sets whether to automatically scroll to the bottom when content changes
+func WithStickyBottom[T Object](stickyBottom bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetBottomSticky(stickyBottom)
+	}
+}
+
 // Model represents a viewport component
 type Model[T Object] struct {
 	// content manages the content and selection state

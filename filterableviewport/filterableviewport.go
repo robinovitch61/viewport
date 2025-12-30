@@ -271,7 +271,6 @@ func (m *Model[T]) SetObjects(objects []T) {
 	if objects == nil {
 		objects = []T{}
 	}
-	m.vp.SetObjects(objects)
 	m.objects = objects
 	m.updateMatchingItems()
 }
@@ -289,7 +288,7 @@ func (m *Model[T]) GetWrapText() bool {
 // SetWrapText sets whether text wrapping is enabled in the viewport
 func (m *Model[T]) SetWrapText(wrapText bool) {
 	m.vp.SetWrapText(wrapText)
-	m.ensureCurrentMatchInView()
+	m.ensureCurrentMatchInView(false)
 }
 
 // GetSelectionEnabled returns whether selection is enabled in the viewport
@@ -310,7 +309,7 @@ func (m *Model[T]) getHeight() int {
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
-	m.ensureCurrentMatchInView()
+	m.ensureCurrentMatchInView(false)
 	m.updateFocusedMatchHighlight()
 	m.numMatchingItems = len(matchingObjects)
 	if m.matchingItemsOnly {
@@ -562,7 +561,7 @@ func (m *Model[T]) navigateToNextMatch() {
 	}
 
 	m.focusedMatchIdx = (m.focusedMatchIdx + 1) % len(m.allMatches)
-	m.ensureCurrentMatchInView()
+	m.ensureCurrentMatchInView(true)
 	m.updateFocusedMatchHighlight()
 }
 
@@ -575,11 +574,11 @@ func (m *Model[T]) navigateToPrevMatch() {
 	if m.focusedMatchIdx < 0 {
 		m.focusedMatchIdx = len(m.allMatches) - 1
 	}
-	m.ensureCurrentMatchInView()
+	m.ensureCurrentMatchInView(true)
 	m.updateFocusedMatchHighlight()
 }
 
-func (m *Model[T]) ensureCurrentMatchInView() {
+func (m *Model[T]) ensureCurrentMatchInView(moveSelection bool) {
 	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
 		return
 	}
@@ -587,7 +586,7 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 	currentMatch := m.allMatches[m.focusedMatchIdx]
 	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
 
-	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
+	if moveSelection && m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
 		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
 	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)

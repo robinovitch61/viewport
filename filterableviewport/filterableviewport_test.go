@@ -2093,3 +2093,73 @@ func stringsToItems(vals []string) []object {
 	}
 	return items
 }
+
+func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
+	fv := makeFilterableViewport(
+		100,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{},
+	)
+
+	initialItems := []string{
+		"1 2",
+		"1 2",
+		"1 2",
+		"1 2",
+		"1 2",
+	}
+	fv.SetObjects(stringsToItems(initialItems))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('1'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// focus second match
+	fv, _ = fv.Update(nextMatchKeyMsg)
+
+	// move selection to third item
+	fv, _ = fv.Update(downKeyMsg)
+
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] 1  (2/5 matches on 5 items)",
+		unfocusedStyle.Render("1") + " 2",
+		focusedStyle.Render("1") + " 2",
+		unfocusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
+		footerStyle.Render("60% (3/5)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// add a new item
+	initialItems = append(initialItems, "1 2")
+	fv.SetObjects(stringsToItems(initialItems))
+
+	// neither match nor selection should change
+	expected = strings.ReplaceAll(expected, "2/5 matches on 5", "2/6 matches on 6")
+	expected = strings.ReplaceAll(expected, "60% (3/5)", "50% (3/6)")
+	internal.CmpStr(t, expected, fv.View())
+
+	// changing match should change selection too
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] 1  (3/6 matches on 6 items)",
+		unfocusedStyle.Render("1") + " 2",
+		unfocusedStyle.Render("1") + " 2",
+		focusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
+		footerStyle.Render("50% (3/6)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] 1  (2/6 matches on 6 items)",
+		unfocusedStyle.Render("1") + " 2",
+		focusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
+		unfocusedStyle.Render("1") + " 2",
+		footerStyle.Render("33% (2/6)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}

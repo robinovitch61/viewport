@@ -2,3 +2,4 @@
 .idea
 *.prof
 *.test
+examples/pipeviewer/pipeviewer
