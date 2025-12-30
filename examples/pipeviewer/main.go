@@ -158,6 +158,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithEmptyText[object]("Press / to filter"),
 				filterableviewport.WithMatchingItemsOnly[object](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
+				filterableviewport.WithHorizontalPad[object](50),
+				filterableviewport.WithVerticalPad[object](20),
 			)
 			m.fv.SetObjects(m.objects)
 			m.fv.SetWrapText(false)
