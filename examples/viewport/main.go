@@ -3,85 +3,38 @@ package main
 // An example program demonstrating the viewport component
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/viewport/linebuffer"
-
-	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/robinovitch61/bubbleo/examples/text"
 	"github.com/robinovitch61/bubbleo/viewport"
+	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
-//go:embed example.txt
-var exampleContent string
-
-var keyMap = viewport.KeyMap{
-	PageDown: key.NewBinding(
-		key.WithKeys("pgdown", "f", "ctrl+f"),
-		key.WithHelp("f", "pgdn"),
-	),
-	PageUp: key.NewBinding(
-		key.WithKeys("pgup", "b", "ctrl+b"),
-		key.WithHelp("b", "pgup"),
-	),
-	HalfPageUp: key.NewBinding(
-		key.WithKeys("u", "ctrl+u"),
-		key.WithHelp("u", "½ page up"),
-	),
-	HalfPageDown: key.NewBinding(
-		key.WithKeys("d", "ctrl+d"),
-		key.WithHelp("d", "½ page down"),
-	),
-	Up: key.NewBinding(
-		key.WithKeys("up", "k"),
-		key.WithHelp("↑/k", "scroll up"),
-	),
-	Down: key.NewBinding(
-		key.WithKeys("down", "j"),
-		key.WithHelp("↓/j", "scroll down"),
-	),
-	Left: key.NewBinding(
-		key.WithKeys("left"),
-		key.WithHelp("←", "left"),
-	),
-	Right: key.NewBinding(
-		key.WithKeys("right"),
-		key.WithHelp("→", "right"),
-	),
-	Top: key.NewBinding(
-		key.WithKeys("g", "ctrl+g"),
-		key.WithHelp("g", "top"),
-	),
-	Bottom: key.NewBinding(
-		key.WithKeys("shift+g"),
-		key.WithHelp("G", "bottom"),
-	),
+type object struct {
+	item item.Item
 }
 
-var styles = viewport.Styles{
-	FooterStyle:              lipgloss.NewStyle(),
-	HighlightStyle:           lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Background(lipgloss.Color("2")),
-	HighlightStyleIfSelected: lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Background(lipgloss.Color("3")),
-	SelectedItemStyle:        lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Background(lipgloss.Color("2")),
+func (o object) GetItem() item.Item {
+	return o.item
 }
 
-// RenderableString is a simple type that wraps a string and implements the Renderable interface
-type RenderableString struct {
-	content string
-}
-
-func (r RenderableString) Render() linebuffer.LineBufferer {
-	return linebuffer.New(r.content)
-}
+var keyMap = viewport.DefaultKeyMap()
+var styles = viewport.DefaultStyles()
 
 type model struct {
-	lines    []RenderableString
-	ready    bool
-	viewport viewport.Model[RenderableString]
+	// viewport is the container for the lines
+	viewport *viewport.Model[object]
+
+	// lines contains the lines to be displayed in the viewport
+	lines []object
+
+	// ready indicates whether the model has been initialized
+	ready bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -107,21 +60,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
+		// 2 for border, 4 for content above viewport
+		viewportWidth, viewportHeight := msg.Width-2, msg.Height-4-2
 		if !m.ready {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			m.viewport = viewport.New[RenderableString](msg.Width-2, msg.Height-5-2, keyMap, styles)
-			m.viewport.SetContent(m.lines)
+			m.viewport = viewport.New[object](
+				viewportWidth,
+				viewportHeight,
+				viewport.WithKeyMap[object](keyMap),
+				viewport.WithStyles[object](styles),
+			)
+			m.viewport.SetObjects(m.lines)
 			m.viewport.SetSelectionEnabled(false)
-			m.viewport.SetStringToHighlight("surf")
 			m.viewport.SetWrapText(true)
 			m.ready = true
 		} else {
-			m.viewport.SetWidth(msg.Width - 2)
-			m.viewport.SetHeight(msg.Height - 5 - 2)
+			m.viewport.SetWidth(viewportWidth)
+			m.viewport.SetHeight(viewportHeight)
 		}
 	}
 
@@ -134,7 +93,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if !m.ready {
-		return "\n  Initializing..."
+		return "Initializing viewport..."
 	}
 	var header = strings.Join(getHeader(
 		m.viewport.GetWrapText(),
@@ -161,10 +120,9 @@ func (m model) View() string {
 
 func getHeader(wrapped, selectionEnabled bool, bindings []key.Binding) []string {
 	var header []string
-	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Viewport"))
+	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged vp (q/ctrl+c/esc to quit)"))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+" (w to toggle)")
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+" (s to toggle)")
-	header = append(header, "- Text to highlight: 'surf'")
 	header = append(header, getShortHelp(bindings))
 	return header
 }
@@ -179,10 +137,10 @@ func getShortHelp(bindings []key.Binding) string {
 }
 
 func main() {
-	lines := strings.Split(exampleContent, "\n")
-	renderableLines := make([]RenderableString, len(lines))
+	lines := strings.Split(text.ExampleContent, "\n")
+	renderableLines := make([]object, len(lines))
 	for i, line := range lines {
-		renderableLines[i] = RenderableString{content: line}
+		renderableLines[i] = object{item: item.NewItem(line)}
 	}
 
 	p := tea.NewProgram(

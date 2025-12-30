@@ -1,14 +1,16 @@
-package linebuffer
+package item
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/viewport/internal"
+	"github.com/robinovitch61/bubbleo/internal"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
-func TestLineBuffer_Width(t *testing.T) {
+func TestSingle_Width(t *testing.T) {
 	tests := []struct {
 		name     string
 		s        string
@@ -31,22 +33,22 @@ func TestLineBuffer_Width(t *testing.T) {
 		},
 		{
 			name:     "ansi",
-			s:        "\x1b[38;2;255;0;0mhi\x1b[m",
+			s:        "\x1b[38;2;255;0;0mhi" + RST,
 			expected: 2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			if actual := lb.Width(); actual != tt.expected {
+			item := NewItem(tt.s)
+			if actual := item.Width(); actual != tt.expected {
 				t.Errorf("expected %d, got %d", tt.expected, actual)
 			}
 		})
 	}
 }
 
-func TestLineBuffer_Content(t *testing.T) {
+func TestSingle_Content(t *testing.T) {
 	tests := []struct {
 		name     string
 		s        string
@@ -71,15 +73,15 @@ func TestLineBuffer_Content(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			if actual := lb.Content(); actual != tt.expected {
+			item := NewItem(tt.s)
+			if actual := item.Content(); actual != tt.expected {
 				t.Errorf("expected %s, got %s", tt.expected, actual)
 			}
 		})
 	}
 }
 
-func TestLineBuffer_Take(t *testing.T) {
+func TestSingle_Take(t *testing.T) {
 	tests := []struct {
 		name           string
 		s              string
@@ -562,58 +564,58 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:         "ansi simple, no continuation",
-			s:            "\x1b[38;2;255;0;0ma really really long line\x1b[m",
+			s:            "\x1b[38;2;255;0;0ma really really long line" + RST,
 			width:        15,
 			continuation: "",
 			numTakes:     2,
 			expected: []string{
-				"\x1b[38;2;255;0;0ma really really\x1b[m",
-				"\x1b[38;2;255;0;0m long line\x1b[m",
+				"\x1b[38;2;255;0;0ma really really" + RST,
+				"\x1b[38;2;255;0;0m long line" + RST,
 			},
 		},
 		{
 			name:         "ansi simple, continuation",
-			s:            "\x1b[38;2;255;0;0m12345678901234567890123456789012345\x1b[m",
+			s:            "\x1b[38;2;255;0;0m12345678901234567890123456789012345" + RST,
 			width:        15,
 			continuation: "...",
 			numTakes:     3,
 			expected: []string{
-				"\x1b[38;2;255;0;0m123456789012...\x1b[m",
-				"\x1b[38;2;255;0;0m...901234567...\x1b[m",
-				"\x1b[38;2;255;0;0m...45\x1b[m",
+				"\x1b[38;2;255;0;0m123456789012..." + RST,
+				"\x1b[38;2;255;0;0m...901234567..." + RST,
+				"\x1b[38;2;255;0;0m...45" + RST,
 			},
 		},
 		{
 			name:         "inline ansi, no continuation",
-			s:            "\x1b[38;2;255;0;0ma\x1b[m really really long line",
+			s:            "\x1b[38;2;255;0;0ma" + RST + " really really long line",
 			width:        15,
 			continuation: "",
 			numTakes:     2,
 			expected: []string{
-				"\x1b[38;2;255;0;0ma\x1b[m really really",
+				"\x1b[38;2;255;0;0ma" + RST + " really really",
 				" long line",
 			},
 		},
 		{
 			name:         "inline ansi, continuation",
-			s:            "|\x1b[38;2;169;15;15mfl..-1\x1b[m| {\"timestamp\": \"now\"}",
+			s:            "|\x1b[38;2;169;15;15mfl..-1" + RST + "| {\"timestamp\": \"now\"}",
 			width:        15,
 			continuation: "...",
 			numTakes:     3,
 			expected: []string{
-				"|\x1b[38;2;169;15;15mfl..-1\x1b[m| {\"t...",
+				"|\x1b[38;2;169;15;15mfl..-1" + RST + "| {\"t...",
 				"...mp\": \"now\"}",
 				"",
 			},
 		},
 		{
 			name:         "ansi short",
-			s:            "\x1b[38;2;0;0;255mhi\x1b[m",
+			s:            "\x1b[38;2;0;0;255mhi" + RST,
 			width:        3,
 			continuation: "...",
 			numTakes:     1,
 			expected: []string{
-				"\x1b[38;2;0;0;255mhi\x1b[m",
+				"\x1b[38;2;0;0;255mhi" + RST,
 			},
 		},
 		{
@@ -628,12 +630,12 @@ func TestLineBuffer_Take(t *testing.T) {
 		},
 		{
 			name:         "multi-byte runes with ansi and continuation",
-			s:            "\x1b[38;2;0;0;255m├─flask\x1b[m",
+			s:            "\x1b[38;2;0;0;255m├─flask" + RST,
 			width:        6,
 			continuation: "...",
 			numTakes:     1,
 			expected: []string{
-				"\x1b[38;2;0;0;255m├─f...\x1b[m",
+				"\x1b[38;2;0;0;255m├─f..." + RST,
 			},
 		},
 		{
@@ -652,10 +654,10 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          15,
 			continuation:   "",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a " + redBg.Render("very") + " normal l",
+				"a " + internal.RedBg.Render("very") + " normal l",
 			},
 		},
 		{
@@ -664,10 +666,10 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          15,
 			continuation:   "",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a " + redBg.Render("very") + " normal l",
+				"a " + internal.RedBg.Render("very") + " normal l",
 			},
 		},
 		{
@@ -676,10 +678,10 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          15,
 			continuation:   "...",
 			toHighlight:    "l l",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a very norma...", // does not highlight continuation, could in future
+				"a very norma\x1b[48;2;255;0;0m...\x1b[0m",
 			},
 		},
 		{
@@ -688,11 +690,11 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          15,
 			continuation:   "...",
 			toHighlight:    "very",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			startWidth:     1,
 			numTakes:       1,
 			expected: []string{
-				"...ry normal...", // does not highlight continuation, could in future
+				".\x1b[48;2;255;0;0m..ry\x1b[0m normal...",
 			},
 		},
 		{
@@ -701,23 +703,23 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          6,
 			continuation:   "",
 			toHighlight:    "r",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				strings.Repeat("\x1b[48;2;255;0;0mr\x1b[m", 6),
-				strings.Repeat("\x1b[48;2;255;0;0mr\x1b[m", 4),
+				strings.Repeat("\x1b[48;2;255;0;0mr"+RST+"", 6),
+				strings.Repeat("\x1b[48;2;255;0;0mr"+RST+"", 4),
 			},
 		},
 		{
 			name:           "toHighlight, no continuation, no overflow, ansi",
-			s:              "\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mthere\x1b[m er",
+			s:              "\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mthere" + RST + " er",
 			width:          15,
 			continuation:   "",
 			toHighlight:    "er",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mth\x1b[m\x1b[48;2;255;0;0mer\x1b[m\x1b[38;2;0;0;255m\x1b[48;2;0;255;0me\x1b[m \x1b[48;2;255;0;0mer\x1b[m",
+				"\x1b[38;2;0;0;255mhi \x1b[48;2;0;255;0mth" + RST + "\x1b[48;2;255;0;0mer" + RST + "\x1b[38;2;0;0;255m\x1b[48;2;0;255;0me" + RST + " \x1b[48;2;255;0;0mer" + RST,
 			},
 		},
 		{
@@ -726,36 +728,36 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          6,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("hi the"),
-				redBg.Render("re") + " re",
+				internal.RedBg.Render("hi the"),
+				internal.RedBg.Render("re") + " re",
 			},
 		},
 		{
 			name:           "toHighlight, no continuation, overflows left and right, ansi",
-			s:              "\x1b[38;2;0;0;255mhi there re\x1b[m",
+			s:              "\x1b[38;2;0;0;255mhi there re" + RST,
 			width:          6,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[48;2;255;0;0mhi the\x1b[m",
-				"\x1b[48;2;255;0;0mre\x1b[m\x1b[38;2;0;0;255m re\x1b[m",
+				"\x1b[48;2;255;0;0mhi the" + RST,
+				"\x1b[48;2;255;0;0mre" + RST + "\x1b[38;2;0;0;255m re" + RST,
 			},
 		},
 		{
 			name:           "toHighlight, no continuation, another ansi",
-			s:              redBg.Render("hello") + " " + blueBg.Render("world"),
+			s:              internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"),
 			width:          11,
 			continuation:   "",
 			toHighlight:    "lo wo",
-			highlightStyle: greenBg,
+			highlightStyle: internal.GreenBg,
 			numTakes:       1,
 			expected: []string{
-				redBg.Render("hel") + greenBg.Render("lo wo") + blueBg.Render("rld"),
+				internal.RedBg.Render("hel") + internal.GreenBg.Render("lo wo") + internal.BlueBg.Render("rld"),
 			},
 		},
 		{
@@ -764,11 +766,11 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "hi there",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("hi ther"),
-				redBg.Render("e") + " re",
+				internal.RedBg.Render("hi ther"),
+				internal.RedBg.Render("e") + " re",
 			},
 		},
 		{
@@ -777,11 +779,11 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界") + "🌟",
-				redBg.Render("世界") + "🌟",
+				internal.RedBg.Render("世界") + "🌟",
+				internal.RedBg.Render("世界") + "🌟",
 			},
 		},
 		{
@@ -790,37 +792,37 @@ func TestLineBuffer_Take(t *testing.T) {
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界🌟"),
-				redBg.Render("世") + "界🌟",
+				internal.RedBg.Render("世界🌟"),
+				internal.RedBg.Render("世") + "界🌟",
 			},
 		},
 		{
 			name:           "unicode toHighlight, no continuation, overflow, ansi",
-			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟\x1b[m",
+			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟" + RST,
 			width:          7,
 			continuation:   "",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				redBg.Render("世界🌟"),
-				redBg.Render("世") + "\x1b[38;2;0;0;255m界🌟\x1b[m",
+				internal.RedBg.Render("世界🌟"),
+				internal.RedBg.Render("世") + "\x1b[38;2;0;0;255m界🌟" + RST,
 			},
 		},
 		{
 			name:           "unicode toHighlight, continuation, overflow, ansi",
-			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟\x1b[m",
+			s:              "\x1b[38;2;0;0;255m世界🌟世界🌟" + RST,
 			width:          7,
 			continuation:   "...",
 			toHighlight:    "世界🌟世",
-			highlightStyle: redBg,
+			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[38;2;0;0;255m世界..\x1b[m", // does not highlight continuation, could in future
-				"\x1b[38;2;0;0;255m..界🌟\x1b[m", // does not highlight continuation, could in future
+				"\x1b[48;2;255;0;0m世界..\x1b[0m",
+				"\x1b[48;2;255;0;0m..\x1b[0m\x1b[38;2;0;0;255m界🌟\x1b[0m",
 			},
 		},
 		{
@@ -846,12 +848,12 @@ func TestLineBuffer_Take(t *testing.T) {
 		{
 			name: "unicode with heart start continuation and ansi",
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
-			s:            redBg.Render("A💖") + "中é",
+			s:            internal.RedBg.Render("A💖") + "中é",
 			width:        5,
 			continuation: "...",
 			startWidth:   1,
 			numTakes:     1,
-			expected:     []string{redBg.Render("..") + "中é"},
+			expected:     []string{internal.RedBg.Render("..") + "中é"},
 		},
 		{
 			name: "unicode combining",
@@ -872,14 +874,13 @@ func TestLineBuffer_Take(t *testing.T) {
 			if len(tt.expected) != tt.numTakes {
 				t.Fatalf("num expected != num popLefts")
 			}
-			lb := New(tt.s)
+			item := NewItem(tt.s)
 			startWidth := tt.startWidth
-			toHighlight := HighlightData{
-				StringToHighlight: tt.toHighlight,
-				IsRegex:           false,
-			}
+
+			byteRanges := item.ExtractExactMatches(tt.toHighlight)
+			highlights := toHighlights(byteRanges, tt.highlightStyle)
 			for i := 0; i < tt.numTakes; i++ {
-				actual, actualWidth := lb.Take(startWidth, tt.width, tt.continuation, toHighlight, tt.highlightStyle)
+				actual, actualWidth := item.Take(startWidth, tt.width, tt.continuation, highlights)
 				internal.CmpStr(t, tt.expected[i], actual)
 				startWidth += actualWidth
 			}
@@ -887,194 +888,626 @@ func TestLineBuffer_Take(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_WrappedLines(t *testing.T) {
-	highlightStyle := lipgloss.NewStyle().Background(lipgloss.Color("#00FF00"))
+func TestSingle_NumWrappedLines(t *testing.T) {
 	tests := []struct {
-		name            string
-		s               string
-		width           int
-		maxLinesEachEnd int
-		toHighlight     string
-		highlightStyle  lipgloss.Style
-		want            []string
+		name      string
+		s         string
+		wrapWidth int
+		expected  int
 	}{
 		{
-			name:            "empty string",
-			s:               "",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want:            []string{""},
+			name:      "none no width",
+			s:         "none",
+			wrapWidth: 0,
+			expected:  0,
 		},
 		{
-			name:            "single line within width",
-			s:               "Hello",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want:            []string{"Hello"},
+			name:      "none with width",
+			s:         "none",
+			wrapWidth: 5,
+			expected:  1,
 		},
 		{
-			name:            "zero width",
-			s:               "Hello",
-			width:           0,
-			maxLinesEachEnd: 2,
-			want:            []string{},
+			name:      "hello world negative width",
+			s:         "hello world", // 11 width
+			wrapWidth: -1,
+			expected:  0,
 		},
 		{
-			name:            "zero maxLinesEachEnd",
-			s:               "This is a very long line that needs wrapping",
-			width:           10,
-			maxLinesEachEnd: 0,
-			want:            []string{"This is a ", "very long ", "line that ", "needs wrap", "ping"},
+			name:      "hello world zero width",
+			s:         "hello world", // 11 width
+			wrapWidth: 0,
+			expected:  0,
 		},
 		{
-			name:            "negative maxLinesEachEnd",
-			s:               "This is a very long line that needs wrapping",
-			width:           10,
-			maxLinesEachEnd: -1,
-			want:            []string{"This is a ", "very long ", "line that ", "needs wrap", "ping"},
+			name:      "hello world wrap 1",
+			s:         "hello world", // 11 width
+			wrapWidth: 1,
+			expected:  11,
 		},
 		{
-			name:            "limited by maxLinesEachEnd",
-			s:               "This is a very long line that needs wrapping",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want: []string{
-				"This is a ",
-				"very long ",
-				//"line that ",
-				"needs wrap",
-				"ping"},
+			name:      "hello world wrap 5",
+			s:         "hello world", // 11 width
+			wrapWidth: 5,
+			expected:  3,
 		},
 		{
-			name:            "single chars",
-			s:               strings.Repeat("Test \x1b[38;2;0;0;255mtest\x1b[m", 1),
-			width:           1,
-			maxLinesEachEnd: -1,
-			want: []string{
-				"T",
-				"e",
-				"s",
-				"t",
-				" ",
-				"\x1b[38;2;0;0;255mt\x1b[m",
-				"\x1b[38;2;0;0;255me\x1b[m",
-				"\x1b[38;2;0;0;255ms\x1b[m",
-				"\x1b[38;2;0;0;255mt\x1b[m",
-			},
+			name:      "hello world wrap 11",
+			s:         "hello world", // 11 width
+			wrapWidth: 11,
+			expected:  1,
 		},
 		{
-			name:            "long s with maxLinesEachEnd and space at end",
-			s:               strings.Repeat("This \x1b[38;2;0;0;255mtest\x1b[m sentence. ", 200),
-			width:           1,
-			maxLinesEachEnd: 6,
-			want: []string{
-				"T",
-				"h",
-				"i",
-				"s",
-				" ",
-				"\x1b[38;2;0;0;255mt\x1b[m",
-				//"\x1b[38;2;0;0;255me\x1b[m",
-				//"\x1b[38;2;0;0;255ms\x1b[m",
-				//"\x1b[38;2;0;0;255mt\x1b[m",
-				//" ",
-				//"s",
-				//"e",
-				//"n",
-				//"t",
-				"e",
-				"n",
-				"c",
-				"e",
-				".",
-				" ",
-			},
+			name:      "hello world wrap 12",
+			s:         "hello world", // 11 width
+			wrapWidth: 12,
+			expected:  1,
 		},
 		{
-			name:            "input with trailing spaces are not trimmed",
-			s:               "Hello   ",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want:            []string{"Hello   "},
+			name:      "ansi wrap 5",
+			s:         internal.RedBg.Render("hello world"), // 11 width
+			wrapWidth: 5,
+			expected:  3,
 		},
 		{
-			name:            "input with only spaces is not trimmed",
-			s:               "     ",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want:            []string{"     "},
+			name:      "unicode_ansi wrap 3",
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 3,
+			expected:  2,
 		},
 		{
-			name:            "highlight",
-			s:               "hello world",
-			width:           5,
-			maxLinesEachEnd: 2,
-			toHighlight:     "lo",
-			highlightStyle:  highlightStyle,
-			want: []string{
-				"hel" + highlightStyle.Render("lo"),
-				" worl",
-				"d",
-			},
+			name:      "unicode_ansi wrap 6",
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 6,
+			expected:  1,
 		},
 		{
-			name:            "highlight overflow",
-			s:               "hello world",
-			width:           4,
-			maxLinesEachEnd: 2,
-			toHighlight:     "lo",
-			highlightStyle:  highlightStyle,
-			want: []string{
-				"hel" + highlightStyle.Render("l"),
-				highlightStyle.Render("o") + " wo",
-				"rld",
-			},
-		},
-		{
-			name:            "unicode characters",
-			s:               "Hello 世界! This is a test with unicode characters 🌟",
-			width:           10,
-			maxLinesEachEnd: 2,
-			want: []string{
-				"Hello 世界",
-				"! This is ",
-				//"a test wit",
-				//"h unicode ",
-				"characters",
-				" 🌟",
-			},
-		},
-		{
-			name:            "Width exactly matches s length",
-			s:               "Hello World",
-			width:           11,
-			maxLinesEachEnd: 2,
-			want:            []string{"Hello World"},
+			name:      "unicode_ansi wrap 7",
+			s:         internal.RedBg.Render("A💖") + "中é", // 6 width
+			wrapWidth: 7,
+			expected:  1,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
-			toHighlight := HighlightData{
-				StringToHighlight: tt.toHighlight,
-				IsRegex:           false,
+			item := NewItem(tt.s)
+			actual := item.NumWrappedLines(tt.wrapWidth)
+			if actual != tt.expected {
+				t.Errorf("expected %d, got %d for item %s with wrap width %d", tt.expected, actual, item.repr(), tt.wrapWidth)
 			}
-			got := lb.WrappedLines(tt.width, tt.maxLinesEachEnd, toHighlight, tt.highlightStyle)
-			if len(got) != len(tt.want) {
-				t.Errorf("wrap() len = %d, want %d", len(got), len(tt.want))
+		})
+	}
+}
+
+func TestSingleItem_ExtractExactMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		s          string
+		exactMatch string
+		expected   []Match
+	}{
+		{
+			name:       "empty exact match",
+			s:          "hello world",
+			exactMatch: "",
+			expected:   []Match{},
+		},
+		{
+			name:       "no matches",
+			s:          "hell",
+			exactMatch: "lo",
+			expected:   []Match{},
+		},
+		{
+			name:       "single match",
+			s:          "hello world",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:       "multiple matches in single string",
+			s:          "hello world world",
+			exactMatch: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name:       "overlapping matches",
+			s:          "aaa",
+			exactMatch: "aa",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+			},
+		},
+		{
+			name:       "sequential matches",
+			s:          "aaaa",
+			exactMatch: "aa",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 2,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   4,
+					},
+				},
+			},
+		},
+		{
+			name:       "case sensitive",
+			s:          "Hello HELLO hello",
+			exactMatch: "hello",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name: "unicode characters",
+			// 世 is 3 bytes 2 width, 界 is 3 bytes 2 width, 🌟 is 4 bytes 2 width
+			s:          "世界 hello 🌟",
+			exactMatch: "界 hello 🌟",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   13,
+					},
+				},
+			},
+		},
+		{
+			name:       "single character match",
+			s:          "abcabc",
+			exactMatch: "a",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   1,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   1,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 3,
+						End:   4,
+					},
+				},
+			},
+		},
+		{
+			name:       "match at beginning and end",
+			s:          "test middle test",
+			exactMatch: "test",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   4,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   4,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   16,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := NewItem(tt.s).ExtractExactMatches(tt.exactMatch)
+
+			if len(matches) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(matches))
+				return
 			}
 
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("wrap() line %d got %q, expected %q", i, got[i], tt.want[i])
+			for i, expected := range tt.expected {
+				match := matches[i]
+
+				if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+					t.Errorf("match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+				}
+
+				if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+					t.Errorf("match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
 				}
 			}
 		})
 	}
 }
 
-func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
+func TestSingleItem_ExtractRegexMatches(t *testing.T) {
+	tests := []struct {
+		name         string
+		s            string
+		regexPattern string
+		expected     []Match
+		expectError  bool
+	}{
+		{
+			name:         "invalid regex",
+			s:            "hello world",
+			regexPattern: "[",
+			expected:     nil,
+			expectError:  true,
+		},
+		{
+			name:         "no matches",
+			s:            "hello world",
+			regexPattern: "xyz",
+			expected:     []Match{},
+		},
+		{
+			name:         "simple word match",
+			s:            "hello world",
+			regexPattern: "world",
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "word boundary match",
+			s:            "hello world worldly",
+			regexPattern: `\bworld\b`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "digit pattern",
+			s:            "line 123 has numbers 456",
+			regexPattern: `\d+`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 5,
+						End:   8,
+					},
+					WidthRange: WidthRange{
+						Start: 5,
+						End:   8,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 21,
+						End:   24,
+					},
+					WidthRange: WidthRange{
+						Start: 21,
+						End:   24,
+					},
+				},
+			},
+		},
+		{
+			name:         "case insensitive pattern",
+			s:            "Hello HELLO hello",
+			regexPattern: `(?i)hello`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 6,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 6,
+						End:   11,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 12,
+						End:   17,
+					},
+					WidthRange: WidthRange{
+						Start: 12,
+						End:   17,
+					},
+				},
+			},
+		},
+		{
+			name:         "capturing groups",
+			s:            "user: john and user: jane",
+			regexPattern: `user: (\w+)`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   10,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   10,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 15,
+						End:   25,
+					},
+					WidthRange: WidthRange{
+						Start: 15,
+						End:   25,
+					},
+				},
+			},
+		},
+		{
+			name:         "multiple capturing groups",
+			s:            "user: john smith and user: jane doe",
+			regexPattern: `user: (\w+) (\w+)`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   16,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 21,
+						End:   35,
+					},
+					WidthRange: WidthRange{
+						Start: 21,
+						End:   35,
+					},
+				},
+			},
+		},
+		{
+			name:         "dot metacharacter",
+			s:            "a1b a.b axb",
+			regexPattern: `a.b`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   3,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   3,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 4,
+						End:   7,
+					},
+					WidthRange: WidthRange{
+						Start: 4,
+						End:   7,
+					},
+				},
+				{
+					ByteRange: ByteRange{
+						Start: 8,
+						End:   11,
+					},
+					WidthRange: WidthRange{
+						Start: 8,
+						End:   11,
+					},
+				},
+			},
+		},
+		{
+			name:         "anchored pattern",
+			s:            "start middle end",
+			regexPattern: `^start`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   5,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   5,
+					},
+				},
+			},
+		},
+		{
+			name: "unicode with regex",
+			// 世 is 3 bytes 2 width, 界 is 3 bytes 2 width, 🌟 is 4 bytes 2 width
+			s:            "世界 test 🌟 and test 世界",
+			regexPattern: `界 test 🌟`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 3,
+						End:   16,
+					},
+					WidthRange: WidthRange{
+						Start: 2,
+						End:   12,
+					},
+				},
+			},
+		},
+		{
+			name:         "overlapping matches not possible with regex",
+			s:            "aaa",
+			regexPattern: `aa`,
+			expected: []Match{
+				{
+					ByteRange: ByteRange{
+						Start: 0,
+						End:   2,
+					},
+					WidthRange: WidthRange{
+						Start: 0,
+						End:   2,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			regex, err := regexp.Compile(tt.regexPattern)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error compiling regex: %v", err)
+				return
+			}
+
+			matches := NewItem(tt.s).ExtractRegexMatches(regex)
+
+			if len(matches) != len(tt.expected) {
+				t.Errorf("expected %d matches, got %d", len(tt.expected), len(matches))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				match := matches[i]
+
+				if match.ByteRange.Start != expected.ByteRange.Start || match.ByteRange.End != expected.ByteRange.End {
+					t.Errorf("match %d: expected byte range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.ByteRange.Start, expected.ByteRange.End, match.ByteRange.Start, match.ByteRange.End)
+				}
+
+				if match.WidthRange.Start != expected.WidthRange.Start || match.WidthRange.End != expected.WidthRange.End {
+					t.Errorf("match %d: expected width range Start=%d End=%d, got Start=%d End=%d",
+						i, expected.WidthRange.Start, expected.WidthRange.End, match.WidthRange.Start, match.WidthRange.End)
+				}
+			}
+		})
+	}
+}
+
+func TestSingle_findRuneIndexWithWidthToLeft(t *testing.T) {
 	tests := []struct {
 		name            string
 		s               string
@@ -1120,7 +1553,7 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 		},
 		{
 			name:            "ansi",
-			s:               "hi " + redBg.Render("there") + " leo",
+			s:               "hi " + internal.RedBg.Render("there") + " leo",
 			widthToLeft:     8,
 			expectedRuneIdx: 8,
 		},
@@ -1148,16 +1581,16 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			item := NewItem(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					lb.findRuneIndexWithWidthToLeft(tt.widthToLeft)
+					item.findRuneIndexWithWidthToLeft(tt.widthToLeft)
 				})
 				return
 			}
 
-			actual := lb.findRuneIndexWithWidthToLeft(tt.widthToLeft)
+			actual := item.findRuneIndexWithWidthToLeft(tt.widthToLeft)
 			if actual != tt.expectedRuneIdx {
 				t.Errorf("findRuneIndexWithWidthToLeft() got %d, expected %d", actual, tt.expectedRuneIdx)
 			}
@@ -1165,7 +1598,7 @@ func TestLineBuffer_findRuneIndexWithWidthToLeft(t *testing.T) {
 	}
 }
 
-func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
+func TestSingle_getByteOffsetAtRuneIdx(t *testing.T) {
 	tests := []struct {
 		name               string
 		s                  string
@@ -1205,7 +1638,7 @@ func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
 		},
 		{
 			name:               "ansi",
-			s:                  "hi " + redBg.Render("there") + " leo",
+			s:                  "hi " + internal.RedBg.Render("there") + " leo",
 			runeIdx:            8,
 			expectedByteOffset: 8,
 		},
@@ -1233,16 +1666,16 @@ func TestLineBuffer_getByteOffsetAtRuneIdx(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lb := New(tt.s)
+			item := NewItem(tt.s)
 
 			if tt.shouldPanic {
 				assertPanic(t, func() {
-					lb.getByteOffsetAtRuneIdx(tt.runeIdx)
+					item.getByteOffsetAtRuneIdx(tt.runeIdx)
 				})
 				return
 			}
 
-			actual := lb.getByteOffsetAtRuneIdx(tt.runeIdx)
+			actual := item.getByteOffsetAtRuneIdx(tt.runeIdx)
 			if int(actual) != tt.expectedByteOffset {
 				t.Errorf("getByteOffsetAtRuneIdx() got %d, expected %d", actual, tt.expectedByteOffset)
 			}

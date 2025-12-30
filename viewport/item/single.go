@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"fmt"
@@ -6,13 +6,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/mattn/go-runewidth"
 )
 
-// LineBuffer provides functionality to get sequential strings of a specified terminal cell width, accounting
+// SingleItem provides functionality to get sequential strings of a specified terminal cell width, accounting
 // for the ansi escape codes styling the line.
-type LineBuffer struct {
+type SingleItem struct {
 	line                 string     // underlying string with ansi codes. utf-8 encoded bytes
 	lineNoAnsi           string     // line without ansi codes. utf-8 encoded bytes
 	lineNoAnsiRuneWidths []uint8    // packed terminal cell widths, 4 widths per byte (2 bits each)
@@ -25,16 +24,16 @@ type LineBuffer struct {
 	sparseLineNoAnsiCumRuneWidths   []uint32 // cumulative terminal cell width, stored every sparsity runes
 }
 
-// type assertion that LineBuffer implements LineBufferer
-var _ LineBufferer = LineBuffer{}
+// type assertion that SingleItem implements Item
+var _ Item = SingleItem{}
 
-// type assertion that *LineBuffer implements LineBufferer
-var _ LineBufferer = (*LineBuffer)(nil)
+// type assertion that *SingleItem implements Item
+var _ Item = (*SingleItem)(nil)
 
-// New creates a new LineBuffer from the given string.
-func New(line string) LineBuffer {
+// NewItem creates a new SingleItem from the given string.
+func NewItem(line string) SingleItem {
 	if len(line) <= 0 {
-		return LineBuffer{line: line}
+		return SingleItem{line: line}
 	}
 
 	// keep sparsity 1 for short lines
@@ -43,47 +42,47 @@ func New(line string) LineBuffer {
 		sparsity = 10 // tradeoff between memory usage and CPU. 10 seems to be a good balance
 	}
 
-	lb := LineBuffer{
+	item := SingleItem{
 		line:     line,
 		sparsity: sparsity,
 	}
 
-	lb.ansiCodeIndexes = findAnsiByteRanges(line)
+	item.ansiCodeIndexes = findAnsiByteRanges(line)
 
-	if len(lb.ansiCodeIndexes) > 0 {
+	if len(item.ansiCodeIndexes) > 0 {
 		totalLen := len(line)
-		for _, r := range lb.ansiCodeIndexes {
+		for _, r := range item.ansiCodeIndexes {
 			totalLen -= int(r[1] - r[0])
 		}
 
-		buf := make([]byte, 0, totalLen)
+		noAnsiBytes := make([]byte, 0, totalLen)
 		lastPos := 0
-		for _, r := range lb.ansiCodeIndexes {
-			buf = append(buf, line[lastPos:int(r[0])]...)
+		for _, r := range item.ansiCodeIndexes {
+			noAnsiBytes = append(noAnsiBytes, line[lastPos:int(r[0])]...)
 			lastPos = int(r[1])
 		}
-		buf = append(buf, line[lastPos:]...)
-		lb.lineNoAnsi = string(buf)
+		noAnsiBytes = append(noAnsiBytes, line[lastPos:]...)
+		item.lineNoAnsi = string(noAnsiBytes)
 	} else {
-		lb.lineNoAnsi = line
+		item.lineNoAnsi = line
 	}
 
-	numRunes := utf8.RuneCountInString(lb.lineNoAnsi)
+	numRunes := utf8.RuneCountInString(item.lineNoAnsi)
 
 	// calculate size needed for sparse cumulative widths
-	sparseLen := (numRunes + lb.sparsity - 1) / lb.sparsity
-	lb.sparseRuneIdxToNoAnsiByteOffset = make([]uint32, sparseLen)
-	lb.sparseLineNoAnsiCumRuneWidths = make([]uint32, sparseLen)
+	sparseLen := (numRunes + item.sparsity - 1) / item.sparsity
+	item.sparseRuneIdxToNoAnsiByteOffset = make([]uint32, sparseLen)
+	item.sparseLineNoAnsiCumRuneWidths = make([]uint32, sparseLen)
 
 	// calculate size needed for packed rune widths (4 widths per byte)
 	packedLen := (numRunes + 3) / 4
-	lb.lineNoAnsiRuneWidths = make([]uint8, packedLen)
+	item.lineNoAnsiRuneWidths = make([]uint8, packedLen)
 
 	var currentOffset uint32
 	var cumWidth uint32
 	runeIdx := 0
-	for byteOffset := 0; byteOffset < len(lb.lineNoAnsi); {
-		r, runeNumBytes := utf8.DecodeRuneInString(lb.lineNoAnsi[byteOffset:])
+	for byteOffset := 0; byteOffset < len(item.lineNoAnsi); {
+		r, runeNumBytes := utf8.DecodeRuneInString(item.lineNoAnsi[byteOffset:])
 		rw := runewidth.RuneWidth(r)
 		width := clampIntToUint8(rw)
 
@@ -91,46 +90,50 @@ func New(line string) LineBuffer {
 		packedIdx := runeIdx / 4
 		bitPos := (runeIdx % 4) * 2
 		// clear the 2 bits at the position and set the new width
-		lb.lineNoAnsiRuneWidths[packedIdx] &= ^(uint8(3) << bitPos)
-		lb.lineNoAnsiRuneWidths[packedIdx] |= width << bitPos
+		item.lineNoAnsiRuneWidths[packedIdx] &= ^(uint8(3) << bitPos)
+		item.lineNoAnsiRuneWidths[packedIdx] |= width << bitPos
 
 		cumWidth += uint32(width)
-		if runeIdx%lb.sparsity == 0 {
-			lb.sparseRuneIdxToNoAnsiByteOffset[runeIdx/lb.sparsity] = currentOffset
-			lb.sparseLineNoAnsiCumRuneWidths[runeIdx/lb.sparsity] = cumWidth
+		if runeIdx%item.sparsity == 0 {
+			item.sparseRuneIdxToNoAnsiByteOffset[runeIdx/item.sparsity] = currentOffset
+			item.sparseLineNoAnsiCumRuneWidths[runeIdx/item.sparsity] = cumWidth
 		}
 		if runeIdx == numRunes-1 {
-			lb.totalWidth = int(cumWidth)
+			item.totalWidth = int(cumWidth)
 		}
 		currentOffset += clampIntToUint32(runeNumBytes)
 		runeIdx++
 		byteOffset += runeNumBytes
 	}
-	lb.numNoAnsiRunes = runeIdx
+	item.numNoAnsiRunes = runeIdx
 
-	return lb
+	return item
 }
 
 // Width returns the total width in terminal cells.
-func (l LineBuffer) Width() int {
+func (l SingleItem) Width() int {
 	if len(l.line) == 0 {
 		return 0
 	}
 	return l.totalWidth
 }
 
-// Content returns the underlying string content.
-func (l LineBuffer) Content() string {
+// Content returns the underlying string content
+func (l SingleItem) Content() string {
 	return l.line
 }
 
-// Take returns a string of the buffer's width from its current left offset
-func (l LineBuffer) Take(
+// ContentNoAnsi returns the underlying string content without ANSI escape codes
+func (l SingleItem) ContentNoAnsi() string {
+	return l.lineNoAnsi
+}
+
+// Take returns a substring of the item that fits within the specified width
+func (l SingleItem) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
-	toHighlight HighlightData,
-	highlightStyle lipgloss.Style,
+	highlights []Highlight,
 ) (string, int) {
 	if widthToLeft < 0 {
 		widthToLeft = 0
@@ -190,6 +193,20 @@ func (l LineBuffer) Take(
 		res = reapplyAnsi(l.line, res, int(startByteOffset), l.ansiCodeIndexes)
 	}
 
+	// highlight the desired string
+	var endByteOffset int
+	if leftRuneIdx < l.numNoAnsiRunes {
+		endByteOffset = int(l.getByteOffsetAtRuneIdx(leftRuneIdx))
+	} else {
+		endByteOffset = len(l.lineNoAnsi)
+	}
+	res = highlightString(
+		res,
+		highlights,
+		int(startByteOffset),
+		endByteOffset,
+	)
+
 	// apply left/right line continuation indicators
 	if len(continuation) > 0 && (startRuneIdx > 0 || leftRuneIdx < l.numNoAnsiRunes) {
 		continuationRunes := []rune(continuation)
@@ -205,72 +222,28 @@ func (l LineBuffer) Take(
 		}
 	}
 
-	// highlight the desired string
-	var endByteOffset int
-	if leftRuneIdx < l.numNoAnsiRunes {
-		endByteOffset = int(l.getByteOffsetAtRuneIdx(leftRuneIdx))
-	} else {
-		endByteOffset = len(l.lineNoAnsi)
-	}
-	res = highlightString(
-		res,
-		toHighlight,
-		highlightStyle,
-		l.lineNoAnsi,
-		int(startByteOffset),
-		endByteOffset,
-	)
-
 	res = removeEmptyAnsiSequences(res)
 	return res, takeWidth - remainingWidth
 }
 
-// WrappedLines returns the content broken into lines that fit within the specified width.
-func (l LineBuffer) WrappedLines(
-	width int,
-	maxLinesEachEnd int,
-	toHighlight HighlightData,
-	toHighlightStyle lipgloss.Style,
-) []string {
-	if width == 0 {
-		return []string{}
+// NumWrappedLines returns the number of wrapped lines given a wrap width
+func (l SingleItem) NumWrappedLines(wrapWidth int) int {
+	if wrapWidth <= 0 {
+		return 0
+	} else if l.totalWidth == 0 {
+		return 1
 	}
-	// preserve empty lines
-	if l.line == "" {
-		return []string{l.line}
-	}
-
-	lastRuneIdx := l.numNoAnsiRunes - 1
-	totalWidth := l.getCumulativeWidthAtRuneIdx(lastRuneIdx)
-	totalLines := (int(totalWidth) + width - 1) / width
-	return getWrappedLines(
-		l,
-		totalLines,
-		width,
-		maxLinesEachEnd,
-		toHighlight,
-		toHighlightStyle,
-	)
-}
-
-// Matches returns true if the content contains the specified string.
-func (l LineBuffer) Matches(s string) bool {
-	return strings.Contains(l.lineNoAnsi, s)
-}
-
-// MatchesRegex returns true if the content matches the specified regular expression.
-func (l LineBuffer) MatchesRegex(r regexp.Regexp) bool {
-	return r.MatchString(l.lineNoAnsi)
+	return (l.totalWidth + wrapWidth - 1) / wrapWidth
 }
 
 // Repr returns a string representation for debugging.
-func (l LineBuffer) Repr() string {
-	return fmt.Sprintf("LB(%q)", l.line)
+func (l SingleItem) repr() string {
+	return fmt.Sprintf("Item(%q)", l.line)
 }
 
 // runeAt decodes the desired rune from the lineNoAnsi string
 // it serves as a memory-saving technique compared to storing all the runes in a slice
-func (l LineBuffer) runeAt(runeIdx int) rune {
+func (l SingleItem) runeAt(runeIdx int) rune {
 	if runeIdx < 0 || runeIdx >= l.numNoAnsiRunes {
 		return -1
 	}
@@ -285,7 +258,7 @@ func (l LineBuffer) runeAt(runeIdx int) rune {
 	return r
 }
 
-func (l LineBuffer) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
+func (l SingleItem) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
 	if runeIdx < 0 {
 		panic("runeIdx must be greater or equal to 0")
 	}
@@ -313,8 +286,36 @@ func (l LineBuffer) getByteOffsetAtRuneIdx(runeIdx int) uint32 {
 	return byteOffset
 }
 
+// getRuneIndexAtByteOffset finds the rune index at the given byte offset
+func (l SingleItem) getRuneIndexAtByteOffset(byteOffset int) int {
+	if byteOffset <= 0 || len(l.lineNoAnsi) == 0 {
+		return 0
+	}
+	if byteOffset >= len(l.lineNoAnsi) {
+		return l.numNoAnsiRunes
+	}
+
+	// binary search to find the rune index
+	left, right := 0, l.numNoAnsiRunes-1
+	for left <= right {
+		mid := left + (right-left)/2
+		midByteOffset := int(l.getByteOffsetAtRuneIdx(mid))
+
+		if midByteOffset == byteOffset {
+			return mid
+		} else if midByteOffset < byteOffset {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+
+	// if exact match not found, return the rune index where byteOffset would fall
+	return right
+}
+
 // getRuneWidth extracts the width of a rune from the packed array
-func (l LineBuffer) getRuneWidth(runeIdx int) uint8 {
+func (l SingleItem) getRuneWidth(runeIdx int) uint8 {
 	if runeIdx < 0 || runeIdx >= l.numNoAnsiRunes {
 		return 0
 	}
@@ -324,7 +325,7 @@ func (l LineBuffer) getRuneWidth(runeIdx int) uint8 {
 	return (l.lineNoAnsiRuneWidths[packedIdx] >> bitPos) & 3
 }
 
-func (l LineBuffer) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
+func (l SingleItem) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
 	if runeIdx < 0 {
 		return 0
 	}
@@ -350,7 +351,7 @@ func (l LineBuffer) getCumulativeWidthAtRuneIdx(runeIdx int) uint32 {
 }
 
 // findRuneIndexWithWidthToLeft returns the index of the rune that has the input width to the left of it
-func (l LineBuffer) findRuneIndexWithWidthToLeft(widthToLeft int) int {
+func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 	if widthToLeft < 0 {
 		panic("widthToLeft less than 0")
 	}
@@ -385,4 +386,85 @@ func (l LineBuffer) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 	}
 
 	return left + 1
+}
+
+// ExtractExactMatches extracts exact matches from the item's content without ANSI codes
+func (l SingleItem) ExtractExactMatches(exactMatch string) []Match {
+	var matches []Match
+
+	if exactMatch == "" {
+		return matches
+	}
+
+	unstyled := l.lineNoAnsi
+	startIndex := 0
+	for {
+		foundIndex := strings.Index(unstyled[startIndex:], exactMatch)
+		if foundIndex == -1 {
+			break
+		}
+		actualStartIndex := startIndex + foundIndex
+		endIndex := actualStartIndex + len(exactMatch)
+
+		// convert byte ranges to rune indices
+		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
+		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
+
+		// convert rune indices to width positions
+		var startWidth, endWidth int
+		if startRuneIdx > 0 {
+			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+		}
+		if endRuneIdx > 0 {
+			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+		}
+
+		matches = append(matches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
+		startIndex = endIndex // overlapping matches are not considered
+	}
+	return matches
+}
+
+// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
+func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
+	var matches []Match
+	regexMatches := regex.FindAllStringIndex(l.lineNoAnsi, -1)
+	for _, regexMatch := range regexMatches {
+		actualStartIndex := regexMatch[0]
+		endIndex := regexMatch[1]
+
+		// convert byte ranges to rune indices
+		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
+		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
+
+		// convert rune indices to width positions
+		var startWidth, endWidth int
+		if startRuneIdx > 0 {
+			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+		}
+		if endRuneIdx > 0 {
+			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+		}
+
+		matches = append(matches, Match{
+			ByteRange: ByteRange{
+				Start: actualStartIndex,
+				End:   endIndex,
+			},
+			WidthRange: WidthRange{
+				Start: startWidth,
+				End:   endWidth,
+			},
+		})
+	}
+	return matches
 }

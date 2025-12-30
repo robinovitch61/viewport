@@ -1,4 +1,4 @@
-.PHONY: all test lint build bench fmt goimports
+.PHONY: all test testsum lint build bench fmt goimports
 
 all: goimports lint test build
 
@@ -8,11 +8,15 @@ goimports:
 
 # Run linting
 lint:
-	golangci-lint run
+	golangci-lint run --output.text.print-issued-lines=false
 
 # Run all tests
 test:
 	go test ./...
+
+# Run all tests, show summary
+testsum:
+	gotestsum --format testname 2>&1 | grep -E "^FAIL" | sort | uniq
 
 # Build the project
 build:

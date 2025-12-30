@@ -1,4 +1,4 @@
-package linebuffer
+package item
 
 import (
 	"math"
