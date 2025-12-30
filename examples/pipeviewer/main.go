@@ -32,8 +32,8 @@ type appKeys struct {
 
 var appKeyMap = appKeys{
 	quit: key.NewBinding(
-		key.WithKeys("ctrl+c", "ctrl+d"),
-		key.WithHelp("ctrl+c/ctrl+d", "quit"),
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quit"),
 	),
 	toggleWrapTextKey: key.NewBinding(
 		key.WithKeys("w"),
@@ -68,13 +68,23 @@ type model struct {
 	fv                            *filterableviewport.Model[object]
 	objects                       []object
 	ready                         bool
-	stdinDone                     bool
 	saveStatus                    string
 	viewportWidth, viewportHeight int
 }
 
+func stdinIsPipe() bool {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) == 0
+}
+
 func (m model) Init() tea.Cmd {
-	return readStdinCmd()
+	if stdinIsPipe() {
+		return readStdinCmd()
+	}
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -89,23 +99,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ready {
 			m.fv.SetObjects(m.objects)
 		}
-		return m, readStdinCmd()
+		if stdinIsPipe() {
+			return m, readStdinCmd()
+		}
+		return m, nil
 
 	case stdinDoneMsg:
-		m.stdinDone = true
 		return m, nil
 
 	case fileSavedMsg:
 		if msg.err != nil {
-			m.saveStatus = fmt.Sprintf("Error saving: %v", msg.err)
-		} else {
-			m.saveStatus = fmt.Sprintf("Saved to %s", msg.filename)
+			panic(msg.err)
 		}
 		return m, nil
 
 	case tea.KeyMsg:
-		// allow quitting with ctrl+c and ctrl+d even when filter is focused
-		if key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c", "ctrl+d"))) {
+		// allow quitting with ctrl+c even when filter is focused
+		if key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))) {
 			return m, tea.Quit
 		}
 
@@ -170,15 +180,7 @@ func (m model) View() string {
 	if !m.ready {
 		return "Loading..."
 	}
-
-	view := m.fv.View()
-
-	// show save status if present
-	if m.saveStatus != "" {
-		return view + "\n" + m.saveStatus
-	}
-
-	return view
+	return m.fv.View()
 }
 
 var stdinReader *bufio.Reader
