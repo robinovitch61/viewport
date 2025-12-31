@@ -2,5 +2,5 @@
 .idea
 *.prof
 *.test
-examples/pipeviewer/pipeviewer
+pipeviewer
 *.txt

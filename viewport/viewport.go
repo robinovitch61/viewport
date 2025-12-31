@@ -2,9 +2,13 @@ package viewport
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/item"
@@ -42,6 +46,12 @@ type CompareFn[T any] func(a, b T) bool
 
 // Option is a functional option for configuring the viewport
 type Option[T Object] func(*Model[T])
+
+// FileSavedMsg is returned when file saving completes.
+type FileSavedMsg struct {
+	Filename string // full path to saved file
+	Err      error  // error if save failed, nil on success
+}
 
 // WithKeyMap sets the key mapping for the viewport
 func WithKeyMap[T Object](keyMap KeyMap) Option[T] {
@@ -89,6 +99,15 @@ func WithStickyTop[T Object](stickyTop bool) Option[T] {
 func WithStickyBottom[T Object](stickyBottom bool) Option[T] {
 	return func(m *Model[T]) {
 		m.SetBottomSticky(stickyBottom)
+	}
+}
+
+// WithFileSaving configures automatic file saving when a hotkey is pressed.
+// Files are saved to the specified directory with timestamp-based names.
+func WithFileSaving[T Object](saveDir string, saveKey key.Binding) Option[T] {
+	return func(m *Model[T]) {
+		m.config.saveDir = saveDir
+		m.config.saveKey = saveKey
 	}
 }
 
@@ -140,6 +159,13 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// check for save key if configured
+		if m.config.saveDir != "" && key.Matches(msg, m.config.saveKey) {
+			cmd = m.saveToFile()
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
+		}
+
 		navCtx := navigationContext{
 			wrapText:        m.config.wrapText,
 			dimensions:      m.display.bounds,
@@ -1332,6 +1358,34 @@ func (m *Model[T]) styleSelection(selection string) string {
 		}
 	}
 	return builder.String()
+}
+
+// saveToFile saves all viewport objects to a timestamped file.
+func (m *Model[T]) saveToFile() tea.Cmd {
+	return func() tea.Msg {
+		// create directory if needed
+		if err := os.MkdirAll(m.config.saveDir, 0755); err != nil {
+			return FileSavedMsg{Err: fmt.Errorf("failed to create directory %s: %w", m.config.saveDir, err)}
+		}
+
+		// generate timestamp filename up to seconds
+		timestamp := time.Now().Format("20060102-150405")
+		filename := filepath.Join(m.config.saveDir, fmt.Sprintf("%s.txt", timestamp))
+
+		// collect content without ANSI codes
+		var content strings.Builder
+		for _, obj := range m.content.objects {
+			content.WriteString(obj.GetItem().ContentNoAnsi())
+			content.WriteString("\n")
+		}
+
+		// write file
+		if err := os.WriteFile(filename, []byte(content.String()), 0600); err != nil {
+			return FileSavedMsg{Err: fmt.Errorf("failed to write file: %w", err)}
+		}
+
+		return FileSavedMsg{Filename: filename, Err: nil}
+	}
 }
 
 func percent(a, b int) int {

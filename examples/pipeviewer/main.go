@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,7 +27,6 @@ type appKeys struct {
 	quit               key.Binding
 	toggleWrapTextKey  key.Binding
 	toggleSelectionKey key.Binding
-	save               key.Binding
 }
 
 var appKeyMap = appKeys{
@@ -43,10 +42,6 @@ var appKeyMap = appKeys{
 		key.WithKeys("s"),
 		key.WithHelp("s", "toggle selection"),
 	),
-	save: key.NewBinding(
-		key.WithKeys("ctrl+s"),
-		key.WithHelp("ctrl+s", "save to file"),
-	),
 }
 
 var viewportKeyMap = viewport.DefaultKeyMap()
@@ -58,11 +53,6 @@ type newLineMsg struct {
 }
 
 type stdinDoneMsg struct{}
-
-type fileSavedMsg struct {
-	filename string
-	err      error
-}
 
 type model struct {
 	fv                            *filterableviewport.Model[object]
@@ -107,9 +97,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stdinDoneMsg:
 		return m, nil
 
-	case fileSavedMsg:
-		if msg.err != nil {
-			panic(msg.err)
+	case viewport.FileSavedMsg:
+		if msg.Err != nil {
+			panic(msg.Err)
 		}
 		return m, nil
 
@@ -136,19 +126,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, appKeyMap.toggleSelectionKey):
 			m.fv.SetSelectionEnabled(!m.fv.GetSelectionEnabled())
 			return m, nil
-		case key.Matches(msg, appKeyMap.save):
-			return m, saveToFileCmd(m.objects)
 		}
 
 	case tea.WindowSizeMsg:
 		m.viewportWidth, m.viewportHeight = msg.Width, msg.Height
 		if !m.ready {
+			// configure file saving
+			homeDir, _ := os.UserHomeDir()
+			saveDir := filepath.Join(homeDir, ".pipeviewer", "saved")
+			saveKey := key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("ctrl+s", "save"))
+
 			vp := viewport.New[object](
 				m.viewportWidth,
 				m.viewportHeight,
 				viewport.WithKeyMap[object](viewportKeyMap),
 				viewport.WithStyles[object](viewport.DefaultStyles()),
 				viewport.WithStickyBottom[object](true),
+				viewport.WithFileSaving[object](saveDir, saveKey),
 			)
 			m.fv = filterableviewport.New[object](
 				vp,
@@ -206,29 +200,6 @@ func readStdinCmd() tea.Cmd {
 			return stdinDoneMsg{}
 		}
 		return newLineMsg{line: strings.TrimSuffix(line, "\n")}
-	}
-}
-
-// saveToFileCmd saves the current objects to a timestamped file
-func saveToFileCmd(objects []object) tea.Cmd {
-	return func() tea.Msg {
-		// generate timestamp-based filename
-		timestamp := time.Now().Format("20060102-150405")
-		filename := fmt.Sprintf("pipeviewer-%s.txt", timestamp)
-
-		// collect all lines
-		var content strings.Builder
-		for _, obj := range objects {
-			content.WriteString(obj.item.Content())
-			content.WriteString("\n")
-		}
-
-		// write to file
-		err := os.WriteFile(filename, []byte(content.String()), 0600)
-		return fileSavedMsg{
-			filename: filename,
-			err:      err,
-		}
 	}
 }
 
