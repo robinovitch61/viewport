@@ -58,7 +58,6 @@ type model struct {
 	fv                            *filterableviewport.Model[object]
 	objects                       []object
 	ready                         bool
-	saveStatus                    string
 	viewportWidth, viewportHeight int
 }
 
@@ -95,12 +94,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case stdinDoneMsg:
-		return m, nil
-
-	case viewport.FileSavedMsg:
-		if msg.Err != nil {
-			panic(msg.Err)
-		}
 		return m, nil
 
 	case tea.KeyMsg:

@@ -47,12 +47,6 @@ type CompareFn[T any] func(a, b T) bool
 // Option is a functional option for configuring the viewport
 type Option[T Object] func(*Model[T])
 
-// FileSavedMsg is returned when file saving completes.
-type FileSavedMsg struct {
-	Filename string // full path to saved file
-	Err      error  // error if save failed, nil on success
-}
-
 // WithKeyMap sets the key mapping for the viewport
 func WithKeyMap[T Object](keyMap KeyMap) Option[T] {
 	return func(m *Model[T]) {
@@ -161,18 +155,52 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	case tea.KeyMsg:
 		// check for save key if configured
 		if m.config.saveDir != "" && key.Matches(msg, m.config.saveKey) {
-			cmd = m.saveToFile()
-			cmds = append(cmds, cmd)
-			return m, tea.Batch(cmds...)
+			// ignore save request if already saving or showing result
+			if !m.config.saveState.saving && !m.config.saveState.showingResult {
+				m.config.saveState.saving = true
+				cmd = m.saveToFile()
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
+			}
+			return m, nil
 		}
 
+	case FileSavedMsg:
+		// update save state with result
+		m.config.saveState.saving = false
+		m.config.saveState.showingResult = true
+		if msg.Err != nil {
+			m.config.saveState.isError = true
+			m.config.saveState.resultMsg = fmt.Sprintf("Save failed: %v", msg.Err)
+		} else {
+			m.config.saveState.isError = false
+			m.config.saveState.resultMsg = fmt.Sprintf("Saved to %s", msg.Filename)
+		}
+		// start 3 second timer to clear result
+		cmd = func() tea.Msg {
+			time.Sleep(3 * time.Second)
+			return clearSaveResultMsg{}
+		}
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+
+	case clearSaveResultMsg:
+		// clear the save result display
+		m.config.saveState.showingResult = false
+		m.config.saveState.resultMsg = ""
+		m.config.saveState.isError = false
+		return m, nil
+	}
+
+	// handle navigation for KeyMsg
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		navCtx := navigationContext{
 			wrapText:        m.config.wrapText,
 			dimensions:      m.display.bounds,
 			numContentLines: m.getNumContentLines(),
 			numVisibleItems: m.getNumVisibleItems(),
 		}
-		navResult := m.navigation.processKeyMsg(msg, navCtx)
+		navResult := m.navigation.processKeyMsg(keyMsg, navCtx)
 
 		switch navResult.action {
 		case actionUp:
@@ -318,7 +346,27 @@ func (m *Model[T]) View() string {
 	}
 
 	nVisibleLines := len(itemIndexes)
-	if m.config.footerEnabled {
+	if m.config.saveState.saving || m.config.saveState.showingResult {
+		// show save status footer
+		padCount := max(0, m.getNumContentLines()-nVisibleLines)
+		for i := 0; i < padCount; i++ {
+			builder.WriteByte('\n')
+		}
+
+		var statusMsg string
+		if m.config.saveState.saving {
+			statusMsg = "Saving..."
+		} else if m.config.saveState.showingResult {
+			statusMsg = m.config.saveState.resultMsg
+		}
+
+		// truncate using item functionality
+		statusItem := item.NewItem(statusMsg)
+		truncated, _ := statusItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
+		styledMsg := m.display.styles.FooterStyle.Render(truncated)
+
+		builder.WriteString(styledMsg)
+	} else if m.config.footerEnabled {
 		// pad so footer shows up at bottom
 		padCount := max(0, m.getNumContentLines()-nVisibleLines)
 		for i := 0; i < padCount; i++ {
@@ -1359,6 +1407,15 @@ func (m *Model[T]) styleSelection(selection string) string {
 	}
 	return builder.String()
 }
+
+// FileSavedMsg is returned when file saving completes.
+type FileSavedMsg struct {
+	Filename string // full path to saved file
+	Err      error  // error if save failed, nil on success
+}
+
+// clearSaveResultMsg is sent after 3 seconds to clear the save result display
+type clearSaveResultMsg struct{}
 
 // saveToFile saves all viewport objects to a timestamped file.
 func (m *Model[T]) saveToFile() tea.Cmd {
