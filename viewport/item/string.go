@@ -133,7 +133,8 @@ func replaceEndWithContinuation(s string, continuationRunes []rune) string {
 		return s
 	}
 
-	var result string
+	// collect runes to prepend (we're iterating backwards)
+	var runesToPrepend []rune
 	ansiCodeIndexes := findAnsiRuneRanges(s)
 	runes := []rune(s)
 
@@ -143,7 +144,7 @@ func replaceEndWithContinuation(s string, continuationRunes []rune) string {
 			codeStart, codeEnd := int(lastAnsiCodeIndexes[0]), int(lastAnsiCodeIndexes[1])
 			if runeIdx == codeEnd-1 {
 				for j := codeEnd - 1; j >= codeStart; j-- {
-					result = string(runes[j]) + result
+					runesToPrepend = append(runesToPrepend, runes[j])
 				}
 				// skip ansi
 				runeIdx = codeStart - 1
@@ -160,24 +161,31 @@ func replaceEndWithContinuation(s string, continuationRunes []rune) string {
 				remainingContinuationWidth += runewidth.RuneWidth(cr)
 			}
 			if rWidth > remainingContinuationWidth {
-				result = string(runes[runeIdx]) + result
+				runesToPrepend = append(runesToPrepend, runes[runeIdx])
 				continuationRunes = nil
 			}
 
 			// replace current rune with continuation runes
 			for rWidth > 0 && len(continuationRunes) > 0 {
 				currContinuationRune := continuationRunes[len(continuationRunes)-1]
-				result = string(currContinuationRune) + result
+				runesToPrepend = append(runesToPrepend, currContinuationRune)
 				continuationRunes = continuationRunes[:len(continuationRunes)-1]
 				rWidth -= runewidth.RuneWidth(currContinuationRune)
 			}
 		} else {
-			result = string(runes[runeIdx]) + result
+			runesToPrepend = append(runesToPrepend, runes[runeIdx])
 		}
 		runeIdx--
 	}
 
-	return result
+	// build result string efficiently
+	var result strings.Builder
+	result.Grow(len(runesToPrepend) * 4) // estimate 4 bytes per rune on average
+	for i := len(runesToPrepend) - 1; i >= 0; i-- {
+		result.WriteRune(runesToPrepend[i])
+	}
+
+	return result.String()
 }
 
 // getBytesLeftOfWidth returns nBytes of content to the left of startItemIdx while excluding ANSI codes

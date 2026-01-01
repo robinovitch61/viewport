@@ -1131,7 +1131,8 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		0,
 		0,
 		m.display.bounds.height,
-		headerItems,
+		len(headerItems),
+		func(idx int) item.Item { return headerItems[idx] },
 	)
 
 	headerLines := make([]string, len(itemIndexes))
@@ -1182,7 +1183,10 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 		m.display.topItemIdx,
 		m.display.topItemLineOffset,
 		numLinesAfterHeader,
-		renderAll(m.content.objects),
+		m.content.numItems(),
+		func(idx int) item.Item {
+			return m.content.objects[idx].GetItem()
+		},
 	)
 	if len(itemIndexes) == 0 {
 		return nil
@@ -1195,22 +1199,15 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 	return itemIndexes
 }
 
-func renderAll[T Object](itemGetters []T) []item.Item {
-	items := make([]item.Item, len(itemGetters))
-	for i := range itemGetters {
-		items[i] = itemGetters[i].GetItem()
-	}
-	return items
-}
-
 // getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines
 func (m *Model[T]) getItemIndexesSpanningLines(
 	topItemIdx int,
 	topItemLineOffset int,
 	totalNumLines int,
-	allItems []item.Item,
+	numItems int,
+	getItem func(int) item.Item,
 ) []int {
-	if len(allItems) == 0 || totalNumLines == 0 {
+	if numItems == 0 || totalNumLines == 0 {
 		return nil
 	}
 
@@ -1221,9 +1218,9 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		return len(itemIndexes) == totalNumLines
 	}
 
-	currItemIdx := clampValZeroToMax(topItemIdx, len(allItems)-1)
+	currItemIdx := clampValZeroToMax(topItemIdx, numItems-1)
 
-	currItem := allItems[currItemIdx]
+	currItem := getItem(currItemIdx)
 	done := totalNumLines == 0
 	if done {
 		return itemIndexes
@@ -1242,10 +1239,10 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 
 		for !done {
 			currItemIdx++
-			if currItemIdx >= len(allItems) {
+			if currItemIdx >= numItems {
 				done = true
 			} else {
-				currItem = allItems[currItemIdx]
+				currItem = getItem(currItemIdx)
 				numLines = currItem.NumWrappedLines(m.display.bounds.width)
 				for range numLines {
 					// adding untruncated, unstyled items
@@ -1260,7 +1257,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		done = addLine(currItemIdx)
 		for !done {
 			currItemIdx++
-			if currItemIdx >= len(allItems) {
+			if currItemIdx >= numItems {
 				done = true
 			} else {
 				done = addLine(currItemIdx)
