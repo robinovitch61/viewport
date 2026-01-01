@@ -189,6 +189,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.RegexFilterKey):
@@ -197,6 +198,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
@@ -204,12 +206,14 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.filterTextInput.Blur()
 				m.filterMode = filterModeApplied
 				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
 				return m, nil
 			}
 		case key.Matches(msg, m.keyMap.ToggleMatchingItemsOnlyKey):
 			if m.filterMode != filterModeEditing && m.canToggleMatchingItemsOnly {
 				m.matchingItemsOnly = !m.matchingItemsOnly
 				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
 				return m, nil
 			}
 		case key.Matches(msg, m.keyMap.NextMatchKey):
@@ -228,6 +232,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.filterTextInput.Blur()
 			m.filterTextInput.SetValue("")
 			m.updateMatchingItems()
+			m.ensureCurrentMatchInView()
 			m.updateHighlighting()
 			return m, nil
 		}
@@ -239,6 +244,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	} else {
 		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
 		m.updateMatchingItems()
+		m.ensureCurrentMatchInView()
 		m.updateHighlighting()
 		cmds = append(cmds, cmd)
 	}
@@ -302,7 +308,7 @@ func (m *Model[T]) GetWrapText() bool {
 // SetWrapText sets whether text wrapping is enabled in the viewport
 func (m *Model[T]) SetWrapText(wrapText bool) {
 	m.vp.SetWrapText(wrapText)
-	m.ensureCurrentMatchInView(false)
+	m.ensureCurrentMatchInView()
 }
 
 // GetSelectionEnabled returns whether selection is enabled in the viewport
@@ -323,7 +329,6 @@ func (m *Model[T]) getHeight() int {
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
-	m.ensureCurrentMatchInView(false)
 	m.updateFocusedMatchHighlight()
 
 	if !m.matchLimitExceeded {
@@ -616,7 +621,8 @@ func (m *Model[T]) navigateToNextMatch() {
 	}
 
 	m.focusedMatchIdx = (m.focusedMatchIdx + 1) % len(m.allMatches)
-	m.ensureCurrentMatchInView(true)
+	m.ensureCurrentMatchInView()
+	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
 }
 
@@ -629,20 +635,33 @@ func (m *Model[T]) navigateToPrevMatch() {
 	if m.focusedMatchIdx < 0 {
 		m.focusedMatchIdx = len(m.allMatches) - 1
 	}
-	m.ensureCurrentMatchInView(true)
+	m.ensureCurrentMatchInView()
+	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
 }
 
-func (m *Model[T]) ensureCurrentMatchInView(moveSelection bool) {
+func (m *Model[T]) getFocusedMatch() *viewport.Highlight {
 	if m.focusedMatchIdx < 0 || m.focusedMatchIdx >= len(m.allMatches) {
+		return nil
+	}
+	return &m.allMatches[m.focusedMatchIdx]
+}
+
+func (m *Model[T]) ensureCurrentMatchInView() {
+	currentMatch := m.getFocusedMatch()
+	if currentMatch == nil {
 		return
 	}
-
-	currentMatch := m.allMatches[m.focusedMatchIdx]
 	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
+	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)
+}
 
-	if moveSelection && m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
+func (m *Model[T]) setSelectionToCurrentMatch() {
+	currentMatch := m.getFocusedMatch()
+	if currentMatch == nil {
+		return
+	}
+	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
 		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
 	}
-	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)
 }

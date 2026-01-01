@@ -2164,6 +2164,53 @@ func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestCurrentMatchNotCenteredAfterItemsChange(t *testing.T) {
+	fv := makeFilterableViewport(
+		100,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+
+	initialItems := []string{
+		"1",
+		"2",
+		"3",
+		"4",
+		"5",
+		"6",
+	}
+	fv.SetObjects(stringsToItems(initialItems))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('1'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] 1  (1/1 matches on 1 items)",
+		focusedStyle.Render("1"),
+		"2",
+		footerStyle.Render("33% (2/6)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// scroll so focused match out of view
+	fv, _ = fv.Update(downKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] 1  (1/1 matches on 1 items)",
+		"2",
+		"3",
+		footerStyle.Render("50% (3/6)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	initialItems = append(initialItems, "7", "8", "9")
+	fv.SetObjects(stringsToItems(initialItems))
+
+	newExpected := strings.ReplaceAll(expected, "50% (3/6)", "33% (3/9)")
+	internal.CmpStr(t, newExpected, fv.View())
+}
+
 func TestMaxMatchLimit(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,
