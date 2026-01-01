@@ -1418,7 +1418,7 @@ type clearSaveResultMsg struct{}
 func (m *Model[T]) saveToFile() tea.Cmd {
 	return func() tea.Msg {
 		// create directory if needed
-		if err := os.MkdirAll(m.config.saveDir, 0755); err != nil {
+		if err := os.MkdirAll(m.config.saveDir, 0750); err != nil {
 			return FileSavedMsg{Err: fmt.Errorf("failed to create directory %s: %w", m.config.saveDir, err)}
 		}
 
