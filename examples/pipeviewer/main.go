@@ -56,7 +56,6 @@ type stdinDoneMsg struct{}
 
 type model struct {
 	fv                            *filterableviewport.Model[object]
-	objects                       []object
 	ready                         bool
 	viewportWidth, viewportHeight int
 }
@@ -84,9 +83,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case newLineMsg:
-		m.objects = append(m.objects, object{item: item.NewItem(msg.line)})
 		if m.ready {
-			m.fv.SetObjects(m.objects)
+			m.fv.AppendObjects([]object{{item: item.NewItem(msg.line)}})
 		}
 		if stdinIsPipe() {
 			return m, readStdinCmd()
@@ -148,7 +146,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithHorizontalPad[object](50),
 				filterableviewport.WithVerticalPad[object](20),
 			)
-			m.fv.SetObjects(m.objects)
 			m.fv.SetWrapText(false)
 			m.fv.SetSelectionEnabled(false)
 			m.ready = true
@@ -210,9 +207,7 @@ func main() {
 	}()
 
 	p := tea.NewProgram(
-		model{
-			objects: []object{},
-		},
+		model{},
 		tea.WithAltScreen(),
 		tea.WithInput(tty),
 	)

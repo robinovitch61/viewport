@@ -1851,6 +1851,124 @@ func TestSetObjectsPreservesMatchIndex(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestAppendObjectsPreservesMatchIndex(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"match one",
+		"match two",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (2/2 matches...",
+		unfocusedStyle.Render("match") + " one",
+		focusedStyle.Render("match") + " two",
+		"",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// append new items - should stay on match 2, now 2/4
+	fv.AppendObjects(stringsToItems([]string{
+		"match three",
+		"match four",
+	}))
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (2/4 matches...",
+		unfocusedStyle.Render("match") + " one",
+		focusedStyle.Render("match") + " two",
+		unfocusedStyle.Render("match") + " three",
+		footerStyle.Render("75% (3/4)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
+func TestAppendObjectsWithNil(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"item one",
+		"item two",
+	}))
+
+	// appending nil should not crash or change objects
+	fv.AppendObjects(nil)
+
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"No Filter",
+		"item one",
+		"item two",
+		"",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
+func TestAppendObjectsRespectsMatchLimit(t *testing.T) {
+	fv := makeFilterableViewport(
+		40,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMaxMatchLimit[object](5),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"match one",
+		"match two",
+		"match three",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// 3 matches, under limit
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/3 matches on 3 items)",
+		focusedStyle.Render("match") + " one",
+		unfocusedStyle.Render("match") + " two",
+		unfocusedStyle.Render("match") + " three",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// append 3 more items, which will exceed the limit of 5
+	fv.AppendObjects(stringsToItems([]string{
+		"match four",
+		"match five",
+		"match six",
+	}))
+
+	// should now show limit exceeded message and all items
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (5+ matches on 6+ items)",
+		"match one",
+		"match two",
+		"match three",
+		footerStyle.Render("50% (3/6)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestVerticalPadding(t *testing.T) {
 	fv := makeFilterableViewport(
 		30,
@@ -2275,6 +2393,45 @@ func TestMaxMatchLimit(t *testing.T) {
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestMaxMatchLimitWithAppendObjects(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		3,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithMaxMatchLimit[object](3),
+		},
+	)
+
+	items := []string{
+		"a",
+		"bbb",
+	}
+	fv.SetObjects(stringsToItems(items))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: a  (1/1 matches on 1 items)",
+		focusedStyle.Render("a"),
+		footerStyle.Render("50% (1/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// append new items that cause match limit to be exceeded
+	fv.AppendObjects(stringsToItems([]string{"aaa", "aaa"}))
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: a  (3+ matches on 2+ items)",
+		"a",
+		footerStyle.Render("25% (1/4)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
 }
 
 func TestMaxMatchLimitUnlimited(t *testing.T) {

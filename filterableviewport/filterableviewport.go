@@ -295,6 +295,15 @@ func (m *Model[T]) SetObjects(objects []T) {
 	m.updateMatchingItems()
 }
 
+// AppendObjects appends objects to the viewport's existing objects
+func (m *Model[T]) AppendObjects(objects []T) {
+	if objects == nil {
+		return
+	}
+	m.objects = append(m.objects, objects...)
+	m.updateMatchingItems()
+}
+
 // FilterFocused returns true if the filter text input is focused
 func (m *Model[T]) FilterFocused() bool {
 	return m.filterTextInput.Focused()
