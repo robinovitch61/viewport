@@ -300,8 +300,20 @@ func (m *Model[T]) AppendObjects(objects []T) {
 	if objects == nil {
 		return
 	}
+	startIdx := len(m.objects)
 	m.objects = append(m.objects, objects...)
-	m.updateMatchingItems()
+
+	// if filter active and not at limit, do incremental update
+	if m.filterMode != filterModeOff &&
+		m.filterTextInput.Value() != "" &&
+		!m.matchLimitExceeded {
+		m.appendMatchesForNewObjects(startIdx, objects)
+	} else if m.matchLimitExceeded {
+		// already at limit, just update viewport with all objects
+		m.vp.SetObjects(m.objects)
+	} else {
+		m.updateMatchingItems()
+	}
 }
 
 // FilterFocused returns true if the filter text input is focused
@@ -497,12 +509,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	itemsWithMatchesSet := make(map[int]bool)
 
 	for itemIdx := range contentNoAnsiStrings {
-		var matches []item.Match
-		if m.isRegexMode && regex != nil {
-			matches = m.objects[itemIdx].GetItem().ExtractRegexMatches(regex)
-		} else {
-			matches = m.objects[itemIdx].GetItem().ExtractExactMatches(filterValue)
-		}
+		matches := m.extractMatches(m.objects[itemIdx], filterValue, regex)
 
 		if len(matches) > 0 {
 			itemsWithMatchesSet[itemIdx] = true
@@ -515,20 +522,8 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 
 		totalMatchCount += len(matches)
 
-		var newHighlights []viewport.Highlight
-		for i := range matches {
-			m.matchWidthsByMatchIdx[matchIdx] = matches[i].WidthRange
-			matchIdx++
-
-			highlight := viewport.Highlight{
-				ItemIndex: itemIdx,
-				ItemHighlight: item.Highlight{
-					Style:                    m.styles.Match.Unfocused,
-					ByteRangeUnstyledContent: matches[i].ByteRange,
-				},
-			}
-			newHighlights = append(newHighlights, highlight)
-		}
+		newHighlights := m.buildHighlightsFromMatches(itemIdx, matches, matchIdx)
+		matchIdx += len(matches)
 		highlights = append(highlights, newHighlights...)
 	}
 
@@ -576,6 +571,113 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	}
 
 	return filteredObjects
+}
+
+// appendMatchesForNewObjects processes only newly appended objects for matches
+// and incrementally updates match state without rescanning existing objects
+func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
+	filterValue := m.filterTextInput.Value()
+
+	var regex *regexp.Regexp
+	var err error
+	if m.isRegexMode {
+		regex, err = regexp.Compile(filterValue)
+		if err != nil {
+			// invalid regex, fallback to full update
+			m.updateMatchingItems()
+			return
+		}
+	}
+
+	matchIdx := len(m.allMatches)
+	totalMatchCount := m.totalMatchesOnAllItems
+	prevNumMatchingItems := m.numMatchingItems
+	itemsWithMatchesSet := make(map[int]bool)
+	var newHighlights []viewport.Highlight
+
+	for i, obj := range newObjects {
+		itemIdx := startIdx + i
+		matches := m.extractMatches(obj, filterValue, regex)
+
+		if len(matches) > 0 {
+			itemsWithMatchesSet[itemIdx] = true
+		}
+
+		if m.maxMatchLimit > 0 && totalMatchCount+len(matches) > m.maxMatchLimit {
+			// transition to match limit exceeded
+			m.matchLimitExceeded = true
+			m.allMatches = []viewport.Highlight{}
+			m.focusedMatchIdx = -1
+			m.totalMatchesOnAllItems = totalMatchCount
+			m.numMatchingItems = prevNumMatchingItems + len(itemsWithMatchesSet)
+			m.vp.SetObjects(m.objects)
+			m.updateFocusedMatchHighlight()
+			return
+		}
+
+		totalMatchCount += len(matches)
+
+		highlights := m.buildHighlightsFromMatches(itemIdx, matches, matchIdx)
+		matchIdx += len(matches)
+		newHighlights = append(newHighlights, highlights...)
+	}
+
+	// append new matches to existing
+	m.allMatches = append(m.allMatches, newHighlights...)
+	m.totalMatchesOnAllItems = totalMatchCount
+	m.numMatchingItems = prevNumMatchingItems + len(itemsWithMatchesSet)
+
+	// update viewport objects
+	if m.showMatchesOnly() {
+		// build filtered objects list including new matching items
+		filteredObjects := make([]T, 0, m.numMatchingItems)
+		itemsWithMatches := make(map[int]bool)
+
+		for _, highlight := range m.allMatches {
+			itemIdx := highlight.ItemIndex
+			if !itemsWithMatches[itemIdx] {
+				filteredObjects = append(filteredObjects, m.objects[itemIdx])
+				m.itemIdxToFilteredIdx[itemIdx] = len(filteredObjects) - 1
+				itemsWithMatches[itemIdx] = true
+			}
+		}
+		m.vp.SetObjects(filteredObjects)
+	} else {
+		// already updated by append to m.objects
+		m.vp.SetObjects(m.objects)
+	}
+
+	m.updateFocusedMatchHighlight()
+}
+
+// extractMatches extracts matches from an object using the current filter settings
+func (m *Model[T]) extractMatches(obj T, filterValue string, regex *regexp.Regexp) []item.Match {
+	if m.isRegexMode && regex != nil {
+		return obj.GetItem().ExtractRegexMatches(regex)
+	}
+	return obj.GetItem().ExtractExactMatches(filterValue)
+}
+
+// buildHighlightsFromMatches creates viewport highlights from item matches
+func (m *Model[T]) buildHighlightsFromMatches(itemIdx int, matches []item.Match, startMatchIdx int) []viewport.Highlight {
+	highlights := make([]viewport.Highlight, 0, len(matches))
+	matchIdx := startMatchIdx
+
+	for i := range matches {
+		m.matchWidthsByMatchIdx[matchIdx] = matches[i].WidthRange
+		matchIdx++
+
+		highlight := viewport.Highlight{
+			ItemIndex: itemIdx,
+			ItemHighlight: item.Highlight{
+				Style:                    m.styles.Match.Unfocused,
+				ByteRangeUnstyledContent: matches[i].ByteRange,
+			},
+		}
+		highlights = append(highlights, highlight)
+	}
+
+	return highlights
 }
 
 func (m *Model[T]) showMatchesOnly() bool {

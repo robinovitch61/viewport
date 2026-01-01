@@ -1969,6 +1969,58 @@ func TestAppendObjectsRespectsMatchLimit(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestAppendObjectsIncrementalWithMatchingItemsOnly(t *testing.T) {
+	fv := makeFilterableViewport(
+		40,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](true),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"match one",
+		"nothing here",
+		"match two",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// should show only matching items
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/2 matches on 2 item...",
+		focusedStyle.Render("match") + " one",
+		unfocusedStyle.Render("match") + " two",
+		"",
+		"",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// append mixed items (some matching, some not)
+	fv.AppendObjects(stringsToItems([]string{
+		"nothing",
+		"match three",
+		"also nothing",
+		"match four",
+	}))
+
+	// should show only matching items, including new matches
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/4 matches on 4 item...",
+		focusedStyle.Render("match") + " one",
+		unfocusedStyle.Render("match") + " two",
+		unfocusedStyle.Render("match") + " three",
+		unfocusedStyle.Render("match") + " four",
+		footerStyle.Render("100% (4/4)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestVerticalPadding(t *testing.T) {
 	fv := makeFilterableViewport(
 		30,
