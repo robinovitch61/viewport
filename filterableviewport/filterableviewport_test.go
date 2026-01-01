@@ -2163,3 +2163,99 @@ func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
 	})
 	internal.CmpStr(t, expected, fv.View())
 }
+
+func TestMaxMatchLimit(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithMaxMatchLimit[object](5),
+			WithMatchingItemsOnly[object](true), // Should be ignored when limit exceeded
+		},
+	)
+
+	items := []string{
+		"apple apple",
+		"apple apple",
+		"apple apple",
+		"apple apple",
+		"apple apple",
+		"banana",
+	}
+	fv.SetObjects(stringsToItems(items))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "app" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: app  (5+ matches on 3+ items)",
+		"apple apple",
+		"apple apple",
+		"apple apple",
+		"apple apple",
+		footerStyle.Render("66% (4/6)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// view should be unchanged by navigating matches when limit exceeded
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// clear search filter
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+
+	if fv.matchLimitExceeded {
+		t.Error("matchLimitExceeded should be false after clearing filter")
+	}
+
+	// filter that doesn't exceed limit
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('b'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: b  (1/1 matches on 1 items) showing matches only",
+		focusedStyle.Render("b") + "anana",
+		"",
+		"",
+		"",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestMaxMatchLimitUnlimited(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithMaxMatchLimit[object](0), // unlimited
+		},
+	)
+
+	fv.SetObjects(stringsToItems([]string{
+		"apple apple",
+	}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: a  (1/2 matches on 1 items)",
+		focusedStyle.Render("a") + "pple " + unfocusedStyle.Render("a") + "pple",
+		"",
+		"",
+		"",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}

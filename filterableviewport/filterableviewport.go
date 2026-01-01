@@ -85,6 +85,16 @@ func WithHorizontalPad[T viewport.Object](horizontalPad int) Option[T] {
 	}
 }
 
+// WithMaxMatchLimit sets the maximum number of matches when searching.
+// When this limit is exceeded, match highlighting and navigation are disabled
+// and all items are shown regardless of matchingItemsOnly setting.
+// Set to 0 for unlimited matches. Default is 30000.
+func WithMaxMatchLimit[T viewport.Object](maxMatchLimit int) Option[T] {
+	return func(m *Model[T]) {
+		m.maxMatchLimit = maxMatchLimit
+	}
+}
+
 // Model is the state and logic for a filterable viewport
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
@@ -108,6 +118,8 @@ type Model[T viewport.Object] struct {
 	itemIdxToFilteredIdx       map[int]int
 	matchWidthsByMatchIdx      map[int]item.WidthRange
 	lastFilterValue            string
+	maxMatchLimit              int // 0 = unlimited
+	matchLimitExceeded         bool
 
 	verticalPad   int
 	horizontalPad int
@@ -142,6 +154,8 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		itemIdxToFilteredIdx:       make(map[int]int),
 		matchWidthsByMatchIdx:      make(map[int]item.WidthRange),
 		lastFilterValue:            "",
+		maxMatchLimit:              30000, // reasonable default
+		matchLimitExceeded:         false,
 		verticalPad:                0,
 		horizontalPad:              0,
 	}
@@ -311,8 +325,13 @@ func (m *Model[T]) updateMatchingItems() {
 	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
 	m.ensureCurrentMatchInView(false)
 	m.updateFocusedMatchHighlight()
-	m.numMatchingItems = len(matchingObjects)
-	if m.matchingItemsOnly {
+
+	if !m.matchLimitExceeded {
+		m.numMatchingItems = len(matchingObjects)
+	}
+
+	// when match limit exceeded, show all objects
+	if m.showMatchesOnly() {
 		m.vp.SetObjects(matchingObjects)
 	} else {
 		m.vp.SetObjects(m.objects)
@@ -406,7 +425,7 @@ func (m *Model[T]) renderFilterLine() string {
 				m.prefixText,
 				m.filterTextInput.View(),
 				m.getTextAfterFilter(),
-				matchingItemsOnlyText(m.matchingItemsOnly),
+				matchingItemsOnlyText(m.showMatchesOnly()),
 			}),
 				" ",
 			)
@@ -437,6 +456,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	m.focusedMatchIdx = -1
 	m.totalMatchesOnAllItems = 0
 	m.itemIdxToFilteredIdx = make(map[int]int)
+	m.matchLimitExceeded = false
 
 	if m.filterMode == filterModeOff || filterValue == "" {
 		return m.objects
@@ -458,6 +478,10 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	}
 
 	matchIdx := 0
+	totalMatchCount := 0
+	maxReached := false
+	itemsWithMatchesSet := make(map[int]bool)
+
 	for itemIdx := range contentNoAnsiStrings {
 		var matches []item.Match
 		if m.isRegexMode && regex != nil {
@@ -465,6 +489,18 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		} else {
 			matches = m.objects[itemIdx].GetItem().ExtractExactMatches(filterValue)
 		}
+
+		if len(matches) > 0 {
+			itemsWithMatchesSet[itemIdx] = true
+		}
+
+		if m.maxMatchLimit > 0 && totalMatchCount+len(matches) > m.maxMatchLimit {
+			maxReached = true
+			break
+		}
+
+		totalMatchCount += len(matches)
+
 		var newHighlights []viewport.Highlight
 		for i := range matches {
 			m.matchWidthsByMatchIdx[matchIdx] = matches[i].WidthRange
@@ -480,6 +516,18 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 			newHighlights = append(newHighlights, highlight)
 		}
 		highlights = append(highlights, newHighlights...)
+	}
+
+	m.matchLimitExceeded = maxReached
+
+	if maxReached {
+		// clear match state and return all objects - no highlighting or navigation when limit exceeded
+		m.allMatches = []viewport.Highlight{}
+		m.focusedMatchIdx = -1
+		m.totalMatchesOnAllItems = totalMatchCount
+		// count of items with matches up to the limit
+		m.numMatchingItems = len(itemsWithMatchesSet)
+		return m.objects
 	}
 
 	filteredObjects := make([]T, 0, len(m.objects))
@@ -516,6 +564,10 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	return filteredObjects
 }
 
+func (m *Model[T]) showMatchesOnly() bool {
+	return m.matchingItemsOnly && !m.matchLimitExceeded
+}
+
 // matchingItemsOnlyText returns the text to display when showing matching items only
 func matchingItemsOnlyText(matchingItemsOnly bool) string {
 	if matchingItemsOnly {
@@ -545,6 +597,9 @@ func (m *Model[T]) getTextAfterFilter() string {
 
 // getMatchCountText returns the formatted match count text
 func (m *Model[T]) getMatchCountText() string {
+	if m.matchLimitExceeded {
+		return fmt.Sprintf("(%d+ matches on %d+ items)", m.maxMatchLimit, m.numMatchingItems)
+	}
 	if m.totalMatchesOnAllItems == 0 {
 		return "(no matches)"
 	}
