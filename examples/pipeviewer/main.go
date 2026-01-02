@@ -10,29 +10,40 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/filterableviewport"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
+var (
+	lineNumberStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+)
+
 type object struct {
-	item item.Item
+	lineNumber item.SingleItem
+	content    item.SingleItem
 }
 
 func (o object) GetItem() item.Item {
-	return o.item
+	return item.NewMulti(o.lineNumber, o.content)
 }
 
 type appKeys struct {
-	quit               key.Binding
-	toggleWrapTextKey  key.Binding
-	toggleSelectionKey key.Binding
+	quit                     key.Binding
+	toggleShowLineNumbersKey key.Binding
+	toggleWrapTextKey        key.Binding
+	toggleSelectionKey       key.Binding
 }
 
 var appKeyMap = appKeys{
 	quit: key.NewBinding(
 		key.WithKeys("ctrl+c"),
 		key.WithHelp("ctrl+c", "quit"),
+	),
+	toggleShowLineNumbersKey: key.NewBinding(
+		key.WithKeys("l"),
+		key.WithHelp("l", "toggle line numbers"),
 	),
 	toggleWrapTextKey: key.NewBinding(
 		key.WithKeys("w"),
@@ -55,6 +66,9 @@ type newLineMsg struct {
 type stdinDoneMsg struct{}
 
 type model struct {
+	itemNumber                    int
+	showLineNumbers               bool
+	objects                       []object
 	fv                            *filterableviewport.Model[object]
 	ready                         bool
 	viewportWidth, viewportHeight int
@@ -84,7 +98,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case newLineMsg:
 		if m.ready {
-			m.fv.AppendObjects([]object{{item: item.NewItem(msg.line)}})
+			newObject := object{
+				lineNumber: item.NewItem(""),
+				content:    item.NewItem(msg.line),
+			}
+			m.objects = append(m.objects, newObject)
+			m.fv.AppendObjects([]object{newObject})
+			m.itemNumber++
 		}
 		if stdinIsPipe() {
 			return m, readStdinCmd()
@@ -111,6 +131,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch {
+		case key.Matches(msg, appKeyMap.toggleShowLineNumbersKey):
+			m.showLineNumbers = !m.showLineNumbers
+			for i := range m.objects {
+				lineNum := ""
+				if m.showLineNumbers {
+					lineNum = fmt.Sprintf("%d", i+1) + " "
+				}
+				m.objects[i].lineNumber = item.NewItem(lineNumberStyle.Render(lineNum))
+			}
+			m.fv.SetObjects(m.objects)
+			return m, nil
 		case key.Matches(msg, appKeyMap.toggleWrapTextKey):
 			m.fv.SetWrapText(!m.fv.GetWrapText())
 			return m, nil
