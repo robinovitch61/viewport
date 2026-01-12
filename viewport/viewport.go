@@ -396,6 +396,12 @@ func (m *Model[T]) SetObjects(objects []T) {
 		} else if m.content.compareFn != nil && 0 <= selectedIdx && selectedIdx < len(currentItems) {
 			prevSelection = currentItems[selectedIdx]
 		}
+	} else {
+		if m.navigation.topSticky && m.isScrolledToTop() {
+			stayAtTop = true
+		} else if m.navigation.bottomSticky && m.isScrolledToBottom() {
+			stayAtBottom = true
+		}
 	}
 
 	m.content.objects = objects
@@ -435,6 +441,13 @@ func (m *Model[T]) SetObjects(objects []T) {
 				deltaLinesAbove := initialNumLinesAboveSelection - inView.numLinesAboveSelection
 				m.scrollDownLines(-deltaLinesAbove)
 			}
+		}
+	} else {
+		if stayAtTop {
+			m.display.setTopItemIdxAndOffset(0, 0)
+		} else if stayAtBottom {
+			maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
+			m.display.setTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
 		}
 	}
 }
@@ -1081,7 +1094,7 @@ func (m *Model[T]) scrollDownLines(numLinesDown int) {
 	}
 
 	// scrolling up past top
-	if numLinesDown < 0 && m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0 {
+	if numLinesDown < 0 && m.isScrolledToTop() {
 		return
 	}
 
@@ -1310,6 +1323,11 @@ func (m *Model[T]) isScrolledToBottom() bool {
 		return m.display.topItemLineOffset >= maxTopItemLineOffset
 	}
 	return false
+}
+
+// isScrolledToTop returns true if the viewport is scrolled to the very top
+func (m *Model[T]) isScrolledToTop() bool {
+	return m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0
 }
 
 type selectionInViewInfoResult struct {
