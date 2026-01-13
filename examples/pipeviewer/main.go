@@ -72,6 +72,7 @@ type model struct {
 	fv                            *filterableviewport.Model[object]
 	ready                         bool
 	viewportWidth, viewportHeight int
+	bufferedLines                 []string // lines that arrived before viewport was ready
 }
 
 func stdinIsPipe() bool {
@@ -97,17 +98,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case newLinesMsg:
-		if m.ready && len(msg.lines) > 0 {
-			newObjects := make([]object, len(msg.lines))
-			for i, line := range msg.lines {
-				newObjects[i] = object{
-					lineNumber: item.NewItem(""),
-					content:    item.NewItem(line),
+		if m.ready {
+			// viewport is ready, process lines immediately
+			if len(msg.lines) > 0 {
+				newObjects := make([]object, len(msg.lines))
+				for i, line := range msg.lines {
+					newObjects[i] = object{
+						lineNumber: item.NewItem(""),
+						content:    item.NewItem(line),
+					}
 				}
+				m.objects = append(m.objects, newObjects...)
+				m.fv.AppendObjects(newObjects)
+				m.itemNumber += len(msg.lines)
 			}
-			m.objects = append(m.objects, newObjects...)
-			m.fv.AppendObjects(newObjects)
-			m.itemNumber += len(msg.lines)
+		} else {
+			// viewport not ready yet, buffer the lines
+			m.bufferedLines = append(m.bufferedLines, msg.lines...)
 		}
 		if stdinIsPipe() {
 			return m, readStdinCmd()
@@ -183,6 +190,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fv.SetWrapText(false)
 			m.fv.SetSelectionEnabled(false)
 			m.ready = true
+
+			// process any lines that arrived before we were ready
+			if len(m.bufferedLines) > 0 {
+				newObjects := make([]object, len(m.bufferedLines))
+				for i, line := range m.bufferedLines {
+					newObjects[i] = object{
+						lineNumber: item.NewItem(""),
+						content:    item.NewItem(line),
+					}
+				}
+				m.objects = append(m.objects, newObjects...)
+				m.fv.SetObjects(m.objects)
+				m.itemNumber += len(m.bufferedLines)
+				m.bufferedLines = nil // clear the buffer
+			}
 		} else {
 			m.fv.SetWidth(m.viewportWidth)
 			m.fv.SetHeight(m.viewportHeight)
