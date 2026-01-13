@@ -59,8 +59,8 @@ var viewportKeyMap = viewport.DefaultKeyMap()
 var filterableViewportKeyMap = filterableviewport.DefaultKeyMap()
 var styles = filterableviewport.DefaultStyles()
 
-type newLineMsg struct {
-	line string
+type newLinesMsg struct {
+	lines []string
 }
 
 type stdinDoneMsg struct{}
@@ -96,15 +96,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case newLineMsg:
-		if m.ready {
-			newObject := object{
-				lineNumber: item.NewItem(""),
-				content:    item.NewItem(msg.line),
+	case newLinesMsg:
+		if m.ready && len(msg.lines) > 0 {
+			newObjects := make([]object, len(msg.lines))
+			for i, line := range msg.lines {
+				newObjects[i] = object{
+					lineNumber: item.NewItem(""),
+					content:    item.NewItem(line),
+				}
 			}
-			m.objects = append(m.objects, newObject)
-			m.fv.AppendObjects([]object{newObject})
-			m.itemNumber++
+			m.objects = append(m.objects, newObjects...)
+			m.fv.AppendObjects(newObjects)
+			m.itemNumber += len(msg.lines)
 		}
 		if stdinIsPipe() {
 			return m, readStdinCmd()
@@ -206,21 +209,42 @@ func init() {
 	stdinReader = bufio.NewReader(os.Stdin)
 }
 
-// readStdinCmd reads a single line from stdin and returns it as a message
+// readStdinCmd reads lines from stdin in batches and returns them as a message
 func readStdinCmd() tea.Cmd {
 	return func() tea.Msg {
-		line, err := stdinReader.ReadString('\n')
-		if err == io.EOF {
-			if len(line) > 0 {
-				// return the last line without newline, then done
-				return newLineMsg{line: strings.TrimSuffix(line, "\n")}
+		const maxBatchSize = 500
+		lines := make([]string, 0, maxBatchSize)
+
+		for i := 0; i < maxBatchSize; i++ {
+			line, err := stdinReader.ReadString('\n')
+			if err == io.EOF {
+				if len(line) > 0 {
+					lines = append(lines, strings.TrimSuffix(line, "\n"))
+				}
+				if len(lines) > 0 {
+					return newLinesMsg{lines: lines}
+				}
+				return stdinDoneMsg{}
 			}
-			return stdinDoneMsg{}
+			if err != nil {
+				if len(lines) > 0 {
+					return newLinesMsg{lines: lines}
+				}
+				return stdinDoneMsg{}
+			}
+			lines = append(lines, strings.TrimSuffix(line, "\n"))
+
+			// check if more data is immediately available, otherwise return what we have
+			// this prevents blocking when data arrives slowly
+			if stdinReader.Buffered() == 0 {
+				break
+			}
 		}
-		if err != nil {
-			return stdinDoneMsg{}
+
+		if len(lines) > 0 {
+			return newLinesMsg{lines: lines}
 		}
-		return newLineMsg{line: strings.TrimSuffix(line, "\n")}
+		return stdinDoneMsg{}
 	}
 }
 
