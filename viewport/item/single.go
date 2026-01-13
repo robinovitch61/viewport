@@ -36,9 +36,9 @@ func NewItem(line string) SingleItem {
 		return SingleItem{line: line}
 	}
 
-	// keep sparsity 1 for short lines
-	sparsity := 1
-	if len(line) > 1000 {
+	// keep sparsity small for short lines
+	sparsity := 4
+	if len(line) > 100 {
 		sparsity = 10 // tradeoff between memory usage and CPU. 10 seems to be a good balance
 	}
 
