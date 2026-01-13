@@ -83,6 +83,17 @@ func stdinIsPipe() bool {
 	return (fi.Mode() & os.ModeCharDevice) == 0
 }
 
+func linesToObjects(lines []string) []object {
+	objects := make([]object, len(lines))
+	for i, line := range lines {
+		objects[i] = object{
+			lineNumber: item.NewItem(""),
+			content:    item.NewItem(line),
+		}
+	}
+	return objects
+}
+
 func (m model) Init() tea.Cmd {
 	if stdinIsPipe() {
 		return readStdinCmd()
@@ -101,13 +112,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ready {
 			// viewport is ready, process lines immediately
 			if len(msg.lines) > 0 {
-				newObjects := make([]object, len(msg.lines))
-				for i, line := range msg.lines {
-					newObjects[i] = object{
-						lineNumber: item.NewItem(""),
-						content:    item.NewItem(line),
-					}
-				}
+				newObjects := linesToObjects(msg.lines)
 				m.objects = append(m.objects, newObjects...)
 				m.fv.AppendObjects(newObjects)
 				m.itemNumber += len(msg.lines)
@@ -190,21 +195,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fv.SetWrapText(false)
 			m.fv.SetSelectionEnabled(false)
 			m.ready = true
-
-			// process any lines that arrived before we were ready
-			if len(m.bufferedLines) > 0 {
-				newObjects := make([]object, len(m.bufferedLines))
-				for i, line := range m.bufferedLines {
-					newObjects[i] = object{
-						lineNumber: item.NewItem(""),
-						content:    item.NewItem(line),
-					}
-				}
-				m.objects = append(m.objects, newObjects...)
-				m.fv.SetObjects(m.objects)
-				m.itemNumber += len(m.bufferedLines)
-				m.bufferedLines = nil // clear the buffer
-			}
 		} else {
 			m.fv.SetWidth(m.viewportWidth)
 			m.fv.SetHeight(m.viewportHeight)
@@ -214,6 +204,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.ready {
 		m.fv, cmd = m.fv.Update(msg)
 		cmds = append(cmds, cmd)
+
+		// after viewport is fully initialized, process any buffered lines
+		if _, ok := msg.(tea.WindowSizeMsg); ok && len(m.bufferedLines) > 0 {
+			newObjects := linesToObjects(m.bufferedLines)
+			m.objects = append(m.objects, newObjects...)
+			m.fv.SetObjects(m.objects)
+			m.itemNumber += len(m.bufferedLines)
+			m.bufferedLines = nil
+		}
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -237,7 +236,7 @@ func readStdinCmd() tea.Cmd {
 		const maxBatchSize = 500
 		lines := make([]string, 0, maxBatchSize)
 
-		for i := 0; i < maxBatchSize; i++ {
+		for range maxBatchSize {
 			line, err := stdinReader.ReadString('\n')
 			if err == io.EOF {
 				if len(line) > 0 {
