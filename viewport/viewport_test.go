@@ -2398,6 +2398,215 @@ func TestViewport_SelectionOn_WrapOff_StickyTopBottom(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOff_WrapOff_StickyTop(t *testing.T) {
+	w, h := 15, 4
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(false)
+	vp.SetTopSticky(true)
+	setContent(vp, []string{
+		"first",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item
+	setContent(vp, []string{
+		"second",
+		"first",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"first",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to de-activate sticky
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"first",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - should not return to top
+	setContent(vp, []string{
+		"third",
+		"second",
+		"first",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"third",
+		"second",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_StickyBottom(t *testing.T) {
+	w, h := 15, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(false)
+	vp.SetBottomSticky(true)
+	setContent(vp, []string{
+		"first",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item at bottom
+	setContent(vp, []string{
+		"first",
+		"second",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to de-activate sticky
+	vp, _ = vp.Update(upKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - should not jump to bottom
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_StickyBottomOverflowHeight(t *testing.T) {
+	w, h := 15, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(false)
+	vp.SetBottomSticky(true)
+	setContent(vp, []string{})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add more items than fit in viewport
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+		"fifth",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"fifth",
+		"100% (5/5)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOff_StickyTopBottom(t *testing.T) {
+	w, h := 15, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(false)
+	vp.SetTopSticky(true)
+	vp.SetBottomSticky(true)
+	setContent(vp, []string{
+		"first",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item, top sticky wins when both set
+	setContent(vp, []string{
+		"first",
+		"second",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll to bottom
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - bottom sticky should activate
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"third",
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to middle
+	vp, _ = vp.Update(upKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - neither sticky should activate (not at top or bottom)
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"second",
+		"50% (2/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOn_WrapOff_RemoveLogsWhenSelectionBottom(t *testing.T) {
 	w, h := 10, 3
 	vp := newViewport(w, h)
@@ -5333,6 +5542,205 @@ func TestViewport_SelectionOn_WrapOn_StickyBottomLongLine(t *testing.T) {
 		internal.BlueFg.Render(" that wrap"),
 		internal.BlueFg.Render("s many tim"),
 		internal.BlueFg.Render("es"),
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_StickyTop(t *testing.T) {
+	w, h := 10, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(false)
+	vp.SetTopSticky(true)
+	setContent(vp, []string{
+		"the first line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first ",
+		"99% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item
+	setContent(vp, []string{
+		"the second line",
+		"the first line",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the second",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll down to de-activate sticky
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		" line",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - should not return to top
+	setContent(vp, []string{
+		"the third line",
+		"the second line",
+		"the first line",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"line",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_StickyBottom(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(false)
+	vp.SetBottomSticky(true)
+	setContent(vp, []string{
+		"the first line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the first ",
+		"line",
+		"",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"line",
+		"the second",
+		" line",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add longer item at bottom
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"a very long line that wraps a lot",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"g line tha",
+		"t wraps a ",
+		"lot",
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// scroll up to de-activate sticky
+	vp, _ = vp.Update(upKeyMsg)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"a very lon",
+		"g line tha",
+		"t wraps a ",
+		"99% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// add item - should not jump to bottom
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"a very long line that wraps a lot",
+		"the third line",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"a very lon",
+		"g line tha",
+		"t wraps a ",
+		"75% (3/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_StickyBottomOverflowHeight(t *testing.T) {
+	w, h := 10, 3
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(false)
+	vp.SetBottomSticky(true)
+
+	// test covers case where first set item to empty, then overflow height
+	setContent(vp, []string{})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	setContent(vp, []string{
+		"the second line",
+		"the first line",
+		"the third line",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"line",
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOff_WrapOn_StickyBottomLongLine(t *testing.T) {
+	w, h := 10, 9
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(false)
+	vp.SetBottomSticky(true)
+	setContent(vp, []string{
+		"first line",
+		"next line",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first line",
+		"next line",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	setContent(vp, []string{
+		"first line",
+		"next line",
+		"a very long line at the bottom that wraps many times",
+	})
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"next line",
+		"a very lon",
+		"g line at ",
+		"the bottom",
+		" that wrap",
+		"s many tim",
+		"es",
 		"100% (3/3)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())

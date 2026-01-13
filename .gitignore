@@ -2,3 +2,5 @@
 .idea
 *.prof
 *.test
+pipeviewer
+*.txt

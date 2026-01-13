@@ -2,9 +2,13 @@ package viewport
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/item"
@@ -78,6 +82,29 @@ func WithFooterEnabled[T Object](enabled bool) Option[T] {
 	}
 }
 
+// WithStickyTop sets whether to automatically scroll to the top when content changes
+func WithStickyTop[T Object](stickyTop bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetTopSticky(stickyTop)
+	}
+}
+
+// WithStickyBottom sets whether to automatically scroll to the bottom when content changes
+func WithStickyBottom[T Object](stickyBottom bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetBottomSticky(stickyBottom)
+	}
+}
+
+// WithFileSaving configures automatic file saving when a hotkey is pressed.
+// Files are saved to the specified directory with timestamp-based names.
+func WithFileSaving[T Object](saveDir string, saveKey key.Binding) Option[T] {
+	return func(m *Model[T]) {
+		m.config.saveDir = saveDir
+		m.config.saveKey = saveKey
+	}
+}
+
 // Model represents a viewport component
 type Model[T Object] struct {
 	// content manages the content and selection state
@@ -126,13 +153,54 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// check for save key if configured
+		if m.config.saveDir != "" && key.Matches(msg, m.config.saveKey) {
+			// ignore save request if already saving or showing result
+			if !m.config.saveState.saving && !m.config.saveState.showingResult {
+				m.config.saveState.saving = true
+				cmd = m.saveToFile()
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
+			}
+			return m, nil
+		}
+
+	case FileSavedMsg:
+		// update save state with result
+		m.config.saveState.saving = false
+		m.config.saveState.showingResult = true
+		if msg.Err != nil {
+			m.config.saveState.isError = true
+			m.config.saveState.resultMsg = fmt.Sprintf("Save failed: %v", msg.Err)
+		} else {
+			m.config.saveState.isError = false
+			m.config.saveState.resultMsg = fmt.Sprintf("Saved to %s", msg.Filename)
+		}
+		// start 3 second timer to clear result
+		cmd = func() tea.Msg {
+			time.Sleep(3 * time.Second)
+			return clearSaveResultMsg{}
+		}
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+
+	case clearSaveResultMsg:
+		// clear the save result display
+		m.config.saveState.showingResult = false
+		m.config.saveState.resultMsg = ""
+		m.config.saveState.isError = false
+		return m, nil
+	}
+
+	// handle navigation for KeyMsg
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		navCtx := navigationContext{
 			wrapText:        m.config.wrapText,
 			dimensions:      m.display.bounds,
 			numContentLines: m.getNumContentLines(),
 			numVisibleItems: m.getNumVisibleItems(),
 		}
-		navResult := m.navigation.processKeyMsg(msg, navCtx)
+		navResult := m.navigation.processKeyMsg(keyMsg, navCtx)
 
 		switch navResult.action {
 		case actionUp:
@@ -278,7 +346,27 @@ func (m *Model[T]) View() string {
 	}
 
 	nVisibleLines := len(itemIndexes)
-	if m.config.footerEnabled {
+	if m.config.saveState.saving || m.config.saveState.showingResult {
+		// show save status footer
+		padCount := max(0, m.getNumContentLines()-nVisibleLines)
+		for i := 0; i < padCount; i++ {
+			builder.WriteByte('\n')
+		}
+
+		var statusMsg string
+		if m.config.saveState.saving {
+			statusMsg = "Saving..."
+		} else if m.config.saveState.showingResult {
+			statusMsg = m.config.saveState.resultMsg
+		}
+
+		// truncate using item functionality
+		statusItem := item.NewItem(statusMsg)
+		truncated, _ := statusItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
+		styledMsg := m.display.styles.FooterStyle.Render(truncated)
+
+		builder.WriteString(styledMsg)
+	} else if m.config.footerEnabled {
 		// pad so footer shows up at bottom
 		padCount := max(0, m.getNumContentLines()-nVisibleLines)
 		for i := 0; i < padCount; i++ {
@@ -307,6 +395,12 @@ func (m *Model[T]) SetObjects(objects []T) {
 			stayAtBottom = true
 		} else if m.content.compareFn != nil && 0 <= selectedIdx && selectedIdx < len(currentItems) {
 			prevSelection = currentItems[selectedIdx]
+		}
+	} else {
+		if m.navigation.topSticky && m.isScrolledToTop() {
+			stayAtTop = true
+		} else if m.navigation.bottomSticky && m.isScrolledToBottom() {
+			stayAtBottom = true
 		}
 	}
 
@@ -347,6 +441,13 @@ func (m *Model[T]) SetObjects(objects []T) {
 				deltaLinesAbove := initialNumLinesAboveSelection - inView.numLinesAboveSelection
 				m.scrollDownLines(-deltaLinesAbove)
 			}
+		}
+	} else {
+		if stayAtTop {
+			m.display.setTopItemIdxAndOffset(0, 0)
+		} else if stayAtBottom {
+			maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
+			m.display.setTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
 		}
 	}
 }
@@ -993,7 +1094,7 @@ func (m *Model[T]) scrollDownLines(numLinesDown int) {
 	}
 
 	// scrolling up past top
-	if numLinesDown < 0 && m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0 {
+	if numLinesDown < 0 && m.isScrolledToTop() {
 		return
 	}
 
@@ -1043,7 +1144,8 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		0,
 		0,
 		m.display.bounds.height,
-		headerItems,
+		len(headerItems),
+		func(idx int) item.Item { return headerItems[idx] },
 	)
 
 	headerLines := make([]string, len(itemIndexes))
@@ -1094,7 +1196,10 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 		m.display.topItemIdx,
 		m.display.topItemLineOffset,
 		numLinesAfterHeader,
-		renderAll(m.content.objects),
+		m.content.numItems(),
+		func(idx int) item.Item {
+			return m.content.objects[idx].GetItem()
+		},
 	)
 	if len(itemIndexes) == 0 {
 		return nil
@@ -1107,22 +1212,15 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 	return itemIndexes
 }
 
-func renderAll[T Object](itemGetters []T) []item.Item {
-	items := make([]item.Item, len(itemGetters))
-	for i := range itemGetters {
-		items[i] = itemGetters[i].GetItem()
-	}
-	return items
-}
-
 // getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines
 func (m *Model[T]) getItemIndexesSpanningLines(
 	topItemIdx int,
 	topItemLineOffset int,
 	totalNumLines int,
-	allItems []item.Item,
+	numItems int,
+	getItem func(int) item.Item,
 ) []int {
-	if len(allItems) == 0 || totalNumLines == 0 {
+	if numItems == 0 || totalNumLines == 0 {
 		return nil
 	}
 
@@ -1133,9 +1231,9 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		return len(itemIndexes) == totalNumLines
 	}
 
-	currItemIdx := clampValZeroToMax(topItemIdx, len(allItems)-1)
+	currItemIdx := clampValZeroToMax(topItemIdx, numItems-1)
 
-	currItem := allItems[currItemIdx]
+	currItem := getItem(currItemIdx)
 	done := totalNumLines == 0
 	if done {
 		return itemIndexes
@@ -1154,10 +1252,10 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 
 		for !done {
 			currItemIdx++
-			if currItemIdx >= len(allItems) {
+			if currItemIdx >= numItems {
 				done = true
 			} else {
-				currItem = allItems[currItemIdx]
+				currItem = getItem(currItemIdx)
 				numLines = currItem.NumWrappedLines(m.display.bounds.width)
 				for range numLines {
 					// adding untruncated, unstyled items
@@ -1172,7 +1270,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 		done = addLine(currItemIdx)
 		for !done {
 			currItemIdx++
-			if currItemIdx >= len(allItems) {
+			if currItemIdx >= numItems {
 				done = true
 			} else {
 				done = addLine(currItemIdx)
@@ -1225,6 +1323,11 @@ func (m *Model[T]) isScrolledToBottom() bool {
 		return m.display.topItemLineOffset >= maxTopItemLineOffset
 	}
 	return false
+}
+
+// isScrolledToTop returns true if the viewport is scrolled to the very top
+func (m *Model[T]) isScrolledToTop() bool {
+	return m.display.topItemIdx == 0 && m.display.topItemLineOffset == 0
 }
 
 type selectionInViewInfoResult struct {
@@ -1318,6 +1421,43 @@ func (m *Model[T]) styleSelection(selection string) string {
 		}
 	}
 	return builder.String()
+}
+
+// FileSavedMsg is returned when file saving completes.
+type FileSavedMsg struct {
+	Filename string // full path to saved file
+	Err      error  // error if save failed, nil on success
+}
+
+// clearSaveResultMsg is sent after 3 seconds to clear the save result display
+type clearSaveResultMsg struct{}
+
+// saveToFile saves all viewport objects to a timestamped file.
+func (m *Model[T]) saveToFile() tea.Cmd {
+	return func() tea.Msg {
+		// create directory if needed
+		if err := os.MkdirAll(m.config.saveDir, 0750); err != nil {
+			return FileSavedMsg{Err: fmt.Errorf("failed to create directory %s: %w", m.config.saveDir, err)}
+		}
+
+		// generate timestamp filename up to seconds
+		timestamp := time.Now().Format("20060102-150405")
+		filename := filepath.Join(m.config.saveDir, fmt.Sprintf("%s.txt", timestamp))
+
+		// collect content without ANSI codes
+		var content strings.Builder
+		for _, obj := range m.content.objects {
+			content.WriteString(obj.GetItem().ContentNoAnsi())
+			content.WriteString("\n")
+		}
+
+		// write file
+		if err := os.WriteFile(filename, []byte(content.String()), 0600); err != nil {
+			return FileSavedMsg{Err: fmt.Errorf("failed to write file: %w", err)}
+		}
+
+		return FileSavedMsg{Filename: filename, Err: nil}
+	}
 }
 
 func percent(a, b int) int {
