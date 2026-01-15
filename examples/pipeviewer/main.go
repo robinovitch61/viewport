@@ -139,7 +139,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		if m.fv.FilterFocused() {
+		if m.fv.IsCapturingInput() {
 			m.fv, cmd = m.fv.Update(msg)
 			cmds = append(cmds, cmd)
 			return m, tea.Batch(cmds...)

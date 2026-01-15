@@ -82,8 +82,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// if the viewport not ready, only handle quitting
 			return m, nil
 		}
-		// if the filterable viewport is focused, handle its messages
-		if m.fv.FilterFocused() {
+		// if the filterable viewport is capturing input, forward messages to it
+		if m.fv.IsCapturingInput() {
 			m.fv, cmd = m.fv.Update(msg)
 			cmds = append(cmds, cmd)
 			return m, tea.Batch(cmds...)

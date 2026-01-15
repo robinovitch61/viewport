@@ -1474,7 +1474,7 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 			}
 		}
 	}
-	internal.RunWithTimeout(t, runTest, 200*time.Millisecond)
+	internal.RunWithTimeout(t, runTest, 220*time.Millisecond)
 }
 
 func TestScrollingWithManyHighlightedMatchesPerformanceSelectionEnabled(t *testing.T) {

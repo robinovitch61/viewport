@@ -2,6 +2,7 @@ package viewport
 
 import (
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 )
 
 // fileSaveState tracks the state of file saving operations
@@ -17,6 +18,12 @@ type fileSaveState struct {
 
 	// isError is true if resultMsg is an error message
 	isError bool
+
+	// enteringFilename is true when user is typing a filename
+	enteringFilename bool
+
+	// filenameInput is the text input component for filename entry
+	filenameInput textinput.Model
 }
 
 // configuration consolidates all configuration options for the viewport

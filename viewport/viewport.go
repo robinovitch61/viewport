@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/robinovitch61/bubbleo/viewport/item"
@@ -151,34 +152,64 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	// route all messages to filename textinput when actively entering filename
+	if m.config.saveState.enteringFilename {
+		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+			switch keyMsg.Type {
+			case tea.KeyEnter:
+				filename := m.config.saveState.filenameInput.Value()
+				if filename == "" {
+					filename = time.Now().Format("20060102-150405") + ".txt"
+				} else if !strings.HasSuffix(filename, ".txt") {
+					filename += ".txt"
+				}
+				m.config.saveState.enteringFilename = false
+				m.config.saveState.saving = true
+				return m, m.saveToFile(filename)
+			case tea.KeyEscape:
+				m.config.saveState.enteringFilename = false
+				return m, nil
+			}
+		}
+		// forward all non-KeyMsg messages to textinput (e.g. cursor blink)
+		m.config.saveState.filenameInput, cmd = m.config.saveState.filenameInput.Update(msg)
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// check for save key if configured
-		if m.config.saveDir != "" && key.Matches(msg, m.config.saveKey) {
-			// ignore save request if already saving or showing result
-			if !m.config.saveState.saving && !m.config.saveState.showingResult {
-				m.config.saveState.saving = true
-				cmd = m.saveToFile()
-				cmds = append(cmds, cmd)
-				return m, tea.Batch(cmds...)
+		if key.Matches(msg, m.config.saveKey) {
+			saveDirDefined := m.config.saveDir != ""
+			saving := m.config.saveState.saving
+			showingResult := m.config.saveState.showingResult
+			enteringFilename := m.config.saveState.enteringFilename
+			if !saveDirDefined || saving || showingResult || enteringFilename {
+				return m, nil
 			}
-			return m, nil
+			ti := textinput.New()
+			ti.Placeholder = time.Now().Format("20060102-150405") + ".txt"
+			ti.Focus()
+			ti.CharLimit = 256
+			ti.Width = m.display.bounds.width - 20
+			m.config.saveState.filenameInput = ti
+			m.config.saveState.enteringFilename = true
+			return m, textinput.Blink
 		}
 
-	case FileSavedMsg:
+	case fileSavedMsg:
 		// update save state with result
 		m.config.saveState.saving = false
 		m.config.saveState.showingResult = true
-		if msg.Err != nil {
+		if msg.err != nil {
 			m.config.saveState.isError = true
-			m.config.saveState.resultMsg = fmt.Sprintf("Save failed: %v", msg.Err)
+			m.config.saveState.resultMsg = fmt.Sprintf("Save failed: %v", msg.err)
 		} else {
 			m.config.saveState.isError = false
-			m.config.saveState.resultMsg = fmt.Sprintf("Saved to %s", msg.Filename)
+			m.config.saveState.resultMsg = fmt.Sprintf("Saved to %s", msg.filename)
 		}
-		// start 3 second timer to clear result
+		// start 4 second timer to clear result
 		cmd = func() tea.Msg {
-			time.Sleep(3 * time.Second)
+			time.Sleep(4 * time.Second)
 			return clearSaveResultMsg{}
 		}
 		cmds = append(cmds, cmd)
@@ -346,32 +377,33 @@ func (m *Model[T]) View() string {
 	}
 
 	nVisibleLines := len(itemIndexes)
-	if m.config.saveState.saving || m.config.saveState.showingResult {
-		// show save status footer
-		padCount := max(0, m.getNumContentLines()-nVisibleLines)
-		for i := 0; i < padCount; i++ {
-			builder.WriteByte('\n')
-		}
+	padCount := max(0, m.getNumContentLines()-nVisibleLines)
+	for i := 0; i < padCount; i++ {
+		builder.WriteByte('\n')
+	}
 
+	if m.config.saveState.enteringFilename {
+		// show filename input in footer
+		prompt := "Save as: "
+		inputView := m.config.saveState.filenameInput.View()
+		footerContent := prompt + inputView
+		footerItem := item.NewItem(footerContent)
+		truncated, _ := footerItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
+		builder.WriteString(m.display.styles.FooterStyle.Render(truncated))
+	} else if m.config.saveState.saving || m.config.saveState.showingResult {
+		// show save status footer
 		var statusMsg string
 		if m.config.saveState.saving {
 			statusMsg = "Saving..."
 		} else if m.config.saveState.showingResult {
 			statusMsg = m.config.saveState.resultMsg
 		}
-
-		// truncate using item functionality
 		statusItem := item.NewItem(statusMsg)
 		truncated, _ := statusItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
 		styledMsg := m.display.styles.FooterStyle.Render(truncated)
-
 		builder.WriteString(styledMsg)
 	} else if m.config.footerEnabled {
 		// pad so footer shows up at bottom
-		padCount := max(0, m.getNumContentLines()-nVisibleLines)
-		for i := 0; i < padCount; i++ {
-			builder.WriteByte('\n')
-		}
 		builder.WriteString(m.getTruncatedFooterLine(itemIndexes))
 	}
 
@@ -489,6 +521,13 @@ func (m *Model[T]) SetSelectionComparator(compareFn CompareFn[T]) {
 // GetSelectionEnabled returns whether the viewport allows line selection
 func (m *Model[T]) GetSelectionEnabled() bool {
 	return m.navigation.selectionEnabled
+}
+
+// IsCapturingInput returns true when the viewport is in a mode that should capture all input
+// (e.g., filename entry for saving). Callers should forward all messages to the viewport
+// without processing them when this returns true.
+func (m *Model[T]) IsCapturingInput() bool {
+	return m.config.saveState.enteringFilename
 }
 
 // SetWrapText sets whether the viewport wraps text
@@ -1423,26 +1462,24 @@ func (m *Model[T]) styleSelection(selection string) string {
 	return builder.String()
 }
 
-// FileSavedMsg is returned when file saving completes.
-type FileSavedMsg struct {
-	Filename string // full path to saved file
-	Err      error  // error if save failed, nil on success
+// fileSavedMsg is returned when file saving completes.
+type fileSavedMsg struct {
+	filename string // full path to saved file
+	err      error  // error if save failed, nil on success
 }
 
-// clearSaveResultMsg is sent after 3 seconds to clear the save result display
+// clearSaveResultMsg is sent after some seconds to clear the save result display
 type clearSaveResultMsg struct{}
 
-// saveToFile saves all viewport objects to a timestamped file.
-func (m *Model[T]) saveToFile() tea.Cmd {
+// saveToFile saves all viewport objects to a file with the given filename.
+func (m *Model[T]) saveToFile(filename string) tea.Cmd {
 	return func() tea.Msg {
 		// create directory if needed
 		if err := os.MkdirAll(m.config.saveDir, 0750); err != nil {
-			return FileSavedMsg{Err: fmt.Errorf("failed to create directory %s: %w", m.config.saveDir, err)}
+			return fileSavedMsg{err: fmt.Errorf("failed to create directory %s: %w", m.config.saveDir, err)}
 		}
 
-		// generate timestamp filename up to seconds
-		timestamp := time.Now().Format("20060102-150405")
-		filename := filepath.Join(m.config.saveDir, fmt.Sprintf("%s.txt", timestamp))
+		fullPath := filepath.Join(m.config.saveDir, filename)
 
 		// collect content without ANSI codes
 		var content strings.Builder
@@ -1451,12 +1488,11 @@ func (m *Model[T]) saveToFile() tea.Cmd {
 			content.WriteString("\n")
 		}
 
-		// write file
-		if err := os.WriteFile(filename, []byte(content.String()), 0600); err != nil {
-			return FileSavedMsg{Err: fmt.Errorf("failed to write file: %w", err)}
+		if err := os.WriteFile(fullPath, []byte(content.String()), 0600); err != nil {
+			return fileSavedMsg{err: fmt.Errorf("failed to write file: %w", err)}
 		}
 
-		return FileSavedMsg{Filename: filename, Err: nil}
+		return fileSavedMsg{filename: fullPath, err: nil}
 	}
 }
 

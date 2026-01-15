@@ -180,6 +180,11 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
+	if m.vp.IsCapturingInput() {
+		m.vp, cmd = m.vp.Update(msg)
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -319,6 +324,13 @@ func (m *Model[T]) AppendObjects(objects []T) {
 // FilterFocused returns true if the filter text input is focused
 func (m *Model[T]) FilterFocused() bool {
 	return m.filterTextInput.Focused()
+}
+
+// IsCapturingInput returns true when the filterableviewport or its underlying
+// viewport is capturing input (e.g., filter entry, filename entry). Callers
+// should check this before processing their own key bindings.
+func (m *Model[T]) IsCapturingInput() bool {
+	return m.filterTextInput.Focused() || m.vp.IsCapturingInput()
 }
 
 // GetWrapText returns whether text wrapping is enabled in the viewport

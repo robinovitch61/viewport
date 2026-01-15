@@ -54,7 +54,7 @@ ps aux | go run main.go
 - `s` - toggle selection mode
 
 ### File Operations
-- `ctrl+s` - save current contents to timestamped file (e.g., `pipeviewer-20241229-143052.txt`)
+- `ctrl+s` - save current contents to named file at ~/.pipeviewer/saved
 
 ### Other
 - `ctrl+c` or `ctrl+d` - quit
