@@ -69,7 +69,7 @@ func TestFilterableViewport_AllHotkeysTypedIntoFilename(t *testing.T) {
 	}
 
 	// save and verify filename contains all typed keys
-	fv, cmd := fv.Update(savingEnterKeyMsg)
+	_, cmd := fv.Update(savingEnterKeyMsg)
 	cmd()
 
 	expectedPath := filepath.Join(tmpDir, "/rnNo.txt")
@@ -106,7 +106,7 @@ func TestFilterableViewport_SaveDuringActiveFilter(t *testing.T) {
 
 	// save with default filename
 	fv, _ = fv.Update(saveKeyMsg)
-	fv, cmd := fv.Update(savingEnterKeyMsg)
+	_, cmd := fv.Update(savingEnterKeyMsg)
 	cmd()
 
 	// find and read the saved file
@@ -115,7 +115,7 @@ func TestFilterableViewport_SaveDuringActiveFilter(t *testing.T) {
 		t.Fatalf("expected 1 file, got %d", len(files))
 	}
 
-	content, _ := os.ReadFile(filepath.Join(tmpDir, files[0].Name()))
+	content, _ := os.ReadFile(filepath.Join(tmpDir, files[0].Name())) //nolint:gosec // test file path is safe
 	contentStr := string(content)
 
 	// should contain all lines, not just filtered ones
