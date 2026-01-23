@@ -341,7 +341,6 @@ func (m *Model[T]) GetWrapText() bool {
 // SetWrapText sets whether text wrapping is enabled in the viewport
 func (m *Model[T]) SetWrapText(wrapText bool) {
 	m.vp.SetWrapText(wrapText)
-	m.ensureCurrentMatchInView()
 }
 
 // GetSelectionEnabled returns whether selection is enabled in the viewport

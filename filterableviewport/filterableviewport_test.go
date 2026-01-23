@@ -1698,7 +1698,9 @@ func TestToggleWrap(t *testing.T) {
 		fv, _ = fv.Update(internal.MakeKeyMsg(c))
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
-	expectedNoWrap := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+
+	// at first the match is in view
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] lazy  (1/...",
 		"...ped over the " + focusedStyle.Render("l..."),
 		"",
@@ -1706,10 +1708,12 @@ func TestToggleWrap(t *testing.T) {
 		"",
 		footerStyle.Render("100% (1/1)"),
 	})
-	internal.CmpStr(t, expectedNoWrap, fv.View())
+	internal.CmpStr(t, expected, fv.View())
 
+	// when we toggle wrapping here, the match happens to still be in view, but we don't force that
+	// otherwise there would be surprising jumps if the user is scrolled away from the current match and toggles wrap
 	fv.SetWrapText(true)
-	expectedWrapped := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[exact] lazy  (1/...",
 		"the quick brown fox ",
 		"jumped over the " + focusedStyle.Render("lazy"),
@@ -1717,10 +1721,19 @@ func TestToggleWrap(t *testing.T) {
 		"",
 		footerStyle.Render("100% (1/1)"),
 	})
-	internal.CmpStr(t, expectedWrapped, fv.View())
+	internal.CmpStr(t, expected, fv.View())
 
+	// the match is out of view here, demonstrating the above comment
 	fv.SetWrapText(false)
-	internal.CmpStr(t, expectedNoWrap, fv.View())
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] lazy  (1/...",
+		"the quick brown f...",
+		"",
+		"",
+		"",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
 }
 
 func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
@@ -2514,4 +2527,67 @@ func TestMaxMatchLimitUnlimited(t *testing.T) {
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestToggleWrap_DoesNotJumpToMatchWhenScrolledAway(t *testing.T) {
+	fv := makeFilterableViewport(
+		30,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+		"line 4",
+		"line 5",
+		"line 6",
+		"match here",
+		"line 8",
+	}))
+
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"No Filter",
+		selectedItemStyle.Render("line 1"),
+		"line 2",
+		"line 3",
+		footerStyle.Render("12% (1/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "match" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/1 matches...",
+		"line 5",
+		"line 6",
+		focusedStyle.Render("match") + " here",
+		footerStyle.Render("12% (1/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	fv, _ = fv.Update(internal.MakeKeyMsg('g'))
+
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] match  (1/1 matches...",
+		selectedItemStyle.Render("line 1"),
+		"line 2",
+		"line 3",
+		footerStyle.Render("12% (1/8)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// toggling wrap should not change view
+	fv.SetWrapText(true)
+	internal.CmpStr(t, expected, fv.View())
+	fv.SetWrapText(false)
+	internal.CmpStr(t, expected, fv.View())
 }
