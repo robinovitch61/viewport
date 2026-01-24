@@ -10,6 +10,8 @@ type MultiItem struct {
 	items         []SingleItem
 	totalWidth    int    // cached total width across all items
 	contentNoAnsi string // cached concatenated content without ANSI escape codes
+	pinnedCount   int    // number of items to pin on the left (0 = no pinning)
+	pinnedWidth   int    // cached total width of pinned items
 }
 
 // type assertion that MultiItem implements Item
@@ -20,18 +22,38 @@ var _ Item = (*MultiItem)(nil)
 
 // NewMulti creates a new MultiItem from the given items
 func NewMulti(items ...SingleItem) MultiItem {
+	return NewMultiWithPinned(0, items...)
+}
+
+// NewMultiWithPinned creates a new MultiItem with the first pinnedCount items pinned to the left.
+// Pinned items are not affected by horizontal panning (widthToLeft) in Take().
+func NewMultiWithPinned(pinnedCount int, items ...SingleItem) MultiItem {
 	if len(items) == 0 {
 		return MultiItem{}
 	}
 
+	if pinnedCount < 0 {
+		pinnedCount = 0
+	}
+	if pinnedCount > len(items) {
+		pinnedCount = len(items)
+	}
+
 	totalWidth := 0
-	for _, item := range items {
-		totalWidth += item.Width()
+	pinnedWidth := 0
+	for i, item := range items {
+		w := item.Width()
+		totalWidth += w
+		if i < pinnedCount {
+			pinnedWidth += w
+		}
 	}
 
 	return MultiItem{
-		items:      items,
-		totalWidth: totalWidth,
+		items:       items,
+		totalWidth:  totalWidth,
+		pinnedCount: pinnedCount,
+		pinnedWidth: pinnedWidth,
 	}
 }
 
@@ -94,7 +116,9 @@ func (m MultiItem) ContentNoAnsi() string {
 	return m.contentNoAnsi
 }
 
-// Take returns a substring of the item that fits within the specified width
+// Take returns a substring of the item that fits within the specified width.
+// If pinnedCount > 0, the first pinnedCount items are rendered at offset 0 (ignoring widthToLeft),
+// and the remaining items are rendered with widthToLeft applied in the remaining viewport width.
 func (m MultiItem) Take(
 	widthToLeft,
 	takeWidth int,
@@ -104,9 +128,28 @@ func (m MultiItem) Take(
 	if len(m.items) == 0 {
 		return "", 0
 	}
-	if len(m.items) == 1 {
+
+	// for single item with no pinning, delegate directly
+	if len(m.items) == 1 && m.pinnedCount == 0 {
 		return m.items[0].Take(widthToLeft, takeWidth, continuation, highlights)
 	}
+
+	// if no pinned items, use standard logic
+	if m.pinnedCount == 0 {
+		return m.takeUnpinned(widthToLeft, takeWidth, continuation, highlights)
+	}
+
+	// handle pinned items (including single item that is pinned)
+	return m.takePinned(widthToLeft, takeWidth, continuation, highlights)
+}
+
+// takeUnpinned is used when no items are pinned
+func (m MultiItem) takeUnpinned(
+	widthToLeft,
+	takeWidth int,
+	continuation string,
+	highlights []Highlight,
+) (string, int) {
 	if widthToLeft >= m.totalWidth {
 		return "", 0
 	}
@@ -179,6 +222,202 @@ func (m MultiItem) Take(
 
 	res = removeEmptyAnsiSequences(res)
 	return res, takeWidth - remainingTotalWidth
+}
+
+// takePinned handles rendering when there are pinned items
+func (m MultiItem) takePinned(
+	widthToLeft,
+	takeWidth int,
+	continuation string,
+	highlights []Highlight,
+) (string, int) {
+	// edge case: pinned width >= takeWidth (pinned items fill entire viewport)
+	if m.pinnedWidth >= takeWidth {
+		return m.takePinnedOnly(takeWidth, continuation, highlights)
+	}
+
+	// calculate available width for non-pinned content
+	nonPinnedTakeWidth := takeWidth - m.pinnedWidth
+
+	// render pinned items at offset 0
+	pinnedResult, pinnedTaken := m.takePinnedItems(m.pinnedWidth, highlights)
+
+	// render non-pinned items with the original widthToLeft
+	nonPinnedResult, nonPinnedTaken := m.takeNonPinnedItems(
+		widthToLeft,
+		nonPinnedTakeWidth,
+		continuation,
+		highlights,
+	)
+
+	return pinnedResult + nonPinnedResult, pinnedTaken + nonPinnedTaken
+}
+
+// takePinnedItems renders just the pinned items at offset 0
+func (m MultiItem) takePinnedItems(takeWidth int, highlights []Highlight) (string, int) {
+	if m.pinnedCount == 0 || takeWidth <= 0 {
+		return "", 0
+	}
+
+	// take from pinned items
+	var result strings.Builder
+	remainingWidth := takeWidth
+
+	for i := 0; i < m.pinnedCount && remainingWidth > 0; i++ {
+		part, partWidth := m.items[i].Take(0, remainingWidth, "", []Highlight{})
+		if partWidth == 0 {
+			break
+		}
+		result.WriteString(part)
+		remainingWidth -= partWidth
+	}
+
+	res := result.String()
+
+	// calculate end byte for highlights (byte offset at end of pinned items)
+	endByteIdx := 0
+	for i := 0; i < m.pinnedCount; i++ {
+		endByteIdx += len(m.items[i].lineNoAnsi)
+	}
+
+	// apply highlights to pinned section
+	res = highlightString(
+		res,
+		highlights,
+		0,
+		min(endByteIdx, len(stripAnsi(res))),
+	)
+
+	return res, takeWidth - remainingWidth
+}
+
+// takeNonPinnedItems renders items after the pinned ones with the given offset
+func (m MultiItem) takeNonPinnedItems(
+	widthToLeft,
+	takeWidth int,
+	continuation string,
+	highlights []Highlight,
+) (string, int) {
+	if m.pinnedCount >= len(m.items) || takeWidth <= 0 {
+		return "", 0
+	}
+
+	// calculate the byte offset where non-pinned content starts
+	pinnedByteOffset := 0
+	for i := 0; i < m.pinnedCount; i++ {
+		pinnedByteOffset += len(m.items[i].lineNoAnsi)
+	}
+
+	// calculate total width of non-pinned items
+	nonPinnedTotalWidth := m.totalWidth - m.pinnedWidth
+
+	// if widthToLeft exceeds non-pinned content, return empty
+	if widthToLeft >= nonPinnedTotalWidth {
+		return "", 0
+	}
+
+	// find starting item and position within non-pinned items
+	skippedWidth := 0
+	skippedBytes := pinnedByteOffset
+	firstItemIdx := m.pinnedCount
+	startWidthFirstItem := widthToLeft
+
+	for i := m.pinnedCount; i < len(m.items); i++ {
+		itemWidth := m.items[i].Width()
+		if skippedWidth+itemWidth > widthToLeft {
+			firstItemIdx = i
+			startWidthFirstItem = widthToLeft - skippedWidth
+
+			runeIdx := m.items[i].findRuneIndexWithWidthToLeft(startWidthFirstItem)
+			var firstItemByteIdx int
+			if runeIdx < m.items[i].numNoAnsiRunes {
+				firstItemByteIdx = int(m.items[i].getByteOffsetAtRuneIdx(runeIdx))
+			} else {
+				firstItemByteIdx = len(m.items[i].line)
+			}
+			skippedBytes += firstItemByteIdx
+			break
+		}
+		skippedWidth += itemWidth
+		skippedBytes += len(m.items[i].lineNoAnsi)
+		startWidthFirstItem -= itemWidth
+	}
+
+	firstByteIdx := skippedBytes
+
+	// take from first non-pinned item
+	res, takenWidth := m.items[firstItemIdx].Take(startWidthFirstItem, takeWidth, "", []Highlight{})
+	remainingTotalWidth := takeWidth - takenWidth
+
+	// continue with subsequent items
+	currentItemIdx := firstItemIdx + 1
+	for remainingTotalWidth > 0 && currentItemIdx < len(m.items) {
+		nextPart, partWidth := m.items[currentItemIdx].Take(0, remainingTotalWidth, "", []Highlight{})
+		if partWidth == 0 {
+			break
+		}
+		res += nextPart
+		remainingTotalWidth -= partWidth
+		currentItemIdx++
+	}
+
+	// apply highlights
+	res = highlightString(
+		res,
+		highlights,
+		firstByteIdx,
+		firstByteIdx+len(stripAnsi(res)),
+	)
+
+	// apply continuation indicators for non-pinned section
+	if len(continuation) > 0 {
+		contentToLeft := widthToLeft > 0
+		contentToRight := nonPinnedTotalWidth-widthToLeft > takeWidth-remainingTotalWidth
+		if contentToLeft || contentToRight {
+			continuationRunes := []rune(continuation)
+			if contentToLeft {
+				res = replaceStartWithContinuation(res, continuationRunes)
+			}
+			if contentToRight {
+				res = replaceEndWithContinuation(res, continuationRunes)
+			}
+		}
+	}
+
+	return res, takeWidth - remainingTotalWidth
+}
+
+// takePinnedOnly handles case where pinned width >= viewport width
+func (m MultiItem) takePinnedOnly(takeWidth int, continuation string, highlights []Highlight) (string, int) {
+	// render only pinned items, applying continuation if they overflow
+	var result strings.Builder
+	remainingWidth := takeWidth
+
+	for i := 0; i < m.pinnedCount && remainingWidth > 0; i++ {
+		part, partWidth := m.items[i].Take(0, remainingWidth, "", []Highlight{})
+		if partWidth == 0 {
+			break
+		}
+		result.WriteString(part)
+		remainingWidth -= partWidth
+	}
+
+	res := result.String()
+
+	// calculate byte range for highlights
+	endByteIdx := 0
+	for i := 0; i < m.pinnedCount; i++ {
+		endByteIdx += len(m.items[i].lineNoAnsi)
+	}
+
+	res = highlightString(res, highlights, 0, min(endByteIdx, len(stripAnsi(res))))
+
+	// apply continuation if pinned items overflow viewport
+	if len(continuation) > 0 && m.pinnedWidth > takeWidth {
+		res = replaceEndWithContinuation(res, []rune(continuation))
+	}
+
+	return res, takeWidth - remainingWidth
 }
 
 // NumWrappedLines returns the number of wrapped lines given a wrap width

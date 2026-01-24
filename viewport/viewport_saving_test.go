@@ -177,7 +177,7 @@ func TestFileSaving_EnterWithCustomFilename(t *testing.T) {
 		vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 	}
 
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 
 	if cmd == nil {
 		t.Fatal("expected saveToFile command")
@@ -214,7 +214,7 @@ func TestFileSaving_CustomFilenameWithExtension(t *testing.T) {
 		vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 	}
 
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 	msg := cmd()
 	savedMsg := msg.(fileSavedMsg)
 
@@ -238,7 +238,7 @@ func TestFileSaving_ContentStripsAnsiCodes(t *testing.T) {
 	vp.SetObjects(objects)
 
 	vp, _ = vp.Update(saveKeyMsg)
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 
 	msg := cmd()
 	savedMsg := msg.(fileSavedMsg)
@@ -330,7 +330,7 @@ func TestFileSaving_IgnoresSaveKeyWhenAlreadyCapturingInput(t *testing.T) {
 	}
 
 	// verify we can still complete the save with the typed filename
-	vp, cmd = vp.Update(enterKeyMsg)
+	_, cmd = vp.Update(enterKeyMsg)
 	if cmd == nil {
 		t.Fatal("expected save command")
 	}
@@ -353,7 +353,7 @@ func TestFileSaving_TextInputReceivesKeyMessages(t *testing.T) {
 	vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
 
 	// verify by completing the save and checking filename
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 	msg := cmd()
 	savedMsg := msg.(fileSavedMsg)
 
@@ -416,7 +416,7 @@ func TestFileSaving_NavigationKeysIgnoredDuringFilenameEntry(t *testing.T) {
 	vp, _ = vp.Update(internal.MakeKeyMsg('G')) // bottom
 
 	// filename should be jkgG.txt
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 	msg := cmd()
 	savedMsg := msg.(fileSavedMsg)
 
@@ -436,7 +436,7 @@ func TestFileSaving_CreatesDirIfNotExists(t *testing.T) {
 	setSaveTestContent(vp, []string{"test content"})
 
 	vp, _ = vp.Update(saveKeyMsg)
-	vp, cmd := vp.Update(enterKeyMsg)
+	_, cmd := vp.Update(enterKeyMsg)
 
 	msg := cmd()
 	savedMsg := msg.(fileSavedMsg)

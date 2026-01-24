@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	lineNumberStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	lineNumberStyleEven = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	lineNumberStyleOdd  = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")).Background(lipgloss.Color("#262626"))
 )
 
 type object struct {
@@ -26,7 +27,8 @@ type object struct {
 }
 
 func (o object) GetItem() item.Item {
-	return item.NewMulti(o.lineNumber, o.content)
+	// pin the first item (line number) so it stays visible during horizontal panning.
+	return item.NewMultiWithPinned(1, o.lineNumber, o.content)
 }
 
 type appKeys struct {
@@ -151,9 +153,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			for i := range m.objects {
 				lineNum := ""
 				if m.showLineNumbers {
-					lineNum = fmt.Sprintf("%d", i+1) + " "
+					num := fmt.Sprintf("%d ", i+1)
+					// alternate background color for each line
+					if (i+1)%2 == 1 {
+						lineNum = lineNumberStyleOdd.Render(num)
+					} else {
+						lineNum = lineNumberStyleEven.Render(num)
+					}
 				}
-				m.objects[i].lineNumber = item.NewItem(lineNumberStyle.Render(lineNum))
+				m.objects[i].lineNumber = item.NewItem(lineNum)
 			}
 			m.fv.SetObjects(m.objects)
 			return m, nil

@@ -440,6 +440,193 @@ func TestMultiItem_Take(t *testing.T) {
 	}
 }
 
+func TestMultiItem_TakeWithPinned(t *testing.T) {
+	tests := []struct {
+		name           string
+		items          []SingleItem
+		pinnedCount    int
+		widthToLeft    int
+		takeWidth      int
+		continuation   string
+		toHighlight    string
+		highlightStyle lipgloss.Style
+		expected       string
+	}{
+		{
+			name:        "single pinned item, no pan",
+			items:       []SingleItem{NewItem("123"), NewItem("hello world")},
+			pinnedCount: 1,
+			widthToLeft: 0,
+			takeWidth:   14,
+			expected:    "123hello world",
+		},
+		{
+			name:        "single pinned item, panned right",
+			items:       []SingleItem{NewItem("123"), NewItem("hello world")},
+			pinnedCount: 1,
+			widthToLeft: 6, // pans "hello " off screen
+			takeWidth:   8, // 3 for "123" + 5 for "world"
+			expected:    "123world",
+		},
+		{
+			name:         "pinned item with continuation on non-pinned left and right",
+			items:        []SingleItem{NewItem("123"), NewItem("hello world")},
+			pinnedCount:  1,
+			widthToLeft:  3, // pans "hel" off screen
+			takeWidth:    10,
+			continuation: "...",
+			// non-pinned takeWidth = 10-3 = 7, "hello world" skips "hel" -> "lo world" (8 chars)
+			// take 7 -> "lo worl", contentToLeft=true, contentToRight=true
+			// replaceStart -> "...worl", replaceEnd -> "...w..."
+			expected: "123...w...",
+		},
+		{
+			name:         "pinned item with continuation on non-pinned right only",
+			items:        []SingleItem{NewItem("123"), NewItem("hello world")},
+			pinnedCount:  1,
+			widthToLeft:  0,
+			takeWidth:    8,
+			continuation: "...",
+			// non-pinned takeWidth = 8-3 = 5, "hello world" take 5 -> "hello"
+			// contentToLeft=false, contentToRight=true (11 > 5)
+			// replaceEnd -> "he..."
+			expected: "123he...",
+		},
+		{
+			name:        "pinned width equals viewport",
+			items:       []SingleItem{NewItem("12345"), NewItem("hello")},
+			pinnedCount: 1,
+			widthToLeft: 0,
+			takeWidth:   5,
+			expected:    "12345",
+		},
+		{
+			name:         "pinned width exceeds viewport",
+			items:        []SingleItem{NewItem("1234567890"), NewItem("hello")},
+			pinnedCount:  1,
+			widthToLeft:  0,
+			takeWidth:    5,
+			continuation: "...",
+			expected:     "12...",
+		},
+		{
+			name:        "all items pinned ignores widthToLeft",
+			items:       []SingleItem{NewItem("abc"), NewItem("def")},
+			pinnedCount: 2,
+			widthToLeft: 5, // should be ignored
+			takeWidth:   6,
+			expected:    "abcdef",
+		},
+		{
+			name:        "panned past non-pinned content returns only pinned",
+			items:       []SingleItem{NewItem("123"), NewItem("hi")},
+			pinnedCount: 1,
+			widthToLeft: 10, // past "hi"
+			takeWidth:   5,
+			expected:    "123", // only pinned content
+		},
+		{
+			name:        "zero pinned count behaves like regular Take",
+			items:       []SingleItem{NewItem("abc"), NewItem("def")},
+			pinnedCount: 0,
+			widthToLeft: 2,
+			takeWidth:   3,
+			expected:    "cde",
+		},
+		{
+			name:           "highlight in pinned section",
+			items:          []SingleItem{NewItem("123"), NewItem("hello")},
+			pinnedCount:    1,
+			widthToLeft:    0,
+			takeWidth:      8,
+			toHighlight:    "12",
+			highlightStyle: internal.RedBg,
+			expected:       internal.RedBg.Render("12") + "3hello",
+		},
+		{
+			name:           "highlight in non-pinned section",
+			items:          []SingleItem{NewItem("123"), NewItem("hello")},
+			pinnedCount:    1,
+			widthToLeft:    0,
+			takeWidth:      8,
+			toHighlight:    "ell",
+			highlightStyle: internal.RedBg,
+			expected:       "123h" + internal.RedBg.Render("ell") + "o",
+		},
+		{
+			name:        "pinned item with ANSI",
+			items:       []SingleItem{NewItem(internal.RedBg.Render("123")), NewItem("hello")},
+			pinnedCount: 1,
+			widthToLeft: 2, // pans "he" off
+			takeWidth:   6, // 3 for "123" + 3 for "llo"
+			expected:    internal.RedBg.Render("123") + "llo",
+		},
+		{
+			name:        "two pinned items",
+			items:       []SingleItem{NewItem("A"), NewItem("B"), NewItem("hello world")},
+			pinnedCount: 2,
+			widthToLeft: 6, // pans "hello " off
+			takeWidth:   7, // 2 for "AB" + 5 for "world"
+			expected:    "ABworld",
+		},
+		{
+			name:        "pinned with unicode non-pinned",
+			items:       []SingleItem{NewItem("12"), NewItem("A💖中é")}, // 💖 is 2w, 中 is 2w, é is 1w = 6 total
+			pinnedCount: 1,
+			widthToLeft: 1, // skip "A" (1w)
+			takeWidth:   7, // 2 for "12" + 5 for "💖中é"
+			expected:    "12💖中é",
+		},
+		{
+			name:        "empty items",
+			items:       []SingleItem{},
+			pinnedCount: 1,
+			widthToLeft: 0,
+			takeWidth:   10,
+			expected:    "",
+		},
+		{
+			name:        "single item pinned",
+			items:       []SingleItem{NewItem("hello")},
+			pinnedCount: 1,
+			widthToLeft: 2, // should be ignored for single item
+			takeWidth:   5,
+			expected:    "hello",
+		},
+		{
+			name:        "pinnedCount clamped to len",
+			items:       []SingleItem{NewItem("ab"), NewItem("cd")},
+			pinnedCount: 10, // exceeds 2 items, should clamp to 2 (all items pinned)
+			widthToLeft: 5,  // panning should have no effect when all items pinned
+			takeWidth:   4,
+			expected:    "abcd",
+		},
+		{
+			name:        "negative pinnedCount clamped to zero",
+			items:       []SingleItem{NewItem("ab"), NewItem("cd")},
+			pinnedCount: -5, // should clamp to 0 (no pinning)
+			widthToLeft: 2,  // with no pinning, panning 2 chars should skip "ab"
+			takeWidth:   2,
+			expected:    "cd",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			multi := NewMultiWithPinned(tt.pinnedCount, tt.items...)
+
+			var highlights []Highlight
+			if tt.toHighlight != "" {
+				matches := multi.ExtractExactMatches(tt.toHighlight)
+				highlights = toHighlights(matches, tt.highlightStyle)
+			}
+
+			actual, _ := multi.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
+			internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for pinnedCount=%d", tt.pinnedCount))
+		})
+	}
+}
+
 func TestMultiItem_NumWrappedLines(t *testing.T) {
 	tests := []struct {
 		name      string
