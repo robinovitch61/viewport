@@ -8,6 +8,7 @@ import (
 type KeyMap struct {
 	FilterKey                  key.Binding
 	RegexFilterKey             key.Binding
+	CaseInsensitiveFilterKey   key.Binding
 	ApplyFilterKey             key.Binding
 	CancelFilterKey            key.Binding
 	ToggleMatchingItemsOnlyKey key.Binding
@@ -25,6 +26,10 @@ func DefaultKeyMap() KeyMap {
 		RegexFilterKey: key.NewBinding(
 			key.WithKeys("r"),
 			key.WithHelp("r", "regex filter"),
+		),
+		CaseInsensitiveFilterKey: key.NewBinding(
+			key.WithKeys("i"),
+			key.WithHelp("i", "case insensitive filter"),
 		),
 		ApplyFilterKey: key.NewBinding(
 			key.WithKeys("enter"),

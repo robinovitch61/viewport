@@ -206,6 +206,29 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
+		case key.Matches(msg, m.keyMap.CaseInsensitiveFilterKey):
+			if m.filterMode != filterModeEditing {
+				m.isRegexMode = true
+				currentValue := m.filterTextInput.Value()
+				if currentValue == "" {
+					m.filterTextInput.SetValue("(?i)")
+					m.filterTextInput.SetCursor(4)
+				} else if newValue, found := strings.CutPrefix(currentValue, "(?i)"); found {
+					// Toggle off: remove the (?i) prefix
+					m.filterTextInput.SetValue(newValue)
+					m.filterTextInput.SetCursor(len(newValue))
+				} else {
+					// Toggle on: add the (?i) prefix
+					newValue := "(?i)" + currentValue
+					m.filterTextInput.SetValue(newValue)
+					m.filterTextInput.SetCursor(len(newValue))
+				}
+				m.filterTextInput.Focus()
+				m.filterMode = filterModeEditing
+				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
+				return m, textinput.Blink
+			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
 			if m.filterMode == filterModeEditing {
 				m.filterTextInput.Blur()

@@ -25,14 +25,15 @@ func (i object) GetItem() item.Item {
 var _ viewport.Object = object{}
 
 var (
-	filterKeyMsg        = internal.MakeKeyMsg('/')
-	regexFilterKeyMsg   = internal.MakeKeyMsg('r')
-	applyFilterKeyMsg   = tea.KeyPressMsg{Code: tea.KeyEnter, Text: "enter"}
-	cancelFilterKeyMsg  = tea.KeyPressMsg{Code: tea.KeyEscape, Text: "esc"}
-	toggleMatchesKeyMsg = internal.MakeKeyMsg('o')
-	nextMatchKeyMsg     = internal.MakeKeyMsg('n')
-	prevMatchKeyMsg     = internal.MakeKeyMsg('N')
-	downKeyMsg          = tea.KeyPressMsg{Code: tea.KeyDown, Text: "down"}
+	filterKeyMsg                = internal.MakeKeyMsg('/')
+	regexFilterKeyMsg           = internal.MakeKeyMsg('r')
+	caseInsensitiveFilterKeyMsg = internal.MakeKeyMsg('i')
+	applyFilterKeyMsg           = tea.KeyPressMsg{Code: tea.KeyEnter, Text: "enter"}
+	cancelFilterKeyMsg          = tea.KeyPressMsg{Code: tea.KeyEscape, Text: "esc"}
+	toggleMatchesKeyMsg         = internal.MakeKeyMsg('o')
+	nextMatchKeyMsg             = internal.MakeKeyMsg('n')
+	prevMatchKeyMsg             = internal.MakeKeyMsg('N')
+	downKeyMsg                  = tea.KeyPressMsg{Code: tea.KeyDown, Text: "down"}
 
 	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
@@ -404,6 +405,122 @@ func TestRegexFilterKeyFocus(t *testing.T) {
 	if !fv.FilterFocused() {
 		t.Error("filter should be focused after pressing regex filter key")
 	}
+}
+
+func TestCaseInsensitiveFilterKeyEmpty(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+	if !fv.FilterFocused() {
+		t.Error("filter should be focused after pressing case insensitive filter key")
+	}
+
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	// 'a' matches 'A' in Apple and 3 'a's in banana = 4 matches on 2 items
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		focusedStyle.Render("A") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestCaseInsensitiveFilterKeyAddsPrefix(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
+
+	// exact filter
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// exact filter matches only lowercase 'a'
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] Filter: a  (1/3 matches on 1 items)",
+		"Apple",
+		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// 'i' to add case-insensitive prefix
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+
+	// now has (?i) prefix and matches both cases
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: (?i)a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		focusedStyle.Render("A") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestCaseInsensitiveFilterKeyTogglesPrefix(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
+
+	// case-insensitive filter
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// case-insensitive matching (matches both 'A' and 'a')
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		focusedStyle.Render("A") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// 'i' again to toggle off (remove prefix)
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+
+	// prefix is removed and now only matches lowercase 'a'
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: a" + cursorStyle.Render(" ") + " (1/3 matches on 1 items)",
+		"Apple",
+		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// 'i' again to toggle back on
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+
+	// prefix is added back
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: (?i)a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		focusedStyle.Render("A") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
 }
 
 func TestApplyFilterKey(t *testing.T) {
