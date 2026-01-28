@@ -7,7 +7,7 @@ import (
 
 	"github.com/robinovitch61/bubbleo/internal"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 func getEquivalentItems() map[string][]Item {
@@ -204,7 +204,7 @@ func TestMultiItem_Take(t *testing.T) {
 			continuation:   "...",
 			toHighlight:    "lo ",
 			highlightStyle: internal.RedBg,
-			expected:       "..\x1b[48;2;255;0;0m.o.\x1b[0m..",
+			expected:       "..\x1b[48;2;255;0;0m.o." + RST + "..",
 		},
 		{
 			name:           "ansi start at 0",

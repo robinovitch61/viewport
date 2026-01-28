@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/key"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
 
@@ -154,8 +154,8 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	// route all messages to filename textinput when actively entering filename
 	if m.config.saveState.enteringFilename {
-		if keyMsg, ok := msg.(tea.KeyMsg); ok {
-			switch keyMsg.Type {
+		if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+			switch keyMsg.Code {
 			case tea.KeyEnter:
 				filename := m.config.saveState.filenameInput.Value()
 				if filename == "" {
@@ -190,7 +190,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			ti.Placeholder = time.Now().Format("20060102-150405") + ".txt"
 			ti.Focus()
 			ti.CharLimit = 256
-			ti.Width = m.display.bounds.width - 20
+			ti.SetWidth(m.display.bounds.width - 20)
 			m.config.saveState.filenameInput = ti
 			m.config.saveState.enteringFilename = true
 			return m, textinput.Blink

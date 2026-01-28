@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // ByteRange represents a range of bytes

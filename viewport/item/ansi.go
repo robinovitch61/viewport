@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // highlightRange represents a highlight with start/end positions and style
@@ -15,8 +15,14 @@ type highlightRange struct {
 }
 
 // RST is the ansi escape sequence for resetting styles
-// note that in future charm library versions this may change to "\x1b[m"
-const RST = "\x1b[0m"
+// lipgloss v2 uses the short form "\x1b[m"
+const RST = "\x1b[m"
+
+// isResetCode checks if a code is an ANSI reset sequence
+// Both "\x1b[0m" and "\x1b[m" are valid reset codes
+func isResetCode(code string) bool {
+	return code == "\x1b[0m" || code == "\x1b[m"
+}
 
 // reapplyAnsi reconstructs ANSI escape sequences in a truncated string based on their positions in the original.
 // It ensures that any active text formatting (colors, styles) from the original string is correctly maintained
@@ -45,7 +51,7 @@ func reapplyAnsi(original, truncated string, truncByteOffset int, ansiCodeIndexe
 			originalByteIdx := truncByteOffset + i + lenAnsiAdded
 			if codeStart <= originalByteIdx {
 				code := original[codeStart:codeEnd]
-				isReset = code == RST
+				isReset = isResetCode(code)
 				ansisToAdd = append(ansisToAdd, code)
 				lenAnsiAdded += codeEnd - codeStart
 				ansiCodeIndexes = ansiCodeIndexes[1:]
@@ -164,7 +170,7 @@ func highlightString(
 			if ansiLen != -1 {
 				escEnd := i + ansiLen + 1
 				ansi := styledSegment[i:escEnd]
-				if ansi == RST {
+				if isResetCode(ansi) {
 					activeStyles = []string{} // reset
 				} else {
 					activeStyles = append(activeStyles, ansi) // add new active style
@@ -269,7 +275,7 @@ func simplifyAnsiCodes(ansis []string) []string {
 	// if there's just a bunch of reset sequences, compress it to one
 	allReset := true
 	for _, ansi := range ansis {
-		if ansi != RST {
+		if !isResetCode(ansi) {
 			allReset = false
 			break
 		}
@@ -280,10 +286,10 @@ func simplifyAnsiCodes(ansis []string) []string {
 
 	// return all ansis to the right of the rightmost reset seq
 	for i := len(ansis) - 1; i >= 0; i-- {
-		if ansis[i] == RST {
+		if isResetCode(ansis[i]) {
 			result := ansis[i+1:]
 			// keep reset at the start if present
-			if ansis[0] == RST {
+			if isResetCode(ansis[0]) {
 				return append([]string{RST}, result...)
 			}
 			return result

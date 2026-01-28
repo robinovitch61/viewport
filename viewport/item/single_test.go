@@ -7,7 +7,7 @@ import (
 
 	"github.com/robinovitch61/bubbleo/internal"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 func TestSingle_Width(t *testing.T) {
@@ -681,7 +681,7 @@ func TestSingle_Take(t *testing.T) {
 			highlightStyle: internal.RedBg,
 			numTakes:       1,
 			expected: []string{
-				"a very norma\x1b[48;2;255;0;0m...\x1b[0m",
+				"a very norma\x1b[48;2;255;0;0m..." + RST,
 			},
 		},
 		{
@@ -694,7 +694,7 @@ func TestSingle_Take(t *testing.T) {
 			startWidth:     1,
 			numTakes:       1,
 			expected: []string{
-				".\x1b[48;2;255;0;0m..ry\x1b[0m normal...",
+				".\x1b[48;2;255;0;0m..ry" + RST + " normal...",
 			},
 		},
 		{
@@ -821,8 +821,8 @@ func TestSingle_Take(t *testing.T) {
 			highlightStyle: internal.RedBg,
 			numTakes:       2,
 			expected: []string{
-				"\x1b[48;2;255;0;0m世界..\x1b[0m",
-				"\x1b[48;2;255;0;0m..\x1b[0m\x1b[38;2;0;0;255m界🌟\x1b[0m",
+				"\x1b[48;2;255;0;0m世界.." + RST,
+				"\x1b[48;2;255;0;0m.." + RST + "\x1b[38;2;0;0;255m界🌟" + RST,
 			},
 		},
 		{

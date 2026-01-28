@@ -6,19 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/internal"
 	"github.com/robinovitch61/bubbleo/viewport/item"
-
-	"github.com/muesli/termenv"
-
-	"github.com/charmbracelet/lipgloss"
 )
-
-// Note: this won't be necessary in future charm library versions
-func init() {
-	// Force TrueColor profile for consistent test output
-	lipgloss.SetColorProfile(termenv.TrueColor)
-}
 
 type object struct {
 	item item.Item

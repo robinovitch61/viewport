@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // displayManager handles all display/rendering concerns

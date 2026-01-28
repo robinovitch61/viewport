@@ -1,8 +1,8 @@
 package viewport
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/v2/key"
+	"github.com/charmbracelet/bubbles/v2/textinput"
 )
 
 // fileSaveState tracks the state of file saving operations

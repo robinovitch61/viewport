@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/robinovitch61/bubbleo/internal"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/item"
@@ -23,9 +23,9 @@ func (o saveTestObject) GetItem() item.Item {
 
 var (
 	saveKey            = key.NewBinding(key.WithKeys("ctrl+s"))
-	saveKeyMsg         = tea.KeyMsg{Type: tea.KeyCtrlS}
-	savingEnterKeyMsg  = tea.KeyMsg{Type: tea.KeyEnter}
-	savingEscapeKeyMsg = tea.KeyMsg{Type: tea.KeyEscape}
+	saveKeyMsg         = tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl}
+	savingEnterKeyMsg  = tea.KeyPressMsg{Code: tea.KeyEnter, Text: "enter"}
+	savingEscapeKeyMsg = tea.KeyPressMsg{Code: tea.KeyEscape, Text: "esc"}
 )
 
 func newSaveTestFilterableViewport(t *testing.T) (*Model[saveTestObject], string) {

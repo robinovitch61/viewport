@@ -6,20 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/internal"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
-
-// Note: this won't be necessary in future charm library versions
-func init() {
-	// Force TrueColor profile for consistent test output
-	lipgloss.SetColorProfile(termenv.TrueColor)
-}
 
 type object struct {
 	item item.Item
@@ -34,12 +27,12 @@ var _ viewport.Object = object{}
 var (
 	filterKeyMsg        = internal.MakeKeyMsg('/')
 	regexFilterKeyMsg   = internal.MakeKeyMsg('r')
-	applyFilterKeyMsg   = tea.KeyMsg{Type: tea.KeyEnter}
-	cancelFilterKeyMsg  = tea.KeyMsg{Type: tea.KeyEsc}
+	applyFilterKeyMsg   = tea.KeyPressMsg{Code: tea.KeyEnter, Text: "enter"}
+	cancelFilterKeyMsg  = tea.KeyPressMsg{Code: tea.KeyEscape, Text: "esc"}
 	toggleMatchesKeyMsg = internal.MakeKeyMsg('o')
 	nextMatchKeyMsg     = internal.MakeKeyMsg('n')
 	prevMatchKeyMsg     = internal.MakeKeyMsg('N')
-	downKeyMsg          = tea.KeyMsg{Type: tea.KeyDown}
+	downKeyMsg          = tea.KeyPressMsg{Code: tea.KeyDown, Text: "down"}
 
 	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
@@ -1459,9 +1452,8 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 			t.Fatal("expected focused match in initial view")
 		}
 
-		downMsg := tea.KeyMsg{Type: tea.KeyDown}
 		for i := 0; i < height; i++ {
-			fv, _ = fv.Update(downMsg)
+			fv, _ = fv.Update(downKeyMsg)
 			view := fv.View()
 
 			// after first scroll, focused match should go out of view
@@ -1508,12 +1500,11 @@ func TestScrollingWithManyHighlightedMatchesPerformanceSelectionEnabled(t *testi
 			t.Fatal("expected focused match in initial view")
 		}
 
-		downMsg := tea.KeyMsg{Type: tea.KeyDown}
 		// with selection enabled, the viewport keeps the selected item (with focused match) in view
 		// height - 2 accounts for header and footer lines, leaving content lines
 		contentLines := height - 2
 		for i := 0; i < height; i++ {
-			fv, _ = fv.Update(downMsg)
+			fv, _ = fv.Update(downKeyMsg)
 			view := fv.View()
 
 			// for first (contentLines - 1) scrolls, focused match stays in view

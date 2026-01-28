@@ -7,18 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/internal"
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
-
-// Note: this won't be necessary in future charm library versions
-func init() {
-	lipgloss.SetColorProfile(termenv.TrueColor)
-}
 
 type saveTestObject struct {
 	item item.Item
@@ -29,10 +23,10 @@ func (o saveTestObject) GetItem() item.Item {
 }
 
 var (
-	enterKeyMsg  = tea.KeyMsg{Type: tea.KeyEnter}
-	escapeKeyMsg = tea.KeyMsg{Type: tea.KeyEscape}
+	enterKeyMsg  = tea.KeyPressMsg{Code: tea.KeyEnter, Text: "enter"}
+	escapeKeyMsg = tea.KeyPressMsg{Code: tea.KeyEscape, Text: "esc"}
 	saveKey      = key.NewBinding(key.WithKeys("ctrl+s"))
-	saveKeyMsg   = tea.KeyMsg{Type: tea.KeyCtrlS}
+	saveKeyMsg   = tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl}
 )
 
 func newSaveTestViewport(t *testing.T) (*Model[saveTestObject], string) {
@@ -174,7 +168,7 @@ func TestFileSaving_EnterWithCustomFilename(t *testing.T) {
 
 	// type custom filename
 	for _, r := range "myfile" {
-		vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		vp, _ = vp.Update(internal.MakeKeyMsg(r))
 	}
 
 	_, cmd := vp.Update(enterKeyMsg)
@@ -211,7 +205,7 @@ func TestFileSaving_CustomFilenameWithExtension(t *testing.T) {
 
 	// type filename with .txt extension already
 	for _, r := range "already.txt" {
-		vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		vp, _ = vp.Update(internal.MakeKeyMsg(r))
 	}
 
 	_, cmd := vp.Update(enterKeyMsg)
@@ -316,7 +310,7 @@ func TestFileSaving_IgnoresSaveKeyWhenAlreadyCapturingInput(t *testing.T) {
 	}
 
 	// type something
-	vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	vp, _ = vp.Update(internal.MakeKeyMsg('a'))
 
 	// press save key again - should be ignored, typed text preserved
 	vp, cmd := vp.Update(saveKeyMsg)
@@ -348,9 +342,9 @@ func TestFileSaving_TextInputReceivesKeyMessages(t *testing.T) {
 	vp, _ = vp.Update(saveKeyMsg)
 
 	// type some characters
-	vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
-	vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
-	vp, _ = vp.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	vp, _ = vp.Update(internal.MakeKeyMsg('a'))
+	vp, _ = vp.Update(internal.MakeKeyMsg('b'))
+	vp, _ = vp.Update(internal.MakeKeyMsg('c'))
 
 	// verify by completing the save and checking filename
 	_, cmd := vp.Update(enterKeyMsg)

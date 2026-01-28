@@ -1,7 +1,7 @@
 package filterableviewport
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // Styles contains styling configuration for the filterable viewport

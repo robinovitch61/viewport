@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/filterableviewport"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/item"
@@ -96,11 +96,11 @@ func linesToObjects(lines []string) []object {
 	return objects
 }
 
-func (m model) Init() tea.Cmd {
+func (m model) Init() (tea.Model, tea.Cmd) {
 	if stdinIsPipe() {
-		return readStdinCmd()
+		return m, readStdinCmd()
 	}
-	return nil
+	return m, nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

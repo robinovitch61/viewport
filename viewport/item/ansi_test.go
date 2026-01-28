@@ -4,18 +4,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/internal"
-
-	"github.com/muesli/termenv"
-
-	"github.com/charmbracelet/lipgloss"
 )
-
-// Note: this won't be necessary in future charm library versions
-func init() {
-	// Force TrueColor profile for consistent test output
-	lipgloss.SetColorProfile(termenv.TrueColor)
-}
 
 func TestAnsi_reapplyAnsi(t *testing.T) {
 	tests := []struct {
