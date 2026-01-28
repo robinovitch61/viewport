@@ -43,7 +43,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("n", "next match"),
 		),
 		PrevMatchKey: key.NewBinding(
-			key.WithKeys("N"),
+			key.WithKeys("shift+n"),
 			key.WithHelp("N", "previous match"),
 		),
 	}

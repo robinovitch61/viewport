@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -113,7 +114,11 @@ func Pad(width, height int, lines []string) string {
 	return strings.Join(res, "\n")
 }
 
-// MakeKeyMsg creates a tea.KeyPressMsg for the given rune
+// MakeKeyMsg creates a tea.KeyPressMsg for the given rune.
+// For uppercase letters, it sets the shift modifier and uses the lowercase code.
 func MakeKeyMsg(k rune) tea.KeyPressMsg {
+	if unicode.IsUpper(k) {
+		return tea.KeyPressMsg{Code: unicode.ToLower(k), Text: string(k), Mod: tea.ModShift}
+	}
 	return tea.KeyPressMsg{Code: k, Text: string(k)}
 }
