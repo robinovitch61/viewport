@@ -40,8 +40,8 @@ type appKeys struct {
 
 var appKeyMap = appKeys{
 	quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quit"),
+		key.WithKeys("ctrl+c", "q"),
+		key.WithHelp("ctrl+c/q", "quit"),
 	),
 	toggleShowLineNumbersKey: key.NewBinding(
 		key.WithKeys("l"),
@@ -132,8 +132,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		// allow quitting with ctrl+c even when filter is focused
-		if key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))) {
+		// always allow ctrl+c to quit
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
 
@@ -145,6 +145,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fv, cmd = m.fv.Update(msg)
 			cmds = append(cmds, cmd)
 			return m, tea.Batch(cmds...)
+		}
+
+		// only allow 'q' to quit when not capturing input
+		if key.Matches(msg, appKeyMap.quit) {
+			return m, tea.Quit
 		}
 
 		switch {
