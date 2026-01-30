@@ -129,6 +129,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case stdinDoneMsg:
+		// exit if EOF with no content
+		if len(m.objects) == 0 && len(m.bufferedLines) == 0 {
+			return m, tea.Quit
+		}
 		return m, nil
 
 	case tea.KeyMsg:
