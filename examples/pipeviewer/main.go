@@ -191,7 +191,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewportHeight,
 				viewport.WithKeyMap[object](viewportKeyMap),
 				viewport.WithStyles[object](viewport.DefaultStyles()),
-				viewport.WithStickyBottom[object](true),
+				viewport.WithStickyBottom[object](false),
 				viewport.WithFileSaving[object](saveDir, saveKey),
 			)
 			m.fv = filterableviewport.New[object](
