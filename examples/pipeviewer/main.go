@@ -97,8 +97,8 @@ func linesToObjects(lines []string) []object {
 }
 
 func (m model) Init() (tea.Model, tea.Cmd) {
-	if stdinIsPipe() {
-		return m, readStdinCmd()
+	if readingFromInput {
+		return m, readInputCmd()
 	}
 	return m, nil
 }
@@ -123,8 +123,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// viewport not ready yet, buffer the lines
 			m.bufferedLines = append(m.bufferedLines, msg.lines...)
 		}
-		if stdinIsPipe() {
-			return m, readStdinCmd()
+		if readingFromInput {
+			return m, readInputCmd()
 		}
 		return m, nil
 
@@ -232,20 +232,17 @@ func (m model) View() string {
 	return m.fv.View()
 }
 
-var stdinReader *bufio.Reader
+var inputReader *bufio.Reader
+var readingFromInput bool
 
-func init() {
-	stdinReader = bufio.NewReader(os.Stdin)
-}
-
-// readStdinCmd reads lines from stdin in batches and returns them as a message
-func readStdinCmd() tea.Cmd {
+// readInputCmd reads lines from the input source in batches and returns them as a message
+func readInputCmd() tea.Cmd {
 	return func() tea.Msg {
 		const maxBatchSize = 500
 		lines := make([]string, 0, maxBatchSize)
 
 		for range maxBatchSize {
-			line, err := stdinReader.ReadString('\n')
+			line, err := inputReader.ReadString('\n')
 			if err == io.EOF {
 				if len(line) > 0 {
 					lines = append(lines, strings.TrimSuffix(line, "\n"))
@@ -265,7 +262,7 @@ func readStdinCmd() tea.Cmd {
 
 			// check if more data is immediately available, otherwise return what we have
 			// this prevents blocking when data arrives slowly
-			if stdinReader.Buffered() == 0 {
+			if inputReader.Buffered() == 0 {
 				break
 			}
 		}
@@ -278,23 +275,37 @@ func readStdinCmd() tea.Cmd {
 }
 
 func main() {
-	// open /dev/tty for input since stdin is used for piped data
-	tty, err := os.Open("/dev/tty")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening /dev/tty: %v\n", err)
+	var opts []tea.ProgramOption
+	opts = append(opts, tea.WithAltScreen())
+
+	if len(os.Args) > 1 {
+		// file argument provided
+		filename := filepath.Clean(os.Args[1])
+		file, err := os.Open(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error opening file: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() { _ = file.Close() }()
+		inputReader = bufio.NewReader(file)
+		readingFromInput = true
+	} else if stdinIsPipe() {
+		// reading from piped stdin, need /dev/tty for keyboard input
+		tty, err := os.Open("/dev/tty")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error opening /dev/tty: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() { _ = tty.Close() }()
+		opts = append(opts, tea.WithInput(tty))
+		inputReader = bufio.NewReader(os.Stdin)
+		readingFromInput = true
+	} else {
+		fmt.Fprintf(os.Stderr, "usage: pipeviewer <file> or command | pipeviewer\n")
 		os.Exit(1)
 	}
-	defer func() {
-		if err := tty.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "error closing tty: %v\n", err)
-		}
-	}()
 
-	p := tea.NewProgram(
-		model{},
-		tea.WithAltScreen(),
-		tea.WithInput(tty),
-	)
+	p := tea.NewProgram(model{}, opts...)
 
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error running program: %v\n", err)
