@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/v2/key"
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -85,12 +86,99 @@ func stdinIsPipe() bool {
 	return (fi.Mode() & os.ModeCharDevice) == 0
 }
 
+// convertOverstrike converts backspace-based overstrike formatting (used by e.g. man pages)
+// to ANSI escape codes. Patterns:
+//   - c\x08c (char, backspace, same char) -> bold
+//   - _\x08c (underscore, backspace, char) -> underline
+func convertOverstrike(s string) string {
+	if !strings.Contains(s, "\b") {
+		return s
+	}
+
+	var result strings.Builder
+	result.Grow(len(s))
+
+	const (
+		styleNone = iota
+		styleBold
+		styleUnderline
+	)
+
+	currentStyle := styleNone
+	i := 0
+
+	for i < len(s) {
+		// decode current rune
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			// invalid UTF-8, just copy the byte
+			result.WriteByte(s[i])
+			i++
+			continue
+		}
+
+		// check if next char is backspace and there's a char after that
+		if i+size < len(s) && s[i+size] == '\b' && i+size+1 < len(s) {
+			// decode the character after the backspace
+			nextR, nextSize := utf8.DecodeRuneInString(s[i+size+1:])
+
+			if r == '_' && nextR != '_' {
+				// underscore + backspace + char = underline
+				if currentStyle != styleUnderline {
+					if currentStyle != styleNone {
+						result.WriteString("\x1b[0m")
+					}
+					result.WriteString("\x1b[4m")
+					currentStyle = styleUnderline
+				}
+				result.WriteRune(nextR)
+				i += size + 1 + nextSize // skip: underscore, backspace, char
+				continue
+			} else if r == nextR {
+				// char + backspace + same char = bold
+				if currentStyle != styleBold {
+					if currentStyle != styleNone {
+						result.WriteString("\x1b[0m")
+					}
+					result.WriteString("\x1b[1m")
+					currentStyle = styleBold
+				}
+				result.WriteRune(r)
+				i += size + 1 + nextSize // skip: char, backspace, char
+				continue
+			}
+		}
+
+		// no overstrike pattern, reset style if needed and output char
+		if currentStyle != styleNone {
+			result.WriteString("\x1b[0m")
+			currentStyle = styleNone
+		}
+
+		// skip lone backspaces
+		if r == '\b' {
+			i += size
+			continue
+		}
+
+		result.WriteRune(r)
+		i += size
+	}
+
+	// close any open style
+	if currentStyle != styleNone {
+		result.WriteString("\x1b[0m")
+	}
+
+	return result.String()
+}
+
 func linesToObjects(lines []string) []object {
 	objects := make([]object, len(lines))
 	for i, line := range lines {
 		objects[i] = object{
 			lineNumber: item.NewItem(""),
-			content:    item.NewItem(line),
+			content:    item.NewItem(convertOverstrike(line)),
 		}
 	}
 	return objects
