@@ -184,6 +184,7 @@ func highlightString(
 
 		if !inAnsi {
 			// check if need to start a highlight at this position
+			highlighted := false
 			for highlightIdx < len(applicableHighlights) &&
 				applicableHighlights[highlightIdx].startByte == nonAnsiBytes {
 				highlight := applicableHighlights[highlightIdx]
@@ -225,6 +226,10 @@ func highlightString(
 					highlightIdx++
 				}
 
+				highlighted = true
+				continue
+			}
+			if highlighted {
 				continue
 			}
 		}

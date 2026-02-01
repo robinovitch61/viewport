@@ -888,6 +888,28 @@ func TestSingle_Take(t *testing.T) {
 	}
 }
 
+func TestSingle_Take_NoAnsiLeak(t *testing.T) {
+	// simulates git diff syntax-highlighted output where " is one color and \b another.
+	// when highlighting ", ANSI code internals like "38;2;190;132;255m" must not
+	// leak as visible text.
+	s := "\x1b[38;2;204;204;204m " + RST +
+		"\x1b[38;2;152;195;121m\"" + RST +
+		"\x1b[38;2;190;132;255m\\b" + RST +
+		"\x1b[38;2;152;195;121m\"" + RST +
+		"\x1b[38;2;204;204;204m " + RST
+
+	item := NewItem(s)
+	byteRanges := item.ExtractExactMatches("\"")
+	highlights := toHighlights(byteRanges, internal.RedBg)
+
+	actual, _ := item.Take(0, 80, "", highlights)
+	stripped := stripAnsi(actual)
+	plain := stripAnsi(s)
+	if stripped != plain {
+		t.Errorf("ANSI leak detected: stripAnsi(result) = %q, want %q", stripped, plain)
+	}
+}
+
 func TestSingle_NumWrappedLines(t *testing.T) {
 	tests := []struct {
 		name      string
