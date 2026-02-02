@@ -660,7 +660,6 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 
 	numLinesInPortion := endLineOffset - startLineOffset + 1
 	numContentLines := m.getNumContentLines()
-	scrollingDown := m.targetBelowTop(itemIdx, startLineOffset)
 
 	// portion larger than viewport: align top with padding if possible
 	if numLinesInPortion >= numContentLines {
@@ -674,6 +673,60 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 		}
 		return
 	}
+
+	// check if already in view before any scroll-direction-based positioning
+	// this prevents oscillation when scrollingDown changes between calls
+	portionStartInView, portionEndInView, linesAbovePortion, linesBelowPortion := m.getWrappedPortionViewInfo(itemIdx, startLineOffset, endLineOffset)
+
+	// if fully visible, check if position is already acceptable
+	if portionStartInView && portionEndInView {
+		// when padding can't be satisfied on both sides, check if already centered
+		if verticalPad*2+numLinesInPortion > numContentLines {
+			// only skip repositioning if already approximately centered (within 1 line)
+			// this prevents oscillation while still allowing initial centering
+			desiredPadding := numContentLines / 2
+			paddingDiff := linesAbovePortion - linesBelowPortion
+			if paddingDiff < 0 {
+				paddingDiff = -paddingDiff
+			}
+			if paddingDiff <= 1 ||
+				(linesAbovePortion >= desiredPadding-1 && linesBelowPortion >= desiredPadding-1) {
+				return
+			}
+			// not centered, fall through to scroll-direction-based repositioning below
+		} else {
+			// padding can be satisfied on both sides
+			desiredPad := min(verticalPad, numContentLines-numLinesInPortion)
+			// already fully visible, check if padding is respected
+			if linesAbovePortion >= desiredPad && linesBelowPortion >= desiredPad {
+				return
+			}
+
+			// adjust position to ensure padding on the side that needs it
+			if linesBelowPortion < desiredPad {
+				// insufficient padding below, position to add more padding below
+				linesToGoBack := numContentLines - 1 - desiredPad
+				if endLineOffset >= linesToGoBack {
+					m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset-linesToGoBack)
+				} else {
+					targetItemIdx, targetOffset := m.getItemIdxAbove(itemIdx, endLineOffset, linesToGoBack-endLineOffset)
+					m.safelySetTopItemIdxAndOffset(targetItemIdx, targetOffset)
+				}
+			} else {
+				// insufficient padding above, position to add more padding above
+				if startLineOffset >= desiredPad {
+					m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset-desiredPad)
+				} else {
+					targetItemIdx, targetOffset := m.getItemIdxAbove(itemIdx, startLineOffset, desiredPad-startLineOffset)
+					m.safelySetTopItemIdxAndOffset(targetItemIdx, targetOffset)
+				}
+			}
+			return
+		}
+	}
+
+	// not visible, position based on scrolling direction
+	scrollingDown := m.targetBelowTop(itemIdx, startLineOffset)
 
 	// when padding can't be satisfied on both sides, center based on scroll direction
 	if verticalPad*2+numLinesInPortion > numContentLines {
@@ -697,39 +750,6 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 	}
 
 	desiredPad := min(verticalPad, numContentLines-numLinesInPortion)
-
-	// check if already in view with proper padding
-	portionStartInView, portionEndInView, linesAbovePortion, linesBelowPortion := m.getWrappedPortionViewInfo(itemIdx, startLineOffset, endLineOffset)
-
-	if portionStartInView && portionEndInView {
-		// already fully visible, check if padding is respected
-		if linesAbovePortion >= desiredPad && linesBelowPortion >= desiredPad {
-			return
-		}
-
-		// adjust position to ensure padding on the side that needs it
-		if linesBelowPortion < desiredPad {
-			// insufficient padding below, position to add more padding below
-			linesToGoBack := numContentLines - 1 - desiredPad
-			if endLineOffset >= linesToGoBack {
-				m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset-linesToGoBack)
-			} else {
-				targetItemIdx, targetOffset := m.getItemIdxAbove(itemIdx, endLineOffset, linesToGoBack-endLineOffset)
-				m.safelySetTopItemIdxAndOffset(targetItemIdx, targetOffset)
-			}
-		} else {
-			// insufficient padding above, position to add more padding above
-			if startLineOffset >= desiredPad {
-				m.safelySetTopItemIdxAndOffset(itemIdx, startLineOffset-desiredPad)
-			} else {
-				targetItemIdx, targetOffset := m.getItemIdxAbove(itemIdx, startLineOffset, desiredPad-startLineOffset)
-				m.safelySetTopItemIdxAndOffset(targetItemIdx, targetOffset)
-			}
-		}
-		return
-	}
-
-	// not visible, position based on scrolling direction
 	if scrollingDown {
 		// scrolling down: leave desiredPad lines below
 		m.safelySetTopItemIdxAndOffset(itemIdx, endLineOffset)
