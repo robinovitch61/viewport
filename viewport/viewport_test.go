@@ -4792,6 +4792,75 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInViewVerticalPad(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+// TestViewport_SelectionOn_WrapOn_EnsureItemInViewNoOscillation verifies that repeated calls
+// to EnsureItemInView produce stable positioning. Before the fix, when padding couldn't be
+// satisfied on both sides, the view would oscillate on each call because scrollingDown
+// would change based on the current position. This simulates what happens during cursor
+// blinks in the filterable viewport, where SetObjects and EnsureItemInView are called
+// repeatedly on the same visible item.
+//
+// The oscillation occurs specifically when navigating FROM BELOW to an item:
+// 1. First call: scrollingDown=false (coming from below), positions with padding above
+// 2. After positioning, top is now ABOVE target, so scrollingDown becomes true
+// 3. Second call: scrollingDown=true, positions with padding below (different position!)
+// 4. This creates oscillation between the two positions
+func TestViewport_SelectionOn_WrapOn_EnsureItemInViewNoOscillation(t *testing.T) {
+	w, h := 10, 10
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+
+	// create 100 items
+	numItems := 100
+	nums := make([]string, 0, numItems)
+	for i := 0; i < numItems; i++ {
+		nums = append(nums, strconv.Itoa(i+1))
+	}
+	setContent(vp, nums)
+
+	// first go to the bottom, then navigate UP to item 50
+	// this is the scenario that triggers oscillation: coming from below
+	vp.SetSelectedItemIdx(99) // go to bottom (item 100)
+	vp.EnsureItemInView(99, 0, 0, 0, 0)
+
+	// now navigate up to item 50 with padding=5 (can't fit on both sides)
+	vp.SetSelectedItemIdx(49)
+	vp.EnsureItemInView(49, 0, 0, 5, 0)
+	viewAfterFirstCall := vp.View()
+
+	// item 50 should be approximately centered
+	// when coming from below, scroll-up centering positions with padding above
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"46",
+		"47",
+		"48",
+		"49",
+		selectionStyle.Render("50"),
+		"51",
+		"52",
+		"53",
+		"50% (50...",
+	})
+	internal.CmpStr(t, expectedView, viewAfterFirstCall)
+
+	// simulate cursor blink: call EnsureItemInView again without any navigation
+	// before the fix, this would cause oscillation because:
+	// - after first call, top is at item 47 (above target item 50)
+	// - targetBelowTop(49, 0) now returns true (scrollingDown=true)
+	// - this triggers different positioning logic, causing the view to shift
+	for i := 0; i < 5; i++ {
+		vp.EnsureItemInView(49, 0, 0, 5, 0)
+		viewAfterRepeat := vp.View()
+
+		// view should remain stable - no oscillation
+		if viewAfterRepeat != viewAfterFirstCall {
+			t.Fatalf("View oscillated on iteration %d.\nExpected:\n%s\n\nGot:\n%s", i+1, viewAfterFirstCall, viewAfterRepeat)
+		}
+	}
+}
+
 func TestViewport_SelectionOn_WrapOn_EnsureItemInViewHorizontalPad(t *testing.T) {
 	w, h := 10, 5
 	vp := newViewport(w, h)
