@@ -2724,3 +2724,59 @@ func TestToggleWrap_DoesNotJumpToMatchWhenScrolledAway(t *testing.T) {
 	fv.SetWrapText(false)
 	internal.CmpStr(t, expected, fv.View())
 }
+
+func TestZeroHeightHeaderWhenEmptyTextNotSet(t *testing.T) {
+	fv := makeFilterableViewport(
+		20,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithEmptyText[object](""), // empty emptyText means no header when not filtering
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"Line 1",
+		"Line 2",
+		"Line 3",
+	}))
+
+	// when emptyText is "" and not filtering, header should be 0 height
+	// so all 4 lines should be content (3 lines + footer)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"Line 1",
+		"Line 2",
+		"Line 3",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// start filtering - header should now appear (taking 1 line)
+	fv, _ = fv.Update(filterKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] " + cursorStyle.Render(" ") + " type to...",
+		"Line 1",
+		"Line 2",
+		footerStyle.Render("66% (2/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// type some filter text
+	fv, _ = fv.Update(internal.MakeKeyMsg('L'))
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[exact] L" + cursorStyle.Render(" ") + " (1/3 m...",
+		focusedStyle.Render("L") + "ine 1",
+		unfocusedStyle.Render("L") + "ine 2",
+		footerStyle.Render("66% (2/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// cancel filter - header should disappear again
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"Line 1",
+		"Line 2",
+		"Line 3",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}

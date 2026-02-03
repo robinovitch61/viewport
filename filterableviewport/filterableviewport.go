@@ -21,10 +21,6 @@ const (
 	filterModeApplied
 )
 
-const (
-	filterLineHeight = 1
-)
-
 // Option is a functional option for configuring the filterable viewport
 type Option[T viewport.Object] func(*Model[T])
 
@@ -123,6 +119,8 @@ type Model[T viewport.Object] struct {
 
 	verticalPad   int
 	horizontalPad int
+
+	totalHeight int
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -167,6 +165,9 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		}
 	}
 
+	// recalculate after options are applied since emptyText may have changed
+	m.recalculateViewportHeight()
+
 	return m
 }
 
@@ -190,6 +191,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keyMap.FilterKey):
 			if m.filterMode != filterModeEditing {
+				filterWasOff := m.filterMode == filterModeOff
 				m.isRegexMode = false
 				// remove (?i) prefix when switching to non-regex mode
 				if newValue, found := strings.CutPrefix(m.filterTextInput.Value(), "(?i)"); found {
@@ -198,21 +200,29 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				}
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				if filterWasOff {
+					m.recalculateViewportHeight()
+				}
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.RegexFilterKey):
 			if m.filterMode != filterModeEditing {
+				filterWasOff := m.filterMode == filterModeOff
 				m.isRegexMode = true
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				if filterWasOff {
+					m.recalculateViewportHeight()
+				}
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.CaseInsensitiveFilterKey):
 			if m.filterMode != filterModeEditing {
+				filterWasOff := m.filterMode == filterModeOff
 				m.isRegexMode = true
 				currentValue := m.filterTextInput.Value()
 				if currentValue == "" {
@@ -227,6 +237,9 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				// already has (?i) prefix
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				if filterWasOff {
+					m.recalculateViewportHeight()
+				}
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
@@ -261,6 +274,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.isRegexMode = false
 			m.filterTextInput.Blur()
 			m.filterTextInput.SetValue("")
+			m.recalculateViewportHeight()
 			m.updateMatchingItems()
 			m.ensureCurrentMatchInView()
 			m.updateHighlighting()
@@ -284,8 +298,11 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 // View renders the filterable viewport model as a string
 func (m *Model[T]) View() string {
-	if m.getHeight() <= filterLineHeight {
+	if m.getHeight() <= 0 || m.GetWidth() <= 0 {
 		return ""
+	}
+	if m.filterLineHeight() == 0 {
+		return m.vp.View()
 	}
 	filterLine := m.renderFilterLine()
 	viewportView := m.vp.View()
@@ -305,7 +322,7 @@ func (m *Model[T]) SetWidth(width int) {
 // GetHeight returns the height of the filterable viewport
 func (m *Model[T]) GetHeight() int {
 	height := m.getHeight()
-	if height <= filterLineHeight {
+	if height <= 0 {
 		return 0
 	}
 	return height
@@ -313,7 +330,8 @@ func (m *Model[T]) GetHeight() int {
 
 // SetHeight updates the height, accounting for the filter line
 func (m *Model[T]) SetHeight(height int) {
-	m.vp.SetHeight(height - filterLineHeight)
+	m.totalHeight = height
+	m.recalculateViewportHeight()
 }
 
 // SetObjects sets the viewport objects
@@ -380,7 +398,23 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 
 // getHeight gets the height of the viewport including the filter line
 func (m *Model[T]) getHeight() int {
-	return m.vp.GetHeight() + filterLineHeight
+	if m.totalHeight <= 0 {
+		return 0
+	}
+	return m.vp.GetHeight() + m.filterLineHeight()
+}
+
+// filterLineHeight returns the height of the filter line (0 or 1)
+func (m *Model[T]) filterLineHeight() int {
+	if m.emptyText == "" && m.filterMode == filterModeOff {
+		return 0
+	}
+	return 1
+}
+
+// recalculateViewportHeight updates the viewport height based on current filter line visibility
+func (m *Model[T]) recalculateViewportHeight() {
+	m.vp.SetHeight(m.totalHeight - m.filterLineHeight())
 }
 
 // updateMatchingItems recalculates the matching items and updates match tracking
