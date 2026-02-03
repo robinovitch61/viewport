@@ -1,6 +1,13 @@
 repos:
   - repo: local
     hooks:
+      - id: goimports
+        name: Format Go Code
+        entry: goimports
+        args: [-w]
+        language: system
+        types: [go]
+
       - id: golangci-lint
         name: Lint Go Code
         entry: golangci-lint
