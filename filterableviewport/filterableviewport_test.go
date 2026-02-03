@@ -472,7 +472,7 @@ func TestCaseInsensitiveFilterKeyAddsPrefix(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestCaseInsensitiveFilterKeyTogglesPrefix(t *testing.T) {
+func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -483,7 +483,7 @@ func TestCaseInsensitiveFilterKeyTogglesPrefix(t *testing.T) {
 	)
 	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
 
-	// case-insensitive filter
+	// start case-insensitive regex filter
 	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
 	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
@@ -497,23 +497,48 @@ func TestCaseInsensitiveFilterKeyTogglesPrefix(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
-	// 'i' again to toggle off (remove prefix)
-	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+	// switch to exact mode with '/'
+	fv, _ = fv.Update(filterKeyMsg)
 
-	// prefix is removed and now only matches lowercase 'a'
+	// (?i) prefix should be removed, leaving just 'a' in exact mode
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[regex] Filter: a" + cursorStyle.Render(" ") + " (1/3 matches on 1 items)",
+		"[exact] Filter: a" + cursorStyle.Render(" ") + " (1/3 matches on 1 items)",
 		"Apple",
 		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
+}
 
-	// 'i' again to toggle back on
+func TestCaseInsensitiveKeyDoesNotTogglePrefix(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
+
+	// start case-insensitive filter
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// case-insensitive matching
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		focusedStyle.Render("A") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// press 'i' again - should NOT toggle off the prefix, just enter editing mode
 	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
 
-	// prefix is added back
+	// prefix should still be present, filter should be focused for editing
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"[regex] Filter: (?i)a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
 		focusedStyle.Render("A") + "pple",

@@ -191,6 +191,11 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		case key.Matches(msg, m.keyMap.FilterKey):
 			if m.filterMode != filterModeEditing {
 				m.isRegexMode = false
+				// remove (?i) prefix when switching to non-regex mode
+				if newValue, found := strings.CutPrefix(m.filterTextInput.Value(), "(?i)"); found {
+					m.filterTextInput.SetValue(newValue)
+					m.filterTextInput.SetCursor(len(newValue))
+				}
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
@@ -213,16 +218,13 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				if currentValue == "" {
 					m.filterTextInput.SetValue("(?i)")
 					m.filterTextInput.SetCursor(4)
-				} else if newValue, found := strings.CutPrefix(currentValue, "(?i)"); found {
-					// Toggle off: remove the (?i) prefix
-					m.filterTextInput.SetValue(newValue)
-					m.filterTextInput.SetCursor(len(newValue))
-				} else {
-					// Toggle on: add the (?i) prefix
+				} else if !strings.HasPrefix(currentValue, "(?i)") {
+					// add the (?i) prefix if not already present when toggling case-insensitive mode
 					newValue := "(?i)" + currentValue
 					m.filterTextInput.SetValue(newValue)
 					m.filterTextInput.SetCursor(len(newValue))
 				}
+				// already has (?i) prefix
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
 				m.updateMatchingItems()
