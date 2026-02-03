@@ -60,7 +60,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		// 2 for border, 4 for content above viewport
+		// 2 for horizontal border, 4 for content above viewport and 2 for vertical border
 		viewportWidth, viewportHeight := msg.Width-2, msg.Height-4-2
 		if !m.ready {
 			// Since this program is using the full size of the viewport we
@@ -85,8 +85,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle keyboard events in the viewport
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	if m.ready {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
