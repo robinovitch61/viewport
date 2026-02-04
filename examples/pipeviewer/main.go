@@ -291,7 +291,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithKeyMap[object](filterableViewportKeyMap),
 				filterableviewport.WithStyles[object](styles),
 				filterableviewport.WithPrefixText[object]("Filter:"),
-				filterableviewport.WithEmptyText[object]("Press '/', 'i', or 'r' to filter"),
+				filterableviewport.WithEmptyText[object](""),
 				filterableviewport.WithMatchingItemsOnly[object](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
 				filterableviewport.WithHorizontalPad[object](50),
