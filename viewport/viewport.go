@@ -382,6 +382,14 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
+	// render pre-footer line if set
+	if m.config.preFooterLine != "" {
+		preFooterItem := item.NewItem(m.config.preFooterLine)
+		truncated, _ := preFooterItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
+		builder.WriteString(truncated)
+		builder.WriteByte('\n')
+	}
+
 	if m.config.saveState.enteringFilename {
 		// show filename input in footer
 		prompt := "Save as: "
@@ -510,6 +518,17 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 // SetFooterEnabled sets whether the viewport shows the footer when it overflows
 func (m *Model[T]) SetFooterEnabled(footerEnabled bool) {
 	m.config.footerEnabled = footerEnabled
+}
+
+// SetPreFooterLine sets a line to render just above the footer.
+// Pass empty string to disable. The line will be truncated to viewport width.
+func (m *Model[T]) SetPreFooterLine(line string) {
+	m.config.preFooterLine = line
+}
+
+// GetPreFooterLine returns the current pre-footer line.
+func (m *Model[T]) GetPreFooterLine() string {
+	return m.config.preFooterLine
 }
 
 // SetSelectionComparator sets the comparator function for maintaining the current selection when Item changes.
@@ -1072,9 +1091,9 @@ func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset in
 	m.display.setTopItemIdxAndOffset(topItemIdx, topItemLineOffset)
 }
 
-// getNumContentLines returns the number of lines of between the header and footer
+// getNumContentLines returns the number of lines of between the header and footer/pre-footer
 func (m *Model[T]) getNumContentLines() int {
-	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), true)
+	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), m.config.preFooterLine != "", true)
 }
 
 func (m *Model[T]) scrollSoSelectionInView() {
@@ -1264,9 +1283,15 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 		return nil
 	}
 
+	reservedLines := 0
 	if m.config.footerEnabled {
-		// leave one line for the footer
-		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-1)
+		reservedLines++ // footer
+	}
+	if m.config.preFooterLine != "" {
+		reservedLines++ // pre-footer
+	}
+	if reservedLines > 0 {
+		itemIndexes = safeSliceUpToIdx(itemIndexes, numLinesAfterHeader-reservedLines)
 	}
 	return itemIndexes
 }
@@ -1424,7 +1449,11 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	}
 
 	headerLines := len(m.getVisibleHeaderLines())
-	numContentLines := max(0, m.display.bounds.height-headerLines-1)
+	reservedLines := 1 // footer
+	if m.config.preFooterLine != "" {
+		reservedLines++ // pre-footer
+	}
+	numContentLines := max(0, m.display.bounds.height-headerLines-reservedLines)
 
 	if !m.config.wrapText {
 		return max(0, numItems-numContentLines), 0

@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/v2/key"
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/robinovitch61/bubbleo/viewport"
 	"github.com/robinovitch61/bubbleo/viewport/item"
 )
@@ -19,10 +18,6 @@ const (
 	filterModeOff filterMode = iota
 	filterModeEditing
 	filterModeApplied
-)
-
-const (
-	filterLineHeight = 1
 )
 
 // Option is a functional option for configuring the filterable viewport
@@ -167,6 +162,9 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		}
 	}
 
+	// set initial pre-footer line
+	m.vp.SetPreFooterLine(m.renderFilterLine())
+
 	return m
 }
 
@@ -284,12 +282,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 // View renders the filterable viewport model as a string
 func (m *Model[T]) View() string {
-	if m.getHeight() <= filterLineHeight {
-		return ""
-	}
-	filterLine := m.renderFilterLine()
-	viewportView := m.vp.View()
-	return lipgloss.JoinVertical(lipgloss.Left, filterLine, viewportView)
+	return m.vp.View()
 }
 
 // GetWidth returns the width of the filterable viewport
@@ -304,16 +297,12 @@ func (m *Model[T]) SetWidth(width int) {
 
 // GetHeight returns the height of the filterable viewport
 func (m *Model[T]) GetHeight() int {
-	height := m.getHeight()
-	if height <= filterLineHeight {
-		return 0
-	}
-	return height
+	return m.vp.GetHeight()
 }
 
-// SetHeight updates the height, accounting for the filter line
+// SetHeight updates the height of the filterable viewport
 func (m *Model[T]) SetHeight(height int) {
-	m.vp.SetHeight(height - filterLineHeight)
+	m.vp.SetHeight(height)
 }
 
 // SetObjects sets the viewport objects
@@ -378,11 +367,6 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 	m.vp.SetSelectionEnabled(selectionEnabled)
 }
 
-// getHeight gets the height of the viewport including the filter line
-func (m *Model[T]) getHeight() int {
-	return m.vp.GetHeight() + filterLineHeight
-}
-
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
@@ -398,6 +382,9 @@ func (m *Model[T]) updateMatchingItems() {
 	} else {
 		m.vp.SetObjects(m.objects)
 	}
+
+	// update the pre-footer line with the current filter state
+	m.vp.SetPreFooterLine(m.renderFilterLine())
 }
 
 // updateHighlighting updates the viewport's highlighting based on the filter
@@ -648,6 +635,8 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 			m.numMatchingItems = prevNumMatchingItems + len(itemsWithMatchesSet)
 			m.vp.SetObjects(m.objects)
 			m.updateFocusedMatchHighlight()
+			// update the pre-footer line with the current filter state
+			m.vp.SetPreFooterLine(m.renderFilterLine())
 			return
 		}
 
@@ -684,6 +673,8 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 	}
 
 	m.updateFocusedMatchHighlight()
+	// update the pre-footer line with the current filter state
+	m.vp.SetPreFooterLine(m.renderFilterLine())
 }
 
 // extractMatches extracts matches from an object using the current filter settings
@@ -771,6 +762,7 @@ func (m *Model[T]) navigateToNextMatch() {
 	m.ensureCurrentMatchInView()
 	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
+	m.vp.SetPreFooterLine(m.renderFilterLine())
 }
 
 func (m *Model[T]) navigateToPrevMatch() {
@@ -785,6 +777,7 @@ func (m *Model[T]) navigateToPrevMatch() {
 	m.ensureCurrentMatchInView()
 	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
+	m.vp.SetPreFooterLine(m.renderFilterLine())
 }
 
 func (m *Model[T]) getFocusedMatch() *viewport.Highlight {
