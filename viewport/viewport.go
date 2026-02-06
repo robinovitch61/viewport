@@ -596,6 +596,11 @@ func (m *Model[T]) GetHeight() int {
 	return m.display.bounds.height
 }
 
+// SetStyles sets the styling for the viewport
+func (m *Model[T]) SetStyles(styles Styles) {
+	m.display.styles = styles
+}
+
 // GetTopItemIdxAndLineOffset returns the current top item index and line offset within that item
 func (m *Model[T]) GetTopItemIdxAndLineOffset() (int, int) {
 	return m.display.topItemIdx, m.display.topItemLineOffset

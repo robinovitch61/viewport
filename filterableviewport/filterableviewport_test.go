@@ -2932,3 +2932,723 @@ func TestContentStartsAtTop(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
+
+func TestSetFilter_ExactMode(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+
+	fv.SetFilter("apple", false)
+
+	if fv.GetFilterText() != "apple" {
+		t.Errorf("expected filter text 'apple', got '%s'", fv.GetFilterText())
+	}
+	if fv.IsRegexMode() {
+		t.Error("expected regex mode to be false")
+	}
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_RegexMode(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apricot tart",
+	}))
+
+	fv.SetFilter("ap.*e", true)
+
+	if fv.GetFilterText() != "ap.*e" {
+		t.Errorf("expected filter text 'ap.*e', got '%s'", fv.GetFilterText())
+	}
+	if !fv.IsRegexMode() {
+		t.Error("expected regex mode to be true")
+	}
+
+	// regex ap.*e matches "apple pie" (greedy match to the last 'e')
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple pie"),
+		"banana bread",
+		"apricot tart",
+		"[regex] ap.*e  (1/1 matches on 1 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_ClearsFilterWhenEmpty(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithEmptyText[object]("No Filter"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+	}))
+
+	// First set a filter
+	fv.SetFilter("apple", false)
+	if fv.GetFilterText() != "apple" {
+		t.Errorf("expected filter text 'apple', got '%s'", fv.GetFilterText())
+	}
+
+	// Then clear it
+	fv.SetFilter("", false)
+	if fv.GetFilterText() != "" {
+		t.Errorf("expected empty filter text, got '%s'", fv.GetFilterText())
+	}
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple pie",
+		"banana bread",
+		"",
+		"No Filter",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_SwitchBetweenModes(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"test123",
+		"test456",
+	}))
+
+	// Start with exact mode
+	fv.SetFilter("test", false)
+	if fv.IsRegexMode() {
+		t.Error("expected regex mode to be false")
+	}
+
+	// Switch to regex mode with same filter
+	fv.SetFilter("test\\d+", true)
+	if !fv.IsRegexMode() {
+		t.Error("expected regex mode to be true")
+	}
+	if fv.GetFilterText() != "test\\d+" {
+		t.Errorf("expected filter text 'test\\d+', got '%s'", fv.GetFilterText())
+	}
+
+	// Both lines should match the regex
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("test123"),
+		unfocusedStyle.Render("test456"),
+		"",
+		"[regex] test\\d+ (1/2 matches on 2 items)",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_WithMatchingItemsOnly(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](true),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+
+	fv.SetFilter("apple", false)
+
+	// Only matching items should be shown
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		unfocusedStyle.Render("apple") + " cake",
+		"",
+		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetMatchingItemsOnly_EnableShowsOnlyMatches(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](false), // start with all items shown
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+	fv.SetFilter("apple", false)
+
+	// Initially all items shown
+	if fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be false initially")
+	}
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Enable matching items only
+	fv.SetMatchingItemsOnly(true)
+
+	if !fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be true after SetMatchingItemsOnly(true)")
+	}
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		unfocusedStyle.Render("apple") + " cake",
+		"",
+		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetMatchingItemsOnly_DisableShowsAllItems(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](true), // start with matches only
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+	fv.SetFilter("apple", false)
+
+	// Initially only matching items shown
+	if !fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be true initially")
+	}
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		unfocusedStyle.Render("apple") + " cake",
+		"",
+		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Disable matching items only
+	fv.SetMatchingItemsOnly(false)
+
+	if fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be false after SetMatchingItemsOnly(false)")
+	}
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetMatchingItemsOnly_ToggleBackAndForth(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+		"apricot",
+	}))
+	fv.SetFilter("a", false)
+
+	// Default is false
+	if fv.GetMatchingItemsOnly() {
+		t.Error("expected default GetMatchingItemsOnly to be false")
+	}
+
+	// Toggle to true
+	fv.SetMatchingItemsOnly(true)
+	if !fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be true")
+	}
+
+	// Toggle back to false
+	fv.SetMatchingItemsOnly(false)
+	if fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be false")
+	}
+
+	// Toggle to true again
+	fv.SetMatchingItemsOnly(true)
+	if !fv.GetMatchingItemsOnly() {
+		t.Error("expected GetMatchingItemsOnly to be true")
+	}
+}
+
+func TestSetMatchingItemsOnly_NoEffectWithoutFilter(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithEmptyText[object]("No Filter"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+		"cherry",
+	}))
+
+	// Set matching items only without a filter - all items should still show
+	fv.SetMatchingItemsOnly(true)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple",
+		"banana",
+		"cherry",
+		"No Filter",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilterableViewportStyles_ChangesMatchStyles(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+	fv.SetFilter("apple", false)
+
+	// Verify initial styles are applied
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Change to new styles
+	newFocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Background(lipgloss.Color("2"))
+	newUnfocusedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Background(lipgloss.Color("4"))
+	fv.SetFilterableViewportStyles(Styles{
+		Match: MatchStyles{
+			Focused:   newFocusedStyle,
+			Unfocused: newUnfocusedStyle,
+		},
+	})
+
+	// Verify new styles are applied
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		newFocusedStyle.Render("apple") + " pie",
+		"banana bread",
+		newUnfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"test one",
+		"test two",
+		"test three",
+	}))
+	fv.SetFilter("test", false)
+
+	// Navigate to second match
+	fv, _ = fv.Update(nextMatchKeyMsg)
+
+	// Now second match should be focused
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		unfocusedStyle.Render("test") + " one",
+		focusedStyle.Render("test") + " two",
+		unfocusedStyle.Render("test") + " three",
+		"[exact] test  (2/3 matches on 3 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Change styles - should update all highlights including the focused one
+	newFocusedStyle := lipgloss.NewStyle().Bold(true).Underline(true)
+	newUnfocusedStyle := lipgloss.NewStyle().Italic(true)
+	fv.SetFilterableViewportStyles(Styles{
+		Match: MatchStyles{
+			Focused:   newFocusedStyle,
+			Unfocused: newUnfocusedStyle,
+		},
+	})
+
+	// Verify new styles applied with correct focus
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		newUnfocusedStyle.Render("test") + " one",
+		newFocusedStyle.Render("test") + " two",
+		newUnfocusedStyle.Render("test") + " three",
+		"[exact] test  (2/3 matches on 3 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_CalledOnFilterChange(t *testing.T) {
+	var hookCalls []struct {
+		filterText string
+		isRegex    bool
+	}
+
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithAdjustObjectsForFilter[object](func(filterText string, isRegex bool) []object {
+				hookCalls = append(hookCalls, struct {
+					filterText string
+					isRegex    bool
+				}{filterText, isRegex})
+				return nil // return nil to keep existing objects
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"apple", "banana"}))
+
+	// Start filter mode and type
+	fv, _ = fv.Update(filterKeyMsg)
+	_, _ = fv.Update(internal.MakeKeyMsg('a'))
+
+	if len(hookCalls) < 1 {
+		t.Fatal("expected hook to be called at least once")
+	}
+
+	// Check last call has correct filter text
+	lastCall := hookCalls[len(hookCalls)-1]
+	if lastCall.filterText != "a" {
+		t.Errorf("expected filterText 'a', got %q", lastCall.filterText)
+	}
+	if lastCall.isRegex {
+		t.Error("expected isRegex=false for exact filter")
+	}
+}
+
+func TestAdjustObjectsForFilter_CalledWithRegexMode(t *testing.T) {
+	var lastIsRegex bool
+
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithAdjustObjectsForFilter[object](func(_ string, isRegex bool) []object {
+				lastIsRegex = isRegex
+				return nil
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"apple", "banana"}))
+
+	// Start regex filter mode
+	fv, _ = fv.Update(regexFilterKeyMsg)
+	_, _ = fv.Update(internal.MakeKeyMsg('a'))
+
+	if !lastIsRegex {
+		t.Error("expected isRegex=true for regex filter")
+	}
+}
+
+func TestAdjustObjectsForFilter_ReplacesObjects(t *testing.T) {
+	// Hook returns a different set of objects based on filter
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](false),
+			WithAdjustObjectsForFilter[object](func(filterText string, _ bool) []object {
+				if filterText == "" {
+					return stringsToItems([]string{"apple", "banana", "cherry"})
+				}
+				// When filtering, return parent + matching child (like a tree)
+				return stringsToItems([]string{"parent", "child-apple"})
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"apple", "banana", "cherry"}))
+
+	// Before filter: should show original objects
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple",
+		"banana",
+		"cherry",
+		"",
+		"No Filter",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Apply filter with "a"
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// After filter: should show hook's objects with "a" highlighted
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"p" + focusedStyle.Render("a") + "rent",
+		"child-" + unfocusedStyle.Render("a") + "pple",
+		"",
+		"",
+		"[exact] a  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_NilKeepsExistingObjects(t *testing.T) {
+	hookCallCount := 0
+
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](false),
+			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+				hookCallCount++
+				return nil // explicitly return nil
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"apple", "banana"}))
+
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	if hookCallCount != 1 {
+		t.Error("hook should have been called once")
+	}
+
+	// Original objects should still be shown, with "a" highlighted
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("a") + "pple",
+		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
+		"",
+		"[exact] a  (1/4 matches on 2 items)",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_WithMatchingItemsOnlyTrue(t *testing.T) {
+	// Hook provides objects, but only matching ones should be shown
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](true),
+			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+				// Return parent + child, but only child matches "apple"
+				return stringsToItems([]string{"parent-node", "child-apple"})
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"initial"}))
+	fv.SetFilter("apple", false)
+
+	// Only child-apple matches "apple", so only it should be shown
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"child-" + focusedStyle.Render("apple"),
+		"",
+		"",
+		"[exact] apple  (1/1 matches on 1 items) showing matches only",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_WithMatchingItemsOnlyFalse(t *testing.T) {
+	// Hook provides objects, all should be shown (matches highlighted)
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](false),
+			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+				return stringsToItems([]string{"parent-node", "child-apple"})
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"initial"}))
+	fv.SetFilter("apple", false)
+
+	// Both should be visible, child-apple has match highlighted
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"parent-node",
+		"child-" + focusedStyle.Render("apple"),
+		"",
+		"[exact] apple  (1/1 matches on 1 items)",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
+	// Verify n/N navigation works with hook-provided objects
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithMatchingItemsOnly[object](false),
+			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+				return stringsToItems([]string{
+					"first-apple",
+					"no-match-here",
+					"second-apple",
+				})
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"initial"}))
+	fv.SetFilter("apple", false)
+
+	// Should show "1/2 matches" (two items contain "apple"), first match focused
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"first-" + focusedStyle.Render("apple"),
+		"no-match-here",
+		"second-" + unfocusedStyle.Render("apple"),
+		"",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Navigate to next match
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"first-" + unfocusedStyle.Render("apple"),
+		"no-match-here",
+		"second-" + focusedStyle.Render("apple"),
+		"",
+		"[exact] apple  (2/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Navigate to previous match
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"first-" + focusedStyle.Render("apple"),
+		"no-match-here",
+		"second-" + unfocusedStyle.Render("apple"),
+		"",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestAdjustObjectsForFilter_ClearFilterRestoresOriginalBehavior(t *testing.T) {
+	callCount := 0
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithAdjustObjectsForFilter[object](func(filterText string, _ bool) []object {
+				callCount++
+				if filterText != "" {
+					return stringsToItems([]string{"hook-provided"})
+				}
+				return stringsToItems([]string{"original-a", "original-b"})
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"original-a", "original-b"}))
+
+	// Apply a filter
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('x'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"hook-provided",
+		"",
+		"",
+		"[exact] x  (no matches)",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// Clear filter
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"original-a",
+		"original-b",
+		"",
+		"No Filter",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}

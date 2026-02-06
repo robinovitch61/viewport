@@ -90,6 +90,19 @@ func WithMaxMatchLimit[T viewport.Object](maxMatchLimit int) Option[T] {
 	}
 }
 
+// WithAdjustObjectsForFilter sets a function that returns the visible filterable viewport objects
+// based on the current filter. It's called internally whenever the filter changes. Use this when
+// your visible objects depend on the filter in complex ways—for example, a tree view where matching
+// one node should also show parent and child nodes. Return nil to keep the current objects unmodified.
+// This is independent behavior from SetMatchingItemsOnly - when showing matching items only, the filterable viewport
+// will still call this function to determine which items to show, but it will also filter that list down to matching
+// items only. See tests for concrete examples of use.
+func WithAdjustObjectsForFilter[T viewport.Object](fn func(filterText string, isRegex bool) []T) Option[T] {
+	return func(m *Model[T]) {
+		m.adjustObjectsForFilter = fn
+	}
+}
+
 // Model is the state and logic for a filterable viewport
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
@@ -113,8 +126,10 @@ type Model[T viewport.Object] struct {
 	itemIdxToFilteredIdx       map[int]int
 	matchWidthsByMatchIdx      map[int]item.WidthRange
 	lastFilterValue            string
+	lastIsRegexMode            bool
 	maxMatchLimit              int // 0 = unlimited
 	matchLimitExceeded         bool
+	adjustObjectsForFilter     func(filterText string, isRegex bool) []T
 
 	verticalPad   int
 	horizontalPad int
@@ -261,7 +276,6 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.filterTextInput.SetValue("")
 			m.updateMatchingItems()
 			m.ensureCurrentMatchInView()
-			m.updateHighlighting()
 			return m, nil
 		}
 	}
@@ -273,7 +287,6 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
 		m.updateMatchingItems()
 		m.ensureCurrentMatchInView()
-		m.updateHighlighting()
 		cmds = append(cmds, cmd)
 	}
 
@@ -367,10 +380,90 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 	m.vp.SetSelectionEnabled(selectionEnabled)
 }
 
+// GetFilterText returns the current filter text
+func (m *Model[T]) GetFilterText() string {
+	return m.filterTextInput.Value()
+}
+
+// IsRegexMode returns whether the filter is in regex mode
+func (m *Model[T]) IsRegexMode() bool {
+	return m.isRegexMode
+}
+
+// GetSelectedItem returns the currently selected item, or nil if no selection
+func (m *Model[T]) GetSelectedItem() *T {
+	return m.vp.GetSelectedItem()
+}
+
+// GetSelectedItemIdx returns the index of the currently selected item
+func (m *Model[T]) GetSelectedItemIdx() int {
+	return m.vp.GetSelectedItemIdx()
+}
+
+// SetSelectedItemIdx sets the selected item index
+func (m *Model[T]) SetSelectedItemIdx(idx int) {
+	m.vp.SetSelectedItemIdx(idx)
+}
+
+// SetTopSticky sets whether selection sticks to the top
+func (m *Model[T]) SetTopSticky(topSticky bool) {
+	m.vp.SetTopSticky(topSticky)
+}
+
+// SetBottomSticky sets whether selection sticks to the bottom
+func (m *Model[T]) SetBottomSticky(bottomSticky bool) {
+	m.vp.SetBottomSticky(bottomSticky)
+}
+
+// SetHeader sets the viewport header lines
+func (m *Model[T]) SetHeader(header []string) {
+	m.vp.SetHeader(header)
+}
+
+// SetSelectionComparator sets the function used to maintain selection across object updates
+func (m *Model[T]) SetSelectionComparator(compareFn viewport.CompareFn[T]) {
+	m.vp.SetSelectionComparator(compareFn)
+}
+
+// SetFilter sets the filter text and regex mode programmatically
+func (m *Model[T]) SetFilter(value string, isRegex bool) {
+	m.filterTextInput.SetValue(value)
+	m.isRegexMode = isRegex
+	if value != "" && m.filterMode == filterModeOff {
+		m.filterMode = filterModeApplied
+	} else if value == "" {
+		m.filterMode = filterModeOff
+	}
+	m.updateMatchingItems()
+}
+
+// GetMatchingItemsOnly returns whether only matching items are shown
+func (m *Model[T]) GetMatchingItemsOnly() bool {
+	return m.matchingItemsOnly
+}
+
+// SetMatchingItemsOnly sets whether to show only matching items
+func (m *Model[T]) SetMatchingItemsOnly(matchingItemsOnly bool) {
+	m.matchingItemsOnly = matchingItemsOnly
+	m.updateMatchingItems()
+}
+
+// SetFilterableViewportStyles sets the styles for the filterable viewport
+func (m *Model[T]) SetFilterableViewportStyles(styles Styles) {
+	m.styles = styles
+	m.filterTextInput.Cursor.Style = styles.CursorStyle
+	// re-apply highlights with new styles
+	m.updateFocusedMatchHighlight()
+}
+
+// SetViewportStyles sets styles on the underlying viewport
+func (m *Model[T]) SetViewportStyles(styles viewport.Styles) {
+	m.vp.SetStyles(styles)
+}
+
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
-	m.updateFocusedMatchHighlight()
 
 	if !m.matchLimitExceeded {
 		m.numMatchingItems = len(matchingObjects)
@@ -383,26 +476,10 @@ func (m *Model[T]) updateMatchingItems() {
 		m.vp.SetObjects(m.objects)
 	}
 
+	m.updateFocusedMatchHighlight()
+
 	// update the pre-footer line with the current filter state
 	m.vp.SetPreFooterLine(m.renderFilterLine())
-}
-
-// updateHighlighting updates the viewport's highlighting based on the filter
-func (m *Model[T]) updateHighlighting() {
-	filterText := m.filterTextInput.Value()
-	if filterText == "" {
-		m.vp.SetHighlights(nil)
-		return
-	}
-
-	if m.isRegexMode {
-		_, err := regexp.Compile(filterText)
-		if err != nil {
-			m.vp.SetHighlights(nil)
-			return
-		}
-	}
-	m.updateFocusedMatchHighlight()
 }
 
 // updateFocusedMatchHighlight sets a specific highlight for the currently focused match
@@ -497,8 +574,15 @@ func (m *Model[T]) getModeIndicator() string {
 // getMatchingObjectsAndUpdateMatches filters objects and updates match tracking
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	filterValue := m.filterTextInput.Value()
-	filterChanged := filterValue != m.lastFilterValue
+	filterChanged := filterValue != m.lastFilterValue || m.isRegexMode != m.lastIsRegexMode
 	m.lastFilterValue = filterValue
+	m.lastIsRegexMode = m.isRegexMode
+
+	if filterChanged && m.adjustObjectsForFilter != nil {
+		if newObjects := m.adjustObjectsForFilter(filterValue, m.isRegexMode); newObjects != nil {
+			m.objects = newObjects
+		}
+	}
 
 	m.allMatches = []viewport.Highlight{}
 	prevFocusedMatchIdx := m.focusedMatchIdx
@@ -509,11 +593,6 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 
 	if m.filterMode == filterModeOff || filterValue == "" {
 		return m.objects
-	}
-
-	contentNoAnsiStrings := make([]string, len(m.objects))
-	for i := range m.objects {
-		contentNoAnsiStrings[i] = m.objects[i].GetItem().ContentNoAnsi()
 	}
 
 	var highlights []viewport.Highlight
@@ -531,7 +610,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	maxReached := false
 	itemsWithMatchesSet := make(map[int]bool)
 
-	for itemIdx := range contentNoAnsiStrings {
+	for itemIdx := range m.objects {
 		matches := m.extractMatches(m.objects[itemIdx], filterValue, regex)
 
 		if len(matches) > 0 {
@@ -757,23 +836,22 @@ func (m *Model[T]) navigateToNextMatch() {
 	if len(m.allMatches) == 0 {
 		return
 	}
-
 	m.focusedMatchIdx = (m.focusedMatchIdx + 1) % len(m.allMatches)
-	m.ensureCurrentMatchInView()
-	m.setSelectionToCurrentMatch()
-	m.updateFocusedMatchHighlight()
-	m.vp.SetPreFooterLine(m.renderFilterLine())
+	m.afterMatchNavigation()
 }
 
 func (m *Model[T]) navigateToPrevMatch() {
 	if len(m.allMatches) == 0 {
 		return
 	}
-
 	m.focusedMatchIdx--
 	if m.focusedMatchIdx < 0 {
 		m.focusedMatchIdx = len(m.allMatches) - 1
 	}
+	m.afterMatchNavigation()
+}
+
+func (m *Model[T]) afterMatchNavigation() {
 	m.ensureCurrentMatchInView()
 	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
@@ -787,13 +865,24 @@ func (m *Model[T]) getFocusedMatch() *viewport.Highlight {
 	return &m.allMatches[m.focusedMatchIdx]
 }
 
+// getItemIdx returns the viewport item index for a match, remapping when showing matches only
+func (m *Model[T]) getItemIdx(match *viewport.Highlight) int {
+	itemIdx := match.ItemIndex
+	if m.showMatchesOnly() {
+		if filteredIdx, ok := m.itemIdxToFilteredIdx[itemIdx]; ok {
+			return filteredIdx
+		}
+	}
+	return itemIdx
+}
+
 func (m *Model[T]) ensureCurrentMatchInView() {
 	currentMatch := m.getFocusedMatch()
 	if currentMatch == nil {
 		return
 	}
 	widthRange := m.matchWidthsByMatchIdx[m.focusedMatchIdx]
-	m.vp.EnsureItemInView(currentMatch.ItemIndex, widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)
+	m.vp.EnsureItemInView(m.getItemIdx(currentMatch), widthRange.Start, widthRange.End, m.verticalPad, m.horizontalPad)
 }
 
 func (m *Model[T]) setSelectionToCurrentMatch() {
@@ -801,7 +890,8 @@ func (m *Model[T]) setSelectionToCurrentMatch() {
 	if currentMatch == nil {
 		return
 	}
-	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != currentMatch.ItemIndex {
-		m.vp.SetSelectedItemIdx(currentMatch.ItemIndex)
+	itemIdx := m.getItemIdx(currentMatch)
+	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != itemIdx {
+		m.vp.SetSelectedItemIdx(itemIdx)
 	}
 }
