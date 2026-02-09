@@ -103,6 +103,11 @@ func WithAdjustObjectsForFilter[T viewport.Object](fn func(filterText string, is
 	}
 }
 
+// SetAdjustObjectsForFilter updates the function used to adjust visible objects when the filter changes.
+func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex bool) []T) {
+	m.adjustObjectsForFilter = fn
+}
+
 // Model is the state and logic for a filterable viewport
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
