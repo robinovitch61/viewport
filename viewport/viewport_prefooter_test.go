@@ -3,7 +3,7 @@ package viewport
 import (
 	"testing"
 
-	"github.com/robinovitch61/bubbleo/internal"
+	"github.com/robinovitch61/viewport/internal"
 )
 
 func TestPreFooterLineWithFooterEnabled(t *testing.T) {

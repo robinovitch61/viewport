@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/internal"
-	"github.com/robinovitch61/bubbleo/viewport/item"
+	"github.com/robinovitch61/viewport/internal"
+	"github.com/robinovitch61/viewport/viewport/item"
 )
 
 func TestViewport_SelectionOff_WrapOn_Empty(t *testing.T) {

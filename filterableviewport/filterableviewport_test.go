@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/v2/key"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/internal"
-	"github.com/robinovitch61/bubbleo/viewport"
-	"github.com/robinovitch61/bubbleo/viewport/item"
+	"github.com/robinovitch61/viewport/internal"
+	"github.com/robinovitch61/viewport/viewport"
+	"github.com/robinovitch61/viewport/viewport/item"
 )
 
 type object struct {

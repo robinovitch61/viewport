@@ -1,4 +1,4 @@
-module github.com/robinovitch61/bubbleo
+module github.com/robinovitch61/viewport
 
 go 1.23.3
 

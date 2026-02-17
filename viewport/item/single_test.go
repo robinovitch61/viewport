@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/robinovitch61/bubbleo/internal"
+	"github.com/robinovitch61/viewport/internal"
 
 	"github.com/charmbracelet/lipgloss/v2"
 )

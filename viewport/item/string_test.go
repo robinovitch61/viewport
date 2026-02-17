@@ -3,7 +3,7 @@ package item
 import (
 	"testing"
 
-	"github.com/robinovitch61/bubbleo/internal"
+	"github.com/robinovitch61/viewport/internal"
 )
 
 func TestString_overflowsLeft(t *testing.T) {

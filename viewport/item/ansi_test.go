@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/robinovitch61/bubbleo/internal"
+	"github.com/robinovitch61/viewport/internal"
 )
 
 func TestAnsi_reapplyAnsi(t *testing.T) {

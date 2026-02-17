@@ -1,6 +1,6 @@
 package viewport
 
-import "github.com/robinovitch61/bubbleo/viewport/item"
+import "github.com/robinovitch61/viewport/viewport/item"
 
 // contentManager manages the actual Item and selection state
 type contentManager[T Object] struct {

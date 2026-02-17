@@ -1,14 +1,4 @@
-# Bubbleo
+# viewport
 
-Custom components for [Bubble Tea](https://github.com/charmbracelet/bubbletea), akin to https://github.com/charmbracelet/bubbles.
+ Terminal viewport, suitable for $PAGER or for use as a Bubble Tea TUI application component.
 
-Currently contains a viewport with some nice features like:
-
-* navigation
-* optional text wrapping
-* optional line selection
-* text highlighting
-
-![](./viewport.png)
-
-Inspired by the viewport used in [Wander, a terminal app for HashiCorp Nomad](https://github.com/robinovitch61/wander).

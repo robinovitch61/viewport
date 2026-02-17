@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/robinovitch61/bubbleo/viewport/item"
+	"github.com/robinovitch61/viewport/viewport/item"
 )
 
 // Highlight represents a specific position and style to highlight
