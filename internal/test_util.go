@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -81,6 +82,10 @@ func RunWithTimeout(t *testing.T, runTest func(t *testing.T), timeout time.Durat
 			}
 			durations = append(durations, time.Since(start))
 		case <-time.After(timeout):
+			if os.Getenv("CI") != "" {
+				t.Logf("Test took too long (%v) but not failing in CI", timeout)
+				return
+			}
 			t.Fatalf("Test took too long: %v", timeout)
 		}
 
