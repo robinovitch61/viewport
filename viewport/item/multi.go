@@ -432,15 +432,16 @@ func (m MultiItem) NumWrappedLines(wrapWidth int) int {
 
 // Repr returns a string representation of the MultiItem for debugging.
 func (m MultiItem) repr() string {
-	v := "Multi("
+	var v strings.Builder
+	v.WriteString("Multi(")
 	for i := range m.items {
 		if i > 0 {
-			v += ", "
+			v.WriteString(", ")
 		}
-		v += m.items[i].repr()
+		v.WriteString(m.items[i].repr())
 	}
-	v += ")"
-	return v
+	v.WriteString(")")
+	return v.String()
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes

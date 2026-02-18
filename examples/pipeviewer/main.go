@@ -378,7 +378,7 @@ func main() {
 	if len(os.Args) > 1 {
 		// file argument provided
 		filename := filepath.Clean(os.Args[1])
-		file, err := os.Open(filename)
+		file, err := os.Open(filename) //nolint:gosec // intentional user-provided file path in example CLI
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error opening file: %v\n", err)
 			os.Exit(1)

@@ -386,7 +386,7 @@ func (m *Model[T]) View() string {
 
 	nVisibleLines := len(itemIndexes)
 	padCount := max(0, m.getNumContentLines()-nVisibleLines)
-	for i := 0; i < padCount; i++ {
+	for range padCount {
 		builder.WriteByte('\n')
 	}
 
@@ -1057,7 +1057,7 @@ func (m *Model[T]) maxItemWidth() int {
 		startIdx := clampValZeroToMax(m.display.topItemIdx, m.content.numItems()-1)
 		numItemsToCheck := min(m.content.numItems()-startIdx, m.display.bounds.height)
 
-		for i := 0; i < numItemsToCheck; i++ {
+		for i := range numItemsToCheck {
 			itemIdx := startIdx + i
 			if itemIdx >= m.content.numItems() {
 				break

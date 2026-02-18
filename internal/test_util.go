@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -49,13 +49,13 @@ func RunWithTimeout(t *testing.T, runTest func(t *testing.T), timeout time.Durat
 	t.Helper()
 
 	// warmup runs
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		runTest(t)
 	}
 
 	// actual measured runs
 	var durations []time.Duration
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		done := make(chan struct{})
 		var testErr error
 		start := time.Now()
@@ -93,9 +93,7 @@ func RunWithTimeout(t *testing.T, runTest func(t *testing.T), timeout time.Durat
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	sort.Slice(durations, func(i, j int) bool {
-		return durations[i] < durations[j]
-	})
+	slices.Sort(durations)
 	median := durations[len(durations)/2]
 	t.Logf("Test timing: median=%v min=%v max=%v",
 		median, durations[0], durations[len(durations)-1])
@@ -113,7 +111,7 @@ func Pad(width, height int, lines []string) string {
 		res = append(res, resLine)
 	}
 	numEmptyLines := height - len(lines)
-	for i := 0; i < numEmptyLines; i++ {
+	for range numEmptyLines {
 		res = append(res, strings.Repeat(" ", width))
 	}
 	return strings.Join(res, "\n")

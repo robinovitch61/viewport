@@ -463,7 +463,7 @@ func TestViewport_SelectionOn_WrapOff_EnsureItemInViewVerticalPad(t *testing.T) 
 	vp.SetSelectionEnabled(true)
 	numItems := 100
 	nums := make([]string, 0, numItems)
-	for i := 0; i < numItems; i++ {
+	for i := range numItems {
 		nums = append(nums, strconv.Itoa(i+1))
 	}
 	setContent(vp, nums)

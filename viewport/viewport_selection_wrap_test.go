@@ -518,7 +518,7 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInViewVerticalPad(t *testing.T) {
 	vp.SetSelectionEnabled(true)
 	numItems := 100
 	nums := make([]string, 0, numItems)
-	for i := 0; i < numItems; i++ {
+	for i := range numItems {
 		nums = append(nums, strconv.Itoa(i+1))
 	}
 	setContent(vp, nums)
@@ -654,7 +654,7 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInViewNoOscillation(t *testing.T)
 	// create 100 items
 	numItems := 100
 	nums := make([]string, 0, numItems)
-	for i := 0; i < numItems; i++ {
+	for i := range numItems {
 		nums = append(nums, strconv.Itoa(i+1))
 	}
 	setContent(vp, nums)
@@ -690,7 +690,7 @@ func TestViewport_SelectionOn_WrapOn_EnsureItemInViewNoOscillation(t *testing.T)
 	// - after first call, top is at item 47 (above target item 50)
 	// - targetBelowTop(49, 0) now returns true (scrollingDown=true)
 	// - this triggers different positioning logic, causing the view to shift
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		vp.EnsureItemInView(49, 0, 0, 5, 0)
 		viewAfterRepeat := vp.View()
 

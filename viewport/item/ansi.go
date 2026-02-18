@@ -317,7 +317,7 @@ func findAnsiByteRanges(s string) [][]uint32 {
 	allRanges := make([]uint32, count*2)
 	ranges := make([][]uint32, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ranges[i] = allRanges[i*2 : i*2+2]
 	}
 
@@ -355,7 +355,7 @@ func findAnsiRuneRanges(s string) [][]uint32 {
 	allRanges := make([]uint32, count*2)
 	ranges := make([][]uint32, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ranges[i] = allRanges[i*2 : i*2+2]
 	}
 

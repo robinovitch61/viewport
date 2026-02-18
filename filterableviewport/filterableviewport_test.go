@@ -1555,7 +1555,7 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 		internal.CmpStr(t, expected, fv.View())
 
 		numNext := 40
-		for i := 0; i < numNext; i++ {
+		for range numNext {
 			fv, _ = fv.Update(nextMatchKeyMsg)
 		}
 		expectedAfterNext := []string{
@@ -1603,7 +1603,7 @@ func TestScrollingWithManyHighlightedMatchesPerformance(t *testing.T) {
 			t.Fatal("expected focused match in initial view")
 		}
 
-		for i := 0; i < height; i++ {
+		for i := range height {
 			fv, _ = fv.Update(downKeyMsg)
 			view := fv.View()
 
@@ -1654,7 +1654,7 @@ func TestScrollingWithManyHighlightedMatchesPerformanceSelectionEnabled(t *testi
 		// with selection enabled, the viewport keeps the selected item (with focused match) in view
 		// height - 2 accounts for header and footer lines, leaving content lines
 		contentLines := height - 2
-		for i := 0; i < height; i++ {
+		for i := range height {
 			fv, _ = fv.Update(downKeyMsg)
 			view := fv.View()
 
@@ -2190,7 +2190,7 @@ func TestVerticalPadding(t *testing.T) {
 
 	// create many items so we can test padding
 	items := make([]string, 50)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		if i == 10 || i == 20 || i == 30 {
 			items[i] = fmt.Sprintf("match item %d", i)
 		} else {
@@ -2299,7 +2299,7 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 
 	nItems := 50
 	items := make([]string, nItems)
-	for i := 0; i < nItems; i++ {
+	for i := range nItems {
 		items[i] = "hi"
 	}
 	fv.SetObjects(stringsToItems(items))
@@ -2324,11 +2324,11 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 	// go to bottom match, then previous match 21 times to reach the 10 padding above
 	fv, _ = fv.Update(prevMatchKeyMsg)
 	nPrev := 21
-	for i := 0; i < nPrev; i++ {
+	for range nPrev {
 		fv, _ = fv.Update(prevMatchKeyMsg)
 	}
 	expectedStrings = []string{}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
 	}
 	expectedStrings = append(expectedStrings, focusedStyle.Render("hi"))
@@ -2343,7 +2343,7 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 	// next previous match should keep 10 lines above and scroll one up
 	fv, _ = fv.Update(prevMatchKeyMsg)
 	expectedStrings = []string{}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
 	}
 	expectedStrings = append(expectedStrings, focusedStyle.Render("hi"))
@@ -2371,7 +2371,7 @@ func TestMatchNavigationRolloverWithVerticalPadding(t *testing.T) {
 
 	nItems := 20
 	items := make([]string, nItems)
-	for i := 0; i < nItems; i++ {
+	for i := range nItems {
 		items[i] = "hi"
 	}
 	fv.SetObjects(stringsToItems(items))

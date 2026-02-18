@@ -1,8 +1,8 @@
 module github.com/robinovitch61/viewport
 
-go 1.23.3
+go 1.26
 
-toolchain go1.23.11
+toolchain go1.26.0
 
 require (
 	github.com/charmbracelet/bubbles/v2 v2.0.0-alpha.2
