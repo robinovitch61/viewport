@@ -49,8 +49,11 @@ func (dm *displayManager) setTopItemIdxAndOffset(topItemIdx, topItemLineOffset i
 }
 
 // getNumContentLines returns the number of lines in the content
-func (dm *displayManager) getNumContentLines(headerLines int, hasPreFooter bool, showFooter bool) int {
+func (dm *displayManager) getNumContentLines(headerLines int, hasPostHeader bool, hasPreFooter bool, showFooter bool) int {
 	contentHeight := dm.bounds.height - headerLines
+	if hasPostHeader {
+		contentHeight-- // one for post-header
+	}
 	if hasPreFooter {
 		contentHeight-- // one for pre-footer
 	}

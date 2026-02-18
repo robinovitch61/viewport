@@ -315,6 +315,14 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
+	// render post-header line if set
+	if m.config.postHeaderLine != "" {
+		postHeaderItem := item.NewItem(m.config.postHeaderLine)
+		truncated, _ := postHeaderItem.Take(0, m.display.bounds.width, m.config.continuationIndicator, []item.Highlight{})
+		builder.WriteString(truncated)
+		builder.WriteByte('\n')
+	}
+
 	// content lines
 	truncatedVisibleContentLines := make([]string, len(itemIndexes))
 	currentItemIdxWidthToLeft := m.display.bounds.width * m.display.topItemLineOffset
@@ -518,6 +526,12 @@ func (m *Model[T]) SetSelectionEnabled(selectionEnabled bool) {
 // SetFooterEnabled sets whether the viewport shows the footer when it overflows
 func (m *Model[T]) SetFooterEnabled(footerEnabled bool) {
 	m.config.footerEnabled = footerEnabled
+}
+
+// SetPostHeaderLine sets a line to render just below the header.
+// Pass empty string to disable. The line will be truncated to viewport width.
+func (m *Model[T]) SetPostHeaderLine(line string) {
+	m.config.postHeaderLine = line
 }
 
 // SetPreFooterLine sets a line to render just above the footer.
@@ -1098,7 +1112,7 @@ func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset in
 
 // getNumContentLines returns the number of lines of between the header and footer/pre-footer
 func (m *Model[T]) getNumContentLines() int {
-	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), m.config.preFooterLine != "", true)
+	return m.display.getNumContentLines(len(m.getVisibleHeaderLines()), m.config.postHeaderLine != "", m.config.preFooterLine != "", true)
 }
 
 func (m *Model[T]) scrollSoSelectionInView() {
@@ -1273,7 +1287,11 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 		return nil
 	}
 
-	numLinesAfterHeader := max(0, m.display.bounds.height-len(m.getVisibleHeaderLines()))
+	linesUsedByHeader := len(m.getVisibleHeaderLines())
+	if m.config.postHeaderLine != "" {
+		linesUsedByHeader++ // post-header
+	}
+	numLinesAfterHeader := max(0, m.display.bounds.height-linesUsedByHeader)
 
 	itemIndexes := m.getItemIndexesSpanningLines(
 		m.display.topItemIdx,
@@ -1454,6 +1472,9 @@ func (m *Model[T]) maxItemIdxAndMaxTopLineOffset() (int, int) {
 	}
 
 	headerLines := len(m.getVisibleHeaderLines())
+	if m.config.postHeaderLine != "" {
+		headerLines++ // post-header
+	}
 	reservedLines := 1 // footer
 	if m.config.preFooterLine != "" {
 		reservedLines++ // pre-footer

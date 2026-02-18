@@ -20,6 +20,17 @@ const (
 	filterModeApplied
 )
 
+// FilterLinePosition controls where the filter line is rendered
+type FilterLinePosition int
+
+const (
+	// FilterLineBottom renders the filter line just above the footer (default)
+	FilterLineBottom FilterLinePosition = iota
+
+	// FilterLineTop renders the filter line just below the header
+	FilterLineTop
+)
+
 // Option is a functional option for configuring the filterable viewport
 type Option[T viewport.Object] func(*Model[T])
 
@@ -103,6 +114,20 @@ func WithAdjustObjectsForFilter[T viewport.Object](fn func(filterText string, is
 	}
 }
 
+// WithFilterLinePosition sets whether the filter line renders at the top (below header) or bottom (above footer)
+func WithFilterLinePosition[T viewport.Object](position FilterLinePosition) Option[T] {
+	return func(m *Model[T]) {
+		m.filterLinePosition = position
+	}
+}
+
+// WithFilterLinePrefix sets a string that is always prepended to the filter line, regardless of filter state.
+func WithFilterLinePrefix[T viewport.Object](prefix string) Option[T] {
+	return func(m *Model[T]) {
+		m.filterLinePrefix = prefix
+	}
+}
+
 // SetAdjustObjectsForFilter updates the function used to adjust visible objects when the filter changes.
 func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex bool) []T) {
 	m.adjustObjectsForFilter = fn
@@ -112,14 +137,16 @@ func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex 
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
 
-	keyMap          KeyMap
-	filterTextInput textinput.Model
-	filterMode      filterMode
-	prefixText      string
-	emptyText       string
-	objects         []T
-	isRegexMode     bool
-	styles          Styles
+	keyMap             KeyMap
+	filterTextInput    textinput.Model
+	filterMode         filterMode
+	prefixText         string
+	emptyText          string
+	filterLinePosition FilterLinePosition
+	filterLinePrefix   string
+	objects            []T
+	isRegexMode        bool
+	styles             Styles
 
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
@@ -183,7 +210,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 	}
 
 	// set initial pre-footer line
-	m.vp.SetPreFooterLine(m.renderFilterLine())
+	m.setFilterLine(m.renderFilterLine())
 
 	return m
 }
@@ -484,7 +511,7 @@ func (m *Model[T]) updateMatchingItems() {
 	m.updateFocusedMatchHighlight()
 
 	// update the pre-footer line with the current filter state
-	m.vp.SetPreFooterLine(m.renderFilterLine())
+	m.setFilterLine(m.renderFilterLine())
 }
 
 // updateFocusedMatchHighlight sets a specific highlight for the currently focused match
@@ -542,16 +569,16 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 }
 
 func (m *Model[T]) renderFilterLine() string {
-	var filterLine string
+	var filterContent string
 
 	switch m.filterMode {
 	case filterModeOff:
-		filterLine = m.emptyText
+		filterContent = m.emptyText
 	case filterModeEditing, filterModeApplied:
 		if m.filterTextInput.Value() == "" && m.filterMode == filterModeApplied {
-			filterLine = m.emptyText
+			filterContent = m.emptyText
 		} else {
-			filterLine = strings.Join(removeEmpty([]string{
+			filterContent = strings.Join(removeEmpty([]string{
 				m.getModeIndicator(),
 				m.prefixText,
 				m.filterTextInput.View(),
@@ -564,9 +591,21 @@ func (m *Model[T]) renderFilterLine() string {
 	default:
 		panic(fmt.Sprintf("invalid filter mode: %d", m.filterMode))
 	}
+
+	filterLine := strings.Join(removeEmpty([]string{m.filterLinePrefix, filterContent}), " ")
 	filterItem := item.NewItem(filterLine)
 	res, _ := filterItem.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
+}
+
+// setFilterLine sets the rendered filter line on the appropriate viewport line based on position
+func (m *Model[T]) setFilterLine(line string) {
+	switch m.filterLinePosition {
+	case FilterLineTop:
+		m.vp.SetPostHeaderLine(line)
+	default:
+		m.vp.SetPreFooterLine(line)
+	}
 }
 
 func (m *Model[T]) getModeIndicator() string {
@@ -720,7 +759,7 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 			m.vp.SetObjects(m.objects)
 			m.updateFocusedMatchHighlight()
 			// update the pre-footer line with the current filter state
-			m.vp.SetPreFooterLine(m.renderFilterLine())
+			m.setFilterLine(m.renderFilterLine())
 			return
 		}
 
@@ -758,7 +797,7 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 
 	m.updateFocusedMatchHighlight()
 	// update the pre-footer line with the current filter state
-	m.vp.SetPreFooterLine(m.renderFilterLine())
+	m.setFilterLine(m.renderFilterLine())
 }
 
 // extractMatches extracts matches from an object using the current filter settings
@@ -860,7 +899,7 @@ func (m *Model[T]) afterMatchNavigation() {
 	m.ensureCurrentMatchInView()
 	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
-	m.vp.SetPreFooterLine(m.renderFilterLine())
+	m.setFilterLine(m.renderFilterLine())
 }
 
 func (m *Model[T]) getFocusedMatch() *viewport.Highlight {

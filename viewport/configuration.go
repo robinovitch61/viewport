@@ -37,6 +37,10 @@ type configuration struct {
 	// continuationIndicator is the string to use to indicate that an unwrapped line continues to the left or right
 	continuationIndicator string
 
+	// postHeaderLine is an optional line to render just below the header.
+	// When non-empty, takes up one line of vertical space.
+	postHeaderLine string
+
 	// preFooterLine is an optional line to render just above the footer.
 	// When non-empty, takes up one line of vertical space.
 	preFooterLine string
