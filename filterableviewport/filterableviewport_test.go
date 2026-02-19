@@ -666,8 +666,8 @@ func TestStyleOverlay(t *testing.T) {
 	}
 	fv, _ = fv.Update(applyFilterKeyMsg)
 
-	// match highlighting overrides both selection style and styled sections
-	// With 2 items and 2 content lines, selection on first item shows 50% (1/2)
+	// on selected lines, match highlights keep their original styles and selection fills gaps
+	// first item is selected, has focused match covering entire content "apple pie"
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("apple pie"),
 		unfocusedStyle.Render("apple pie") + " " + internal.BlueFg.Render("yum"),
@@ -676,11 +676,11 @@ func TestStyleOverlay(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
-	// move selection down to second item
+	// move selection down to second item: match keeps unfocused style, selection fills " yum"
 	fv, _ = fv.Update(downKeyMsg)
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("apple pie"),
-		unfocusedStyle.Render("apple pie") + selectedItemStyle.Render(" ") + internal.BlueFg.Render("yum"),
+		unfocusedStyle.Render("apple pie") + selectedItemStyle.Render(" yum"),
 		"[exact] apple pie  (1/2 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -39,8 +38,6 @@ import (
 // first line    0               1
 // this is the   1               2
 // second line   1               3
-
-var surroundingAnsiRegex = regexp.MustCompile(`(\x1b\[[0-9;]*m.*?\x1b\[0?m)`)
 
 // CompareFn is a function type for comparing two items of type T.
 type CompareFn[T any] func(a, b T) bool
@@ -328,13 +325,26 @@ func (m *Model[T]) View() string {
 	currentItemIdxWidthToLeft := m.display.bounds.width * m.display.topItemLineOffset
 	for idx, itemIdx := range itemIndexes {
 		var truncated string
+		highlights := m.getHighlightsForItem(itemIdx)
+		isSelection := m.navigation.selectionEnabled && itemIndexes[idx] == m.content.getSelectedIdx()
+		if isSelection {
+			highlights = m.selectionHighlights(itemIdx, highlights)
+		}
+
+		// for selected items, use a stripped item (no ANSI) so only highlight styling applies,
+		// preventing original content styling from leaking through
+		takeItem := m.content.objects[itemIdx].GetItem()
+		if isSelection {
+			takeItem = item.NewItem(takeItem.ContentNoAnsi())
+		}
+
 		if wrap {
 			var widthTaken int
-			truncated, widthTaken = m.content.objects[itemIdx].GetItem().Take(
+			truncated, widthTaken = takeItem.Take(
 				currentItemIdxWidthToLeft,
 				m.display.bounds.width,
 				"",
-				m.getHighlightsForItem(itemIdx),
+				highlights,
 			)
 			if idx+1 < len(itemIndexes) {
 				nextItemIdx := itemIndexes[idx+1]
@@ -346,17 +356,12 @@ func (m *Model[T]) View() string {
 			}
 		} else {
 			// if not wrapped, items are not yet truncated or highlighted
-			truncated, _ = m.content.objects[itemIdx].GetItem().Take(
+			truncated, _ = takeItem.Take(
 				m.display.xOffset,
 				m.display.bounds.width,
 				m.config.continuationIndicator,
-				m.getHighlightsForItem(itemIndexes[idx]),
+				highlights,
 			)
-		}
-
-		truncatedIsSelection := m.navigation.selectionEnabled && itemIndexes[idx] == m.content.getSelectedIdx()
-		if truncatedIsSelection {
-			truncated = m.styleSelection(truncated)
 		}
 
 		pannedRight := m.display.xOffset > 0
@@ -366,14 +371,14 @@ func (m *Model[T]) View() string {
 			// if panned right past where line ends, show continuation indicator
 			continuation := item.NewItem(m.config.continuationIndicator)
 			truncated, _ = continuation.Take(0, m.display.bounds.width, "", []item.Highlight{})
-			if truncatedIsSelection {
-				truncated = m.styleSelection(truncated)
+			if isSelection {
+				truncated = m.display.styles.SelectedItemStyle.Render(item.StripAnsi(truncated))
 			}
 		}
 
-		if truncatedIsSelection && lipgloss.Width(truncated) == 0 {
+		if isSelection && lipgloss.Width(truncated) == 0 {
 			// ensure selection is visible even if line empty
-			truncated = m.styleSelection(" ")
+			truncated = m.display.styles.SelectedItemStyle.Render(" ")
 		}
 
 		truncatedVisibleContentLines[idx] = truncated
@@ -1517,24 +1522,46 @@ func (m *Model[T]) getNumVisibleItems() int {
 	return len(itemIndexSet)
 }
 
-func (m *Model[T]) styleSelection(selection string) string {
-	split := surroundingAnsiRegex.Split(selection, -1)
-	matches := surroundingAnsiRegex.FindAllString(selection, -1)
-	var builder strings.Builder
+// selectionHighlights returns highlights that fill gaps between existing match
+// highlights with the selection style, so that the selection background covers
+// the entire item while match highlights remain visible on top.
+func (m *Model[T]) selectionHighlights(itemIdx int, matchHighlights []item.Highlight) []item.Highlight {
+	itemLen := len(m.content.objects[itemIdx].GetItem().ContentNoAnsi())
+	if itemLen == 0 {
+		return matchHighlights
+	}
 
-	// pre-allocate the builder's capacity based on the selection string length
-	// optional but can improve performance for longer strings
-	builder.Grow(len(selection))
-
-	for i, section := range split {
-		if section != "" {
-			builder.WriteString(m.display.styles.SelectedItemStyle.Render(section))
-		}
-		if i < len(split)-1 && i < len(matches) {
-			builder.WriteString(matches[i])
+	// sort match highlights by start position
+	sorted := make([]item.Highlight, len(matchHighlights))
+	copy(sorted, matchHighlights)
+	for i := 0; i < len(sorted); i++ {
+		for j := i + 1; j < len(sorted); j++ {
+			if sorted[j].ByteRangeUnstyledContent.Start < sorted[i].ByteRangeUnstyledContent.Start {
+				sorted[i], sorted[j] = sorted[j], sorted[i]
+			}
 		}
 	}
-	return builder.String()
+
+	// fill gaps between match highlights with selection style
+	var result []item.Highlight
+	pos := 0
+	for _, h := range sorted {
+		if h.ByteRangeUnstyledContent.Start > pos {
+			result = append(result, item.Highlight{
+				Style:                    m.display.styles.SelectedItemStyle,
+				ByteRangeUnstyledContent: item.ByteRange{Start: pos, End: h.ByteRangeUnstyledContent.Start},
+			})
+		}
+		result = append(result, h)
+		pos = h.ByteRangeUnstyledContent.End
+	}
+	if pos < itemLen {
+		result = append(result, item.Highlight{
+			Style:                    m.display.styles.SelectedItemStyle,
+			ByteRangeUnstyledContent: item.ByteRange{Start: pos, End: itemLen},
+		})
+	}
+	return result
 }
 
 // fileSavedMsg is returned when file saving completes.

@@ -1707,7 +1707,7 @@ func TestViewport_SelectionOn_WrapOff_AnsiOnSelection(t *testing.T) {
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.BlueFg.Render("line with ") + internal.RedFg.Render("red") + internal.BlueFg.Render(" text"),
+		selectionStyle.Render("line with red text"), // selection style overrides text styling
 		"",
 		"",
 		"100% (1/1)",
@@ -1743,7 +1743,7 @@ func TestViewport_SelectionOn_WrapOff_ExtraSlash(t *testing.T) {
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.BlueFg.Render("|2024|") + internal.RedFg.Render("fl..lq") + internal.BlueFg.Render("/") + internal.RedFg.Render("flask-3") + internal.BlueFg.Render("|"),
+		selectionStyle.Render("|2024|fl..lq/flask-3|"), // selection style overrides text styling
 		"",
 		"",
 		"100% (1/1)",
@@ -1831,7 +1831,7 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent(t *testing.T) {
 	vp.SetHighlights(highlights)
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.RedFg.Render("the ") + internal.GreenFg.Render("first") + internal.RedFg.Render(" line"),
+		selectionStyle.Render("the ") + internal.GreenFg.Render("first") + selectionStyle.Render(" line"),
 		internal.GreenFg.Render("the ") + internal.RedFg.Render("second") + internal.GreenFg.Render(" line"),
 		internal.BlueFg.Render("the third line"),
 		"25% (1/4)",

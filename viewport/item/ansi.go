@@ -7,6 +7,32 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 )
 
+// StripAnsi removes all ANSI escape sequences from the input string.
+func StripAnsi(input string) string {
+	ranges := findAnsiByteRanges(input)
+	if len(ranges) == 0 {
+		return input
+	}
+
+	totalAnsiLen := 0
+	for _, r := range ranges {
+		totalAnsiLen += int(r[1] - r[0])
+	}
+
+	finalLen := len(input) - totalAnsiLen
+	var builder strings.Builder
+	builder.Grow(finalLen)
+
+	lastPos := 0
+	for _, r := range ranges {
+		builder.WriteString(input[lastPos:int(r[0])])
+		lastPos = int(r[1])
+	}
+
+	builder.WriteString(input[lastPos:])
+	return builder.String()
+}
+
 // highlightRange represents a highlight with start/end positions and style
 type highlightRange struct {
 	startByte int
@@ -245,31 +271,6 @@ func highlightString(
 	}
 
 	return removeEmptyAnsiSequences(result.String())
-}
-
-func stripAnsi(input string) string {
-	ranges := findAnsiByteRanges(input)
-	if len(ranges) == 0 {
-		return input
-	}
-
-	totalAnsiLen := 0
-	for _, r := range ranges {
-		totalAnsiLen += int(r[1] - r[0])
-	}
-
-	finalLen := len(input) - totalAnsiLen
-	var builder strings.Builder
-	builder.Grow(finalLen)
-
-	lastPos := 0
-	for _, r := range ranges {
-		builder.WriteString(input[lastPos:int(r[0])])
-		lastPos = int(r[1])
-	}
-
-	builder.WriteString(input[lastPos:])
-	return builder.String()
 }
 
 func simplifyAnsiCodes(ansis []string) []string {

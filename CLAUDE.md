@@ -2,6 +2,10 @@
 
 A Go library for terminal-based viewports built on Bubble Tea.
 
+## Validation
+
+Run `make` to execute tests, linting, etc. This should be run to validate any change.
+
 ## Manual Validation with tmux
 
 After making changes to viewport rendering, manually validate by running examples in a tmux session and capturing the output.

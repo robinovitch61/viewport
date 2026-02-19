@@ -903,10 +903,10 @@ func TestSingle_Take_NoAnsiLeak(t *testing.T) {
 	highlights := toHighlights(byteRanges, internal.RedBg)
 
 	actual, _ := item.Take(0, 80, "", highlights)
-	stripped := stripAnsi(actual)
-	plain := stripAnsi(s)
+	stripped := StripAnsi(actual)
+	plain := StripAnsi(s)
 	if stripped != plain {
-		t.Errorf("ANSI leak detected: stripAnsi(result) = %q, want %q", stripped, plain)
+		t.Errorf("ANSI leak detected: StripAnsi(result) = %q, want %q", stripped, plain)
 	}
 }
 

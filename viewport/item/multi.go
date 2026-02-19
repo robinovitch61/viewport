@@ -202,7 +202,7 @@ func (m MultiItem) takeUnpinned(
 		res,
 		highlights,
 		firstByteIdx,
-		firstByteIdx+len(stripAnsi(res)),
+		firstByteIdx+len(StripAnsi(res)),
 	)
 
 	// apply continuation indicators if needed
@@ -285,7 +285,7 @@ func (m MultiItem) takePinnedItems(takeWidth int, highlights []Highlight) (strin
 		res,
 		highlights,
 		0,
-		min(endByteIdx, len(stripAnsi(res))),
+		min(endByteIdx, len(StripAnsi(res))),
 	)
 
 	return res, takeWidth - remainingWidth
@@ -366,7 +366,7 @@ func (m MultiItem) takeNonPinnedItems(
 		res,
 		highlights,
 		firstByteIdx,
-		firstByteIdx+len(stripAnsi(res)),
+		firstByteIdx+len(StripAnsi(res)),
 	)
 
 	// apply continuation indicators for non-pinned section
@@ -410,7 +410,7 @@ func (m MultiItem) takePinnedOnly(takeWidth int, continuation string, highlights
 		endByteIdx += len(m.items[i].lineNoAnsi)
 	}
 
-	res = highlightString(res, highlights, 0, min(endByteIdx, len(stripAnsi(res))))
+	res = highlightString(res, highlights, 0, min(endByteIdx, len(StripAnsi(res))))
 
 	// apply continuation if pinned items overflow viewport
 	if len(continuation) > 0 && m.pinnedWidth > takeWidth {

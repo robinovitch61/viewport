@@ -1869,7 +1869,7 @@ func TestViewport_SelectionOn_WrapOn_AnsiOnSelection(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		internal.BlueFg.Render("line with "),
-		internal.BlueFg.Render("some ") + internal.RedFg.Render("red") + internal.BlueFg.Render(" t"),
+		selectionStyle.Render("some red t"),
 		internal.BlueFg.Render("ext"),
 		"100% (1/1)",
 	})
@@ -1906,9 +1906,9 @@ func TestViewport_SelectionOn_WrapOn_ExtraSlash(t *testing.T) {
 	})
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
-		internal.BlueFg.Render("|2024|") + internal.RedFg.Render("fl.."),
-		internal.RedFg.Render("lq") + internal.BlueFg.Render("/") + internal.RedFg.Render("flask-3"),
-		internal.BlueFg.Render("|"),
+		selectionStyle.Render("|2024|fl.."),
+		selectionStyle.Render("lq/flask-3"),
+		selectionStyle.Render("|"),
 		"100% (1/1)",
 	})
 	internal.CmpStr(t, expectedView, vp.View())
@@ -2117,12 +2117,12 @@ func TestViewport_StyleOverlay(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 
-	// selection style on second item should override both the red styling and green highlight
+	// selection style on second item overrides the red content styling; highlight keeps its style
 	vp, _ = vp.Update(downKeyMsg)
 	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		"plain text",
-		internal.GreenFg.Render("red") + internal.RedFg.Render(" text"),
+		internal.GreenFg.Render("red") + selectionStyle.Render(" text"),
 		"more plain",
 		"66% (2/3)",
 	})
