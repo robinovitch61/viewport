@@ -128,6 +128,12 @@ func WithFilterLinePrefix[T viewport.Object](prefix string) Option[T] {
 	}
 }
 
+// SetFilterLinePrefix updates the string prepended to the filter line and re-renders it.
+func (m *Model[T]) SetFilterLinePrefix(prefix string) {
+	m.filterLinePrefix = prefix
+	m.setFilterLine(m.renderFilterLine())
+}
+
 // SetAdjustObjectsForFilter updates the function used to adjust visible objects when the filter changes.
 func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex bool) []T) {
 	m.adjustObjectsForFilter = fn
