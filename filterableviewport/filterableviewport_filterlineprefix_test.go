@@ -472,3 +472,48 @@ func TestSetFilterLinePrefixPreservedAfterFilterCycle(t *testing.T) {
 
 	internal.CmpStr(t, expectedInitial, fv.View())
 }
+
+func TestSetWidthReRendersFilterLine(t *testing.T) {
+	fv := makeFilterableViewport(
+		50,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithEmptyText[object]("No Filter"),
+			WithFilterLinePosition[object](FilterLineTop),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"line 1",
+		"line 2",
+		"line 3",
+	}))
+
+	// Set prefix while width is normal — filter line renders correctly
+	fv.SetFilterLinePrefix("Prefix")
+	expectedNormal := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"Prefix No Filter",
+		"line 1",
+		"line 2",
+		"line 3",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedNormal, fv.View())
+
+	// Shrink to zero width (simulates hidden page in fullscreen)
+	fv.SetWidth(0)
+
+	// Change prefix while width is 0 (simulates focus change while hidden)
+	fv.SetFilterLinePrefix("NewPrefix")
+
+	// Restore width — filter line should re-render with new prefix
+	fv.SetWidth(50)
+	expectedRestored := internal.Pad(50, fv.GetHeight(), []string{
+		"NewPrefix No Filter",
+		"line 1",
+		"line 2",
+		"line 3",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedRestored, fv.View())
+}

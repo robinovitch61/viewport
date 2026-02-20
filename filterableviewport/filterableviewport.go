@@ -344,6 +344,7 @@ func (m *Model[T]) GetWidth() int {
 // SetWidth updates the width of both the viewport and textinput
 func (m *Model[T]) SetWidth(width int) {
 	m.vp.SetWidth(width)
+	m.setFilterLine(m.renderFilterLine())
 }
 
 // GetHeight returns the height of the filterable viewport
