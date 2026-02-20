@@ -1876,6 +1876,25 @@ func TestViewport_SelectionOn_WrapOn_AnsiOnSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOn_WrapOn_AnsiOnSelection_NoOverride(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h, WithSelectionStyleOverridesItemStyle[object](false))
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	vp.SetWrapText(true)
+	setContent(vp, []string{
+		"line with some " + internal.RedFg.Render("red") + " text",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("line with "),
+		selectionStyle.Render("some ") + internal.RedFg.Render("red") + selectionStyle.Render(" t"), // item style preserved
+		internal.BlueFg.Render("ext"),
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOn_WrapOn_SelectionEmpty(t *testing.T) {
 	w, h := 20, 5
 	vp := newViewport(w, h)

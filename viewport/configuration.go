@@ -53,15 +53,22 @@ type configuration struct {
 
 	// saveState tracks file saving state
 	saveState fileSaveState
+
+	// selectionStyleOverridesItemStyle controls whether the selection style replaces the item's
+	// existing ANSI styling. When true (default), the selected item is stripped of its original
+	// styling and the selection style is applied to all non-highlighted regions. When false,
+	// the item keeps its original styling and the selection style is applied only to unstyled regions.
+	selectionStyleOverridesItemStyle bool
 }
 
 // newConfiguration creates a new configuration with default settings.
 func newConfiguration() *configuration {
 	return &configuration{
-		wrapText:              false,
-		footerEnabled:         true,
-		continuationIndicator: "...",
-		saveDir:               "",
-		saveKey:               key.NewBinding(),
+		wrapText:                         false,
+		footerEnabled:                    true,
+		continuationIndicator:            "...",
+		saveDir:                          "",
+		saveKey:                          key.NewBinding(),
+		selectionStyleOverridesItemStyle: true,
 	}
 }

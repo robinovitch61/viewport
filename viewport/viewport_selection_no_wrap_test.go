@@ -1715,6 +1715,24 @@ func TestViewport_SelectionOn_WrapOff_AnsiOnSelection(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOn_WrapOff_AnsiOnSelection_NoOverride(t *testing.T) {
+	w, h := 20, 5
+	vp := newViewport(w, h, WithSelectionStyleOverridesItemStyle[object](false))
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"line with " + internal.RedFg.Render("red") + " text",
+	})
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		selectionStyle.Render("line with ") + internal.RedFg.Render("red") + selectionStyle.Render(" text"), // item style preserved
+		"",
+		"",
+		"100% (1/1)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionOn_WrapOff_SelectionEmpty(t *testing.T) {
 	w, h := 20, 5
 	vp := newViewport(w, h)
@@ -1832,6 +1850,50 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent(t *testing.T) {
 	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
 		"header",
 		selectionStyle.Render("the ") + internal.GreenFg.Render("first") + selectionStyle.Render(" line"),
+		internal.GreenFg.Render("the ") + internal.RedFg.Render("second") + internal.GreenFg.Render(" line"),
+		internal.BlueFg.Render("the third line"),
+		"25% (1/4)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_SetHighlightsStyledContent_NoOverride(t *testing.T) {
+	w, h := 15, 5
+	vp := newViewport(w, h, WithSelectionStyleOverridesItemStyle[object](false))
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		internal.RedFg.Render("the first line"),
+		internal.GreenFg.Render("the second line"),
+		internal.BlueFg.Render("the third line"),
+		internal.RedFg.Render("the fourth line"),
+	})
+	highlights := []Highlight{
+		{
+			ItemIndex: 0,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   9,
+				},
+				Style: internal.GreenFg,
+			},
+		},
+		{
+			ItemIndex: 1,
+			ItemHighlight: item.Highlight{
+				ByteRangeUnstyledContent: item.ByteRange{
+					Start: 4,
+					End:   10,
+				},
+				Style: internal.RedFg,
+			},
+		},
+	}
+	vp.SetHighlights(highlights)
+	expectedView := internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.RedFg.Render("the ") + internal.GreenFg.Render("first") + internal.RedFg.Render(" line"), // item style preserved, highlight applied
 		internal.GreenFg.Render("the ") + internal.RedFg.Render("second") + internal.GreenFg.Render(" line"),
 		internal.BlueFg.Render("the third line"),
 		"25% (1/4)",

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -38,6 +39,8 @@ import (
 // first line    0               1
 // this is the   1               2
 // second line   1               3
+
+var surroundingAnsiRegex = regexp.MustCompile(`(\x1b\[[0-9;]*m.*?\x1b\[0?m)`)
 
 // CompareFn is a function type for comparing two items of type T.
 type CompareFn[T any] func(a, b T) bool
@@ -91,6 +94,16 @@ func WithStickyTop[T Object](stickyTop bool) Option[T] {
 func WithStickyBottom[T Object](stickyBottom bool) Option[T] {
 	return func(m *Model[T]) {
 		m.SetBottomSticky(stickyBottom)
+	}
+}
+
+// WithSelectionStyleOverridesItemStyle controls whether the selection style replaces the item's
+// existing ANSI styling. When true (default), the selected item is stripped of its original
+// styling and the selection style is applied to all non-highlighted regions. When false,
+// the item keeps its original styling and the selection style is applied only to unstyled regions.
+func WithSelectionStyleOverridesItemStyle[T Object](overrides bool) Option[T] {
+	return func(m *Model[T]) {
+		m.config.selectionStyleOverridesItemStyle = overrides
 	}
 }
 
@@ -327,14 +340,15 @@ func (m *Model[T]) View() string {
 		var truncated string
 		highlights := m.getHighlightsForItem(itemIdx)
 		isSelection := m.navigation.selectionEnabled && itemIndexes[idx] == m.content.getSelectedIdx()
-		if isSelection {
+
+		if isSelection && m.config.selectionStyleOverridesItemStyle {
 			highlights = m.selectionHighlights(itemIdx, highlights)
 		}
 
-		// for selected items, use a stripped item (no ANSI) so only highlight styling applies,
-		// preventing original content styling from leaking through
+		// when selection style overrides item style, use a stripped item (no ANSI) so only
+		// highlight styling applies, preventing original content styling from leaking through
 		takeItem := m.content.objects[itemIdx].GetItem()
-		if isSelection {
+		if isSelection && m.config.selectionStyleOverridesItemStyle {
 			takeItem = item.NewItem(takeItem.ContentNoAnsi())
 		}
 
@@ -362,6 +376,10 @@ func (m *Model[T]) View() string {
 				m.config.continuationIndicator,
 				highlights,
 			)
+		}
+
+		if isSelection && !m.config.selectionStyleOverridesItemStyle {
+			truncated = m.styleSelection(truncated)
 		}
 
 		pannedRight := m.display.xOffset > 0
@@ -1562,6 +1580,25 @@ func (m *Model[T]) selectionHighlights(itemIdx int, matchHighlights []item.Highl
 		})
 	}
 	return result
+}
+
+// styleSelection applies the selection style to unstyled portions of the string,
+// preserving any existing ANSI styling. Used when selectionStyleOverridesItemStyle is false.
+func (m *Model[T]) styleSelection(selection string) string {
+	split := surroundingAnsiRegex.Split(selection, -1)
+	matches := surroundingAnsiRegex.FindAllString(selection, -1)
+	var builder strings.Builder
+	builder.Grow(len(selection))
+
+	for i, section := range split {
+		if section != "" {
+			builder.WriteString(m.display.styles.SelectedItemStyle.Render(section))
+		}
+		if i < len(split)-1 && i < len(matches) {
+			builder.WriteString(matches[i])
+		}
+	}
+	return builder.String()
 }
 
 // fileSavedMsg is returned when file saving completes.
