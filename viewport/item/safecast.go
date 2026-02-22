@@ -20,7 +20,7 @@ func clampIntToUint32(val int) uint32 {
 	if val < 0 {
 		return 0
 	}
-	if val > math.MaxUint32 {
+	if uint64(val) > math.MaxUint32 {
 		return math.MaxUint32
 	}
 	return uint32(val)
