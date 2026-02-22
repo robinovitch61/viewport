@@ -2,6 +2,5 @@
 .idea
 *.prof
 *.test
-pipeviewer
 *.txt
 .claude

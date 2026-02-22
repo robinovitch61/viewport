@@ -143,10 +143,3 @@ See `filterableviewport/keymap.go` for the full key map:
 - `shift+n` (N) - previous match
 
 All viewport navigation keys (`j`/`k`, `f`/`b`, `g`/`G`, etc.) also work when not capturing filter input.
-
-### Pipe viewer example
-
-```bash
-# Pipe viewer with a file
-tmux new-session -d -s pv -x 120 -y 40 "go run ./examples/pipeviewer/main.go somefile.txt"
-```
