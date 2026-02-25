@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/charmbracelet/lipgloss/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Styles contains styling configuration for the viewport

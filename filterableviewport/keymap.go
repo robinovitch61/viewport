@@ -1,7 +1,7 @@
 package filterableviewport
 
 import (
-	"github.com/charmbracelet/bubbles/v2/key"
+	"charm.land/bubbles/v2/key"
 )
 
 // KeyMap defines the key bindings for the filterable viewport
@@ -48,7 +48,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("n", "next match"),
 		),
 		PrevMatchKey: key.NewBinding(
-			key.WithKeys("shift+n"),
+			key.WithKeys("N"),
 			key.WithHelp("N", "previous match"),
 		),
 	}

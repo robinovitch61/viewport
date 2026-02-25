@@ -5,9 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	"github.com/charmbracelet/bubbles/v2/textinput"
-	tea "github.com/charmbracelet/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/viewport"
 	"github.com/robinovitch61/viewport/viewport/item"
 )
@@ -45,7 +46,6 @@ func WithKeyMap[T viewport.Object](keyMap KeyMap) Option[T] {
 func WithStyles[T viewport.Object](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
-		m.filterTextInput.Cursor.Style = styles.CursorStyle
 	}
 }
 
@@ -178,6 +178,14 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 	ti := textinput.New()
 	ti.CharLimit = 0
 	ti.Prompt = ""
+	// Use unstyled text so the filter line doesn't include ANSI color codes
+	// from the textinput's default dark theme styling.
+	tiStyles := ti.Styles()
+	tiStyles.Focused.Text = lipgloss.NewStyle()
+	tiStyles.Blurred.Text = lipgloss.NewStyle()
+	tiStyles.Focused.Placeholder = lipgloss.NewStyle()
+	tiStyles.Blurred.Placeholder = lipgloss.NewStyle()
+	ti.SetStyles(tiStyles)
 
 	defaultKeyMap := DefaultKeyMap()
 	defaultStyles := DefaultStyles()
@@ -490,7 +498,6 @@ func (m *Model[T]) SetMatchingItemsOnly(matchingItemsOnly bool) {
 // SetFilterableViewportStyles sets the styles for the filterable viewport
 func (m *Model[T]) SetFilterableViewportStyles(styles Styles) {
 	m.styles = styles
-	m.filterTextInput.Cursor.Style = styles.CursorStyle
 	// re-apply highlights with new styles
 	m.updateFocusedMatchHighlight()
 }

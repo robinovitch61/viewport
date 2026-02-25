@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss/v2"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/examples/text"
 	"github.com/robinovitch61/viewport/viewport"
 	"github.com/robinovitch61/viewport/viewport/item"
@@ -37,8 +37,8 @@ type model struct {
 	ready bool
 }
 
-func (m model) Init() (tea.Model, tea.Cmd) {
-	return m, nil
+func (m model) Init() tea.Cmd {
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -48,7 +48,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
 			return m, tea.Quit
 		}
@@ -93,31 +93,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
+	var content string
 	if !m.ready {
-		return "Initializing viewport..."
+		content = "Initializing viewport..."
+	} else {
+		var header = strings.Join(getHeader(
+			m.viewport.GetWrapText(),
+			m.viewport.GetSelectionEnabled(),
+			[]key.Binding{
+				keyMap.PageDown,
+				keyMap.PageUp,
+				keyMap.HalfPageUp,
+				keyMap.HalfPageDown,
+				keyMap.Up,
+				keyMap.Down,
+				keyMap.Left,
+				keyMap.Right,
+				keyMap.Top,
+				keyMap.Bottom,
+			},
+		), "\n")
+		content = lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.viewport.View()),
+		)
 	}
-	var header = strings.Join(getHeader(
-		m.viewport.GetWrapText(),
-		m.viewport.GetSelectionEnabled(),
-		[]key.Binding{
-			keyMap.PageDown,
-			keyMap.PageUp,
-			keyMap.HalfPageUp,
-			keyMap.HalfPageDown,
-			keyMap.Up,
-			keyMap.Down,
-			keyMap.Left,
-			keyMap.Right,
-			keyMap.Top,
-			keyMap.Bottom,
-		},
-	), "\n")
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		header,
-		lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render(m.viewport.View()),
-	)
+	v := tea.NewView(content)
+	v.AltScreen = true
+	return v
 }
 
 func getHeader(wrapped, selectionEnabled bool, bindings []key.Binding) []string {
@@ -147,7 +152,6 @@ func main() {
 
 	p := tea.NewProgram(
 		model{lines: renderableLines},
-		tea.WithAltScreen(), // use the full size of the terminal in its "alternate screen buffer"
 	)
 
 	if _, err := p.Run(); err != nil {

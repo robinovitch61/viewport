@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/bubbles/v2/key"
-	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss/v2"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/internal"
 	"github.com/robinovitch61/viewport/viewport"
 	"github.com/robinovitch61/viewport/viewport/item"
@@ -46,7 +46,10 @@ var (
 		SelectedItemStyle:        selectedItemStyle,
 	}
 
-	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Reverse(true)
+	// cursorStyle matches the default virtual cursor rendering from textinput v2:
+	// cursor.Model.View() renders Style.Inline(true).Reverse(true).Render(char)
+	// where Style = lipgloss.NewStyle().Foreground(cursorColor) and cursorColor defaults to "7"
+	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Reverse(true)
 	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
 	matchStyles    = MatchStyles{
@@ -54,8 +57,7 @@ var (
 		Unfocused: unfocusedStyle,
 	}
 	filterableViewportStyles = Styles{
-		CursorStyle: cursorStyle,
-		Match:       matchStyles,
+		Match: matchStyles,
 	}
 )
 

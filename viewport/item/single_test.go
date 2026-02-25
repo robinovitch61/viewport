@@ -7,7 +7,7 @@ import (
 
 	"github.com/robinovitch61/viewport/internal"
 
-	"github.com/charmbracelet/lipgloss/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func TestSingle_Width(t *testing.T) {

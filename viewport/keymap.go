@@ -1,7 +1,7 @@
 package viewport
 
 import (
-	"github.com/charmbracelet/bubbles/v2/key"
+	"charm.land/bubbles/v2/key"
 )
 
 // KeyMap contains viewport key bindings
@@ -58,7 +58,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("g", "top"),
 		),
 		Bottom: key.NewBinding(
-			key.WithKeys("shift+g"),
+			key.WithKeys("G"),
 			key.WithHelp("G", "bottom"),
 		),
 	}

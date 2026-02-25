@@ -1,13 +1,12 @@
 package filterableviewport
 
 import (
-	"github.com/charmbracelet/lipgloss/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Styles contains styling configuration for the filterable viewport
 type Styles struct {
-	CursorStyle lipgloss.Style
-	Match       MatchStyles
+	Match MatchStyles
 }
 
 // MatchStyles contains styles for matches in the filterable viewport
@@ -27,7 +26,6 @@ func DefaultMatchStyles() MatchStyles {
 // DefaultStyles returns a set of default styles for the filterable viewport
 func DefaultStyles() Styles {
 	return Styles{
-		CursorStyle: lipgloss.Style{}, // default to bubbles.textinput cursor style
-		Match:       DefaultMatchStyles(),
+		Match: DefaultMatchStyles(),
 	}
 }

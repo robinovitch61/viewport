@@ -1,8 +1,8 @@
 package viewport
 
 import (
-	"github.com/charmbracelet/bubbles/v2/key"
-	tea "github.com/charmbracelet/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 )
 
 // navigationManager manages keyboard input and navigation logic
