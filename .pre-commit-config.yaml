@@ -1,4 +1,12 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
   - repo: local
     hooks:
       - id: goimports
@@ -7,6 +15,7 @@ repos:
         args: [-w]
         language: system
         types: [go]
+        stages: [pre-commit]
 
       - id: golangci-lint
         name: Lint Go Code
@@ -14,16 +23,19 @@ repos:
         args: [run]
         language: system
         pass_filenames: false  # run on the entire project, not just staged files
+        stages: [pre-commit]
 
       - id: go-build
         name: Build Go Code
         entry: go build ./...
         language: system
         pass_filenames: false  # run on the entire project, not just staged files
+        stages: [pre-commit]
 
       - id: go-test
         name: Test Go Code
         entry: go test ./...
         language: system
         pass_filenames: false  # run on the entire project, not just staged files
+        stages: [pre-commit]
 
