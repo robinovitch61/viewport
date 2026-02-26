@@ -14,6 +14,8 @@ type KeyMap struct {
 	ToggleMatchingItemsOnlyKey key.Binding
 	NextMatchKey               key.Binding
 	PrevMatchKey               key.Binding
+	SearchHistoryPrevKey       key.Binding
+	SearchHistoryNextKey       key.Binding
 }
 
 // DefaultKeyMap returns a default keymap for the filterable viewport
@@ -50,6 +52,14 @@ func DefaultKeyMap() KeyMap {
 		PrevMatchKey: key.NewBinding(
 			key.WithKeys("N"),
 			key.WithHelp("N", "previous match"),
+		),
+		SearchHistoryPrevKey: key.NewBinding(
+			key.WithKeys("up"),
+			key.WithHelp("↑", "previous search"),
+		),
+		SearchHistoryNextKey: key.NewBinding(
+			key.WithKeys("down"),
+			key.WithHelp("↓", "next search"),
 		),
 	}
 }

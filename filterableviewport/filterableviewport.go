@@ -171,6 +171,10 @@ type Model[T viewport.Object] struct {
 
 	verticalPad   int
 	horizontalPad int
+
+	searchHistory      []string // oldest at 0, newest at end
+	searchHistoryIdx   int      // index into searchHistory; == len(searchHistory) means "at draft"
+	searchHistoryDraft string   // current unsaved input preserved while browsing
 }
 
 // New creates a new filterable viewport model with default configuration
@@ -214,6 +218,8 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		matchLimitExceeded:         false,
 		verticalPad:                0,
 		horizontalPad:              0,
+		searchHistory:              []string{},
+		searchHistoryIdx:           0,
 	}
 	m.SetHeight(vp.GetHeight())
 
@@ -257,6 +263,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				}
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				m.resetSearchHistoryBrowsing()
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
@@ -266,6 +273,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				m.isRegexMode = true
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				m.resetSearchHistoryBrowsing()
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
@@ -286,14 +294,17 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 				// already has (?i) prefix
 				m.filterTextInput.Focus()
 				m.filterMode = filterModeEditing
+				m.resetSearchHistoryBrowsing()
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, textinput.Blink
 			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
 			if m.filterMode == filterModeEditing {
+				m.addToSearchHistory(m.filterTextInput.Value())
 				m.filterTextInput.Blur()
 				m.filterMode = filterModeApplied
+				m.resetSearchHistoryBrowsing()
 				m.updateMatchingItems()
 				m.ensureCurrentMatchInView()
 				return m, nil
@@ -320,9 +331,24 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			m.isRegexMode = false
 			m.filterTextInput.Blur()
 			m.filterTextInput.SetValue("")
+			m.resetSearchHistoryBrowsing()
 			m.updateMatchingItems()
 			m.ensureCurrentMatchInView()
 			return m, nil
+		case key.Matches(msg, m.keyMap.SearchHistoryPrevKey):
+			if m.filterMode == filterModeEditing && len(m.searchHistory) > 0 {
+				m.navigateSearchHistoryPrev()
+				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
+				return m, nil
+			}
+		case key.Matches(msg, m.keyMap.SearchHistoryNextKey):
+			if m.filterMode == filterModeEditing && m.searchHistoryIdx < len(m.searchHistory) {
+				m.navigateSearchHistoryNext()
+				m.updateMatchingItems()
+				m.ensureCurrentMatchInView()
+				return m, nil
+			}
 		}
 	}
 
@@ -914,6 +940,65 @@ func (m *Model[T]) afterMatchNavigation() {
 	m.setSelectionToCurrentMatch()
 	m.updateFocusedMatchHighlight()
 	m.setFilterLine(m.renderFilterLine())
+}
+
+const maxSearchHistorySize = 100
+
+func (m *Model[T]) addToSearchHistory(text string) {
+	if text == "" {
+		return
+	}
+	if len(m.searchHistory) > 0 && m.searchHistory[len(m.searchHistory)-1] == text {
+		return
+	}
+	m.searchHistory = append(m.searchHistory, text)
+	if len(m.searchHistory) > maxSearchHistorySize {
+		m.searchHistory = m.searchHistory[len(m.searchHistory)-maxSearchHistorySize:]
+	}
+}
+
+func (m *Model[T]) resetSearchHistoryBrowsing() {
+	m.searchHistoryIdx = len(m.searchHistory)
+	m.searchHistoryDraft = ""
+}
+
+// adjustSearchHistoryText prepends (?i) to history entries when browsing in
+// case-insensitive mode (detected by checking the saved draft).
+func (m *Model[T]) adjustSearchHistoryText(text string) string {
+	if m.isRegexMode && strings.HasPrefix(m.searchHistoryDraft, "(?i)") && !strings.HasPrefix(text, "(?i)") {
+		return "(?i)" + text
+	}
+	return text
+}
+
+func (m *Model[T]) navigateSearchHistoryPrev() {
+	if len(m.searchHistory) == 0 {
+		return
+	}
+	if m.searchHistoryIdx == len(m.searchHistory) {
+		m.searchHistoryDraft = m.filterTextInput.Value()
+	}
+	if m.searchHistoryIdx > 0 {
+		m.searchHistoryIdx--
+	}
+	text := m.adjustSearchHistoryText(m.searchHistory[m.searchHistoryIdx])
+	m.filterTextInput.SetValue(text)
+	m.filterTextInput.SetCursor(len(text))
+}
+
+func (m *Model[T]) navigateSearchHistoryNext() {
+	if m.searchHistoryIdx >= len(m.searchHistory) {
+		return
+	}
+	m.searchHistoryIdx++
+	if m.searchHistoryIdx == len(m.searchHistory) {
+		m.filterTextInput.SetValue(m.searchHistoryDraft)
+		m.filterTextInput.SetCursor(len(m.searchHistoryDraft))
+	} else {
+		text := m.adjustSearchHistoryText(m.searchHistory[m.searchHistoryIdx])
+		m.filterTextInput.SetValue(text)
+		m.filterTextInput.SetCursor(len(text))
+	}
 }
 
 func (m *Model[T]) getFocusedMatch() *viewport.Highlight {
