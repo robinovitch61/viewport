@@ -33,6 +33,11 @@ type Item interface {
 	// ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
 	ExtractRegexMatches(regex *regexp.Regexp) []Match
 
+	// LineBrokenItems returns the sub-items of this item, each rendered on a separate line.
+	// For single-line items, returns a slice containing just self.
+	// For multi-line items, returns one item per content line with line breaks between them.
+	LineBrokenItems() []Item
+
 	// repr returns a representation of the object as a string for debugging
 	repr() string
 }

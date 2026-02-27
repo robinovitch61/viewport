@@ -6,6 +6,7 @@ import (
 )
 
 // MultiItem implements Item by wrapping multiple SingleItem's without extra memory allocation
+// It is useful for e.g. prefixing content on an Item without needing to recompute that entire Item.
 type MultiItem struct {
 	items         []SingleItem
 	totalWidth    int    // cached total width across all items
@@ -428,6 +429,11 @@ func (m MultiItem) NumWrappedLines(wrapWidth int) int {
 		return 1
 	}
 	return (m.totalWidth + wrapWidth - 1) / wrapWidth
+}
+
+// LineBrokenItems returns a slice containing just this item (single-line).
+func (m MultiItem) LineBrokenItems() []Item {
+	return []Item{m}
 }
 
 // Repr returns a string representation of the MultiItem for debugging.

@@ -236,6 +236,11 @@ func (l SingleItem) NumWrappedLines(wrapWidth int) int {
 	return (l.totalWidth + wrapWidth - 1) / wrapWidth
 }
 
+// LineBrokenItems returns a slice containing just this item (single-line).
+func (l SingleItem) LineBrokenItems() []Item {
+	return []Item{l}
+}
+
 // Repr returns a string representation for debugging.
 func (l SingleItem) repr() string {
 	return fmt.Sprintf("Item(%q)", l.line)

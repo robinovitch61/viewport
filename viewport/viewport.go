@@ -333,44 +333,75 @@ func (m *Model[T]) View() string {
 		builder.WriteByte('\n')
 	}
 
-	// content lines
+	// content lines — render each visible line using segment-aware logic.
+	// An item may have multiple line-broken segments (via LineBrokenItems()), each rendered
+	// on a separate terminal line and wrapping independently.
 	truncatedVisibleContentLines := make([]string, len(itemIndexes))
-	currentItemIdxWidthToLeft := m.display.bounds.width * m.display.topItemLineOffset
-	for idx, itemIdx := range itemIndexes {
-		var truncated string
-		highlights := m.getHighlightsForItem(itemIdx)
-		isSelection := m.navigation.selectionEnabled && itemIndexes[idx] == m.content.getSelectedIdx()
 
+	// segment tracking state for multi-line items
+	var currentSegments []item.Item
+	currentSegIdx := 0
+	currentCellsToLeft := 0
+	prevItemIdx := -1
+
+	// initialize segment state for the first visible item
+	if wrap && len(itemIndexes) > 0 {
+		topItem := m.content.objects[itemIndexes[0]].GetItem()
+		currentSegments = topItem.LineBrokenItems()
+		var wrapOffset int
+		currentSegIdx, wrapOffset = decomposeLineOffset(currentSegments, m.display.topItemLineOffset, m.display.bounds.width)
+		currentCellsToLeft = wrapOffset * m.display.bounds.width
+		prevItemIdx = itemIndexes[0]
+	}
+
+	for idx, itemIdx := range itemIndexes {
+		// when we encounter a new item, refresh segment tracking
+		if itemIdx != prevItemIdx {
+			fullItem := m.content.objects[itemIdx].GetItem()
+			currentSegments = fullItem.LineBrokenItems()
+			currentSegIdx = 0
+			currentCellsToLeft = 0
+			prevItemIdx = itemIdx
+		}
+
+		var truncated string
+		isSelection := m.navigation.selectionEnabled && itemIdx == m.content.getSelectedIdx()
+
+		// get highlights for this item and remap to current segment
+		highlights := m.getHighlightsForItem(itemIdx)
 		if isSelection && m.config.selectionStyleOverridesItemStyle {
 			highlights = m.selectionHighlights(itemIdx, highlights)
 		}
+		highlights = remapHighlightsForSegment(highlights, currentSegments, currentSegIdx)
 
-		// when selection style overrides item style, use a stripped item (no ANSI) so only
+		// get the current segment to render
+		segment := currentSegments[currentSegIdx]
+
+		// when selection style overrides item style, use a stripped segment (no ANSI) so only
 		// highlight styling applies, preventing original content styling from leaking through
-		takeItem := m.content.objects[itemIdx].GetItem()
 		if isSelection && m.config.selectionStyleOverridesItemStyle {
-			takeItem = item.NewItem(takeItem.ContentNoAnsi())
+			segment = item.NewItem(segment.ContentNoAnsi())
 		}
 
 		if wrap {
 			var widthTaken int
-			truncated, widthTaken = takeItem.Take(
-				currentItemIdxWidthToLeft,
+			truncated, widthTaken = segment.Take(
+				currentCellsToLeft,
 				m.display.bounds.width,
 				"",
 				highlights,
 			)
-			if idx+1 < len(itemIndexes) {
-				nextItemIdx := itemIndexes[idx+1]
-				if nextItemIdx != itemIdx {
-					currentItemIdxWidthToLeft = 0
-				} else {
-					currentItemIdxWidthToLeft += widthTaken
+			// advance segment tracking for next iteration
+			if idx+1 < len(itemIndexes) && itemIndexes[idx+1] == itemIdx {
+				currentCellsToLeft += widthTaken
+				if currentCellsToLeft >= segment.Width() {
+					currentSegIdx++
+					currentCellsToLeft = 0
 				}
 			}
 		} else {
-			// if not wrapped, items are not yet truncated or highlighted
-			truncated, _ = takeItem.Take(
+			// non-wrapped: render segment with horizontal panning
+			truncated, _ = segment.Take(
 				m.display.xOffset,
 				m.display.bounds.width,
 				m.config.continuationIndicator,
@@ -383,9 +414,9 @@ func (m *Model[T]) View() string {
 		}
 
 		pannedRight := m.display.xOffset > 0
-		itemHasWidth := m.content.objects[itemIdx].GetItem().Width() > 0
+		segmentHasWidth := segment.Width() > 0
 		pannedPastAllWidth := lipgloss.Width(truncated) == 0
-		if !wrap && pannedRight && itemHasWidth && pannedPastAllWidth {
+		if !wrap && pannedRight && segmentHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
 			continuation := item.NewItem(m.config.continuationIndicator)
 			truncated, _ = continuation.Take(0, m.display.bounds.width, "", []item.Highlight{})
@@ -713,8 +744,9 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 		panic("ensureWrappedPortionInView called when wrapText is false")
 	}
 	viewportWidth := m.display.bounds.width
-	startLineOffset := startWidth / viewportWidth
-	endLineOffset := (endWidth - 1) / viewportWidth
+	segments := m.content.objects[itemIdx].GetItem().LineBrokenItems()
+	startLineOffset := lineOffsetForCellPosition(segments, startWidth, viewportWidth)
+	endLineOffset := lineOffsetForCellPosition(segments, max(0, endWidth-1), viewportWidth)
 	if endWidth == 0 {
 		endLineOffset = 0
 	}
@@ -1633,6 +1665,81 @@ func (m *Model[T]) saveToFile(filename string) tea.Cmd {
 
 		return fileSavedMsg{filename: fullPath, err: nil}
 	}
+}
+
+// decomposeLineOffset converts a line offset within an item into
+// (segmentIdx, wrapOffset) given the item's line-broken items.
+// segmentIdx is which line-broken item, wrapOffset is how many wrapped lines
+// into that segment. For single-line items: returns (0, lineOffset).
+func decomposeLineOffset(segments []item.Item, lineOffset, wrapWidth int) (segmentIdx, wrapOffset int) {
+	remaining := lineOffset
+	for i, seg := range segments {
+		n := seg.NumWrappedLines(wrapWidth)
+		if remaining < n {
+			return i, remaining
+		}
+		remaining -= n
+	}
+	if len(segments) == 0 {
+		return 0, 0
+	}
+	return len(segments) - 1, 0
+}
+
+// remapHighlightsForSegment clips and adjusts highlight byte ranges from the full
+// item's content space to a specific line-broken item's content space.
+// Highlights that don't overlap the segment are dropped.
+func remapHighlightsForSegment(highlights []item.Highlight, segments []item.Item, segIdx int) []item.Highlight {
+	if len(segments) <= 1 {
+		// single-segment item: highlights are already in the right space
+		return highlights
+	}
+
+	// compute byte offset of this segment in the full concatenated content
+	startByte := 0
+	for i := 0; i < segIdx; i++ {
+		startByte += len(segments[i].ContentNoAnsi())
+		startByte++ // \n separator
+	}
+	endByte := startByte + len(segments[segIdx].ContentNoAnsi())
+
+	var result []item.Highlight
+	for _, h := range highlights {
+		br := h.ByteRangeUnstyledContent
+		if br.End <= startByte || br.Start >= endByte {
+			continue
+		}
+		adjusted := h
+		adjusted.ByteRangeUnstyledContent.Start = max(0, br.Start-startByte)
+		adjusted.ByteRangeUnstyledContent.End = min(endByte-startByte, br.End-startByte)
+		result = append(result, adjusted)
+	}
+	return result
+}
+
+// lineOffsetForCellPosition converts a cumulative cell position across
+// line-broken items into a line offset. For single-line items: cellPos / wrapWidth.
+func lineOffsetForCellPosition(segments []item.Item, cellPos, wrapWidth int) int {
+	if len(segments) <= 1 || wrapWidth <= 0 {
+		if wrapWidth <= 0 {
+			return 0
+		}
+		return cellPos / wrapWidth
+	}
+	cumCells := 0
+	lineOffset := 0
+	for _, seg := range segments {
+		segWidth := seg.Width()
+		if cumCells+segWidth > cellPos {
+			if wrapWidth > 0 {
+				lineOffset += (cellPos - cumCells) / wrapWidth
+			}
+			return lineOffset
+		}
+		cumCells += segWidth
+		lineOffset += seg.NumWrappedLines(wrapWidth)
+	}
+	return max(0, lineOffset-1)
 }
 
 func percent(a, b int) int {
