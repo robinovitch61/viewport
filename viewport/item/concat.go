@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// MultiItem implements Item by wrapping multiple SingleItem's without extra memory allocation
+// ConcatItem implements Item by wrapping multiple SingleItem's without extra memory allocation
 // It is useful for e.g. prefixing content on an Item without needing to recompute that entire Item.
-type MultiItem struct {
+type ConcatItem struct {
 	items         []SingleItem
 	totalWidth    int    // cached total width across all items
 	contentNoAnsi string // cached concatenated content without ANSI escape codes
@@ -15,22 +15,22 @@ type MultiItem struct {
 	pinnedWidth   int    // cached total width of pinned items
 }
 
-// type assertion that MultiItem implements Item
-var _ Item = MultiItem{}
+// type assertion that ConcatItem implements Item
+var _ Item = ConcatItem{}
 
-// type assertion that *MultiItem implements Item
-var _ Item = (*MultiItem)(nil)
+// type assertion that *ConcatItem implements Item
+var _ Item = (*ConcatItem)(nil)
 
-// NewMulti creates a new MultiItem from the given items
-func NewMulti(items ...SingleItem) MultiItem {
-	return NewMultiWithPinned(0, items...)
+// NewConcat creates a new ConcatItem from the given items
+func NewConcat(items ...SingleItem) ConcatItem {
+	return NewConcatWithPinned(0, items...)
 }
 
-// NewMultiWithPinned creates a new MultiItem with the first pinnedCount items pinned to the left.
+// NewConcatWithPinned creates a new ConcatItem with the first pinnedCount items pinned to the left.
 // Pinned items are not affected by horizontal panning (widthToLeft) in Take().
-func NewMultiWithPinned(pinnedCount int, items ...SingleItem) MultiItem {
+func NewConcatWithPinned(pinnedCount int, items ...SingleItem) ConcatItem {
 	if len(items) == 0 {
-		return MultiItem{}
+		return ConcatItem{}
 	}
 
 	if pinnedCount < 0 {
@@ -50,7 +50,7 @@ func NewMultiWithPinned(pinnedCount int, items ...SingleItem) MultiItem {
 		}
 	}
 
-	return MultiItem{
+	return ConcatItem{
 		items:       items,
 		totalWidth:  totalWidth,
 		pinnedCount: pinnedCount,
@@ -59,12 +59,12 @@ func NewMultiWithPinned(pinnedCount int, items ...SingleItem) MultiItem {
 }
 
 // Width returns the total width across all items.
-func (m MultiItem) Width() int {
+func (m ConcatItem) Width() int {
 	return m.totalWidth
 }
 
 // Content returns the concatenated content of all items.
-func (m MultiItem) Content() string {
+func (m ConcatItem) Content() string {
 	if len(m.items) == 0 {
 		return ""
 	}
@@ -89,7 +89,7 @@ func (m MultiItem) Content() string {
 }
 
 // ContentNoAnsi returns the concatenated content of all items without ANSI escape codes that style the string
-func (m MultiItem) ContentNoAnsi() string {
+func (m ConcatItem) ContentNoAnsi() string {
 	if m.contentNoAnsi != "" {
 		return m.contentNoAnsi
 	}
@@ -120,7 +120,7 @@ func (m MultiItem) ContentNoAnsi() string {
 // Take returns a substring of the item that fits within the specified width.
 // If pinnedCount > 0, the first pinnedCount items are rendered at offset 0 (ignoring widthToLeft),
 // and the remaining items are rendered with widthToLeft applied in the remaining viewport width.
-func (m MultiItem) Take(
+func (m ConcatItem) Take(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
@@ -145,7 +145,7 @@ func (m MultiItem) Take(
 }
 
 // takeUnpinned is used when no items are pinned
-func (m MultiItem) takeUnpinned(
+func (m ConcatItem) takeUnpinned(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
@@ -226,7 +226,7 @@ func (m MultiItem) takeUnpinned(
 }
 
 // takePinned handles rendering when there are pinned items
-func (m MultiItem) takePinned(
+func (m ConcatItem) takePinned(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
@@ -255,7 +255,7 @@ func (m MultiItem) takePinned(
 }
 
 // takePinnedItems renders just the pinned items at offset 0
-func (m MultiItem) takePinnedItems(takeWidth int, highlights []Highlight) (string, int) {
+func (m ConcatItem) takePinnedItems(takeWidth int, highlights []Highlight) (string, int) {
 	if m.pinnedCount == 0 || takeWidth <= 0 {
 		return "", 0
 	}
@@ -293,7 +293,7 @@ func (m MultiItem) takePinnedItems(takeWidth int, highlights []Highlight) (strin
 }
 
 // takeNonPinnedItems renders items after the pinned ones with the given offset
-func (m MultiItem) takeNonPinnedItems(
+func (m ConcatItem) takeNonPinnedItems(
 	widthToLeft,
 	takeWidth int,
 	continuation string,
@@ -389,7 +389,7 @@ func (m MultiItem) takeNonPinnedItems(
 }
 
 // takePinnedOnly handles case where pinned width >= viewport width
-func (m MultiItem) takePinnedOnly(takeWidth int, continuation string, highlights []Highlight) (string, int) {
+func (m ConcatItem) takePinnedOnly(takeWidth int, continuation string, highlights []Highlight) (string, int) {
 	// render only pinned items, applying continuation if they overflow
 	var result strings.Builder
 	remainingWidth := takeWidth
@@ -422,7 +422,7 @@ func (m MultiItem) takePinnedOnly(takeWidth int, continuation string, highlights
 }
 
 // NumWrappedLines returns the number of wrapped lines given a wrap width
-func (m MultiItem) NumWrappedLines(wrapWidth int) int {
+func (m ConcatItem) NumWrappedLines(wrapWidth int) int {
 	if wrapWidth <= 0 {
 		return 0
 	} else if m.totalWidth == 0 {
@@ -432,14 +432,14 @@ func (m MultiItem) NumWrappedLines(wrapWidth int) int {
 }
 
 // LineBrokenItems returns a slice containing just this item (single-line).
-func (m MultiItem) LineBrokenItems() []Item {
+func (m ConcatItem) LineBrokenItems() []Item {
 	return []Item{m}
 }
 
-// Repr returns a string representation of the MultiItem for debugging.
-func (m MultiItem) repr() string {
+// Repr returns a string representation of the ConcatItem for debugging.
+func (m ConcatItem) repr() string {
 	var v strings.Builder
-	v.WriteString("Multi(")
+	v.WriteString("Concat(")
 	for i := range m.items {
 		if i > 0 {
 			v.WriteString(", ")
@@ -451,7 +451,7 @@ func (m MultiItem) repr() string {
 }
 
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
-func (m MultiItem) ExtractExactMatches(exactMatch string) []Match {
+func (m ConcatItem) ExtractExactMatches(exactMatch string) []Match {
 	if len(m.items) == 0 || exactMatch == "" {
 		return []Match{}
 	}
@@ -524,7 +524,7 @@ func (m MultiItem) ExtractExactMatches(exactMatch string) []Match {
 
 // findItemForByteOffset finds which item contains the given byte offset in concatenated content
 // Returns (itemIndex, localByteOffset) where localByteOffset is the offset within that item
-func (m MultiItem) findItemForByteOffset(byteOffset int, itemByteOffsets []int) (int, int) {
+func (m ConcatItem) findItemForByteOffset(byteOffset int, itemByteOffsets []int) (int, int) {
 	// binary search to find the item containing this byte offset
 	left, right := 0, len(m.items)-1
 
@@ -551,7 +551,7 @@ func (m MultiItem) findItemForByteOffset(byteOffset int, itemByteOffsets []int) 
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
-func (m MultiItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
+func (m ConcatItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 	if len(m.items) == 0 {
 		return []Match{}
 	}

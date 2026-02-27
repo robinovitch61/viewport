@@ -8,7 +8,7 @@ import (
 
 // MultiLineItem implements Item by wrapping multiple SingleItems, rendered with line breaks between them.
 // Each individual SingleItem may span multiple terminal lines if it wraps, but the MultiLineItem itself does not
-// concatenate and wrap content across items (for that, see MultiItem).
+// concatenate and wrap content across items (for that, see ConcatItem).
 // Take() must not be called on a MultiLineItem — callers should use Take() on individual items returned
 // by LineBrokenItems() instead.
 type MultiLineItem struct {

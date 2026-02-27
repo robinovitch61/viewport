@@ -15,18 +15,18 @@ func getEquivalentItems() map[string][]Item {
 		"none": {},
 		"hello world": {
 			NewItem("hello world"),
-			NewMulti(NewItem("hello world")),
-			NewMulti(
+			NewConcat(NewItem("hello world")),
+			NewConcat(
 				NewItem("hello"),
 				NewItem(" world"),
 			),
-			NewMulti(
+			NewConcat(
 				NewItem("hel"),
 				NewItem("lo "),
 				NewItem("wo"),
 				NewItem("rld"),
 			),
-			NewMulti(
+			NewConcat(
 				NewItem("h"),
 				NewItem("e"),
 				NewItem("l"),
@@ -42,12 +42,12 @@ func getEquivalentItems() map[string][]Item {
 		},
 		"ansi": {
 			NewItem(internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world")),
-			NewMulti(NewItem(internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"))),
-			NewMulti(
+			NewConcat(NewItem(internal.RedBg.Render("hello") + " " + internal.BlueBg.Render("world"))),
+			NewConcat(
 				NewItem(internal.RedBg.Render("hello")+" "),
 				NewItem(internal.BlueBg.Render("world")),
 			),
-			NewMulti(
+			NewConcat(
 				NewItem(internal.RedBg.Render("hello")),
 				NewItem(" "),
 				NewItem(internal.BlueBg.Render("world")),
@@ -56,8 +56,8 @@ func getEquivalentItems() map[string][]Item {
 		"unicode_ansi": {
 			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
 			NewItem(internal.RedBg.Render("A💖") + "中é"),
-			NewMulti(NewItem(internal.RedBg.Render("A💖") + "中é")),
-			NewMulti(
+			NewConcat(NewItem(internal.RedBg.Render("A💖") + "中é")),
+			NewConcat(
 				NewItem(internal.RedBg.Render("A💖")),
 				NewItem("中"),
 				NewItem("é"),
@@ -65,7 +65,7 @@ func getEquivalentItems() map[string][]Item {
 		}}
 }
 
-func TestMultiItem_Width(t *testing.T) {
+func TestConcatItem_Width(t *testing.T) {
 	for _, eq := range getEquivalentItems() {
 		for _, item := range eq {
 			if item.Width() != eq[0].Width() {
@@ -75,7 +75,7 @@ func TestMultiItem_Width(t *testing.T) {
 	}
 }
 
-func TestMultiItem_Content(t *testing.T) {
+func TestConcatItem_Content(t *testing.T) {
 	for _, eq := range getEquivalentItems() {
 		for _, item := range eq {
 			if item.Content() != eq[0].Content() {
@@ -85,7 +85,7 @@ func TestMultiItem_Content(t *testing.T) {
 	}
 }
 
-func TestMultiItem_Take(t *testing.T) {
+func TestConcatItem_Take(t *testing.T) {
 	tests := []struct {
 		name           string
 		key            string
@@ -440,7 +440,7 @@ func TestMultiItem_Take(t *testing.T) {
 	}
 }
 
-func TestMultiItem_TakeWithPinned(t *testing.T) {
+func TestConcatItem_TakeWithPinned(t *testing.T) {
 	tests := []struct {
 		name           string
 		items          []SingleItem
@@ -613,21 +613,21 @@ func TestMultiItem_TakeWithPinned(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			multi := NewMultiWithPinned(tt.pinnedCount, tt.items...)
+			concat := NewConcatWithPinned(tt.pinnedCount, tt.items...)
 
 			var highlights []Highlight
 			if tt.toHighlight != "" {
-				matches := multi.ExtractExactMatches(tt.toHighlight)
+				matches := concat.ExtractExactMatches(tt.toHighlight)
 				highlights = toHighlights(matches, tt.highlightStyle)
 			}
 
-			actual, _ := multi.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
+			actual, _ := concat.Take(tt.widthToLeft, tt.takeWidth, tt.continuation, highlights)
 			internal.CmpStr(t, tt.expected, actual, fmt.Sprintf("for pinnedCount=%d", tt.pinnedCount))
 		})
 	}
 }
 
-func TestMultiItem_NumWrappedLines(t *testing.T) {
+func TestConcatItem_NumWrappedLines(t *testing.T) {
 	tests := []struct {
 		name      string
 		key       string
@@ -720,7 +720,7 @@ func TestMultiItem_NumWrappedLines(t *testing.T) {
 	}
 }
 
-func TestMultiItem_ExtractExactMatches(t *testing.T) {
+func TestConcatItem_ExtractExactMatches(t *testing.T) {
 	tests := []struct {
 		name       string
 		key        string
@@ -999,7 +999,7 @@ func TestMultiItem_ExtractExactMatches(t *testing.T) {
 	}
 }
 
-func TestMultiItem_ExtractRegexMatches(t *testing.T) {
+func TestConcatItem_ExtractRegexMatches(t *testing.T) {
 	tests := []struct {
 		name         string
 		key          string
