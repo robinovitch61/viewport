@@ -338,6 +338,12 @@ func (m *Model[T]) View() string {
 	// on a separate terminal line and wrapping independently.
 	truncatedVisibleContentLines := make([]string, len(itemIndexes))
 
+	// selection prefix: when selection is enabled and a prefix is configured,
+	// prepend the prefix to selected lines and equivalent padding to others
+	cw := m.contentWidth()
+	hasPrefix := m.navigation.selectionEnabled && m.display.styles.SelectionPrefix != ""
+	prefixPad := m.selectionPrefixPadding()
+
 	// segment tracking state for multi-line items
 	var currentSegments []item.Item
 	currentSegIdx := 0
@@ -349,8 +355,8 @@ func (m *Model[T]) View() string {
 		topItem := m.content.objects[itemIndexes[0]].GetItem()
 		currentSegments = topItem.LineBrokenItems()
 		var wrapOffset int
-		currentSegIdx, wrapOffset = decomposeLineOffset(currentSegments, m.display.topItemLineOffset, m.display.bounds.width)
-		currentCellsToLeft = wrapOffset * m.display.bounds.width
+		currentSegIdx, wrapOffset = decomposeLineOffset(currentSegments, m.display.topItemLineOffset, cw)
+		currentCellsToLeft = wrapOffset * cw
 		prevItemIdx = itemIndexes[0]
 	}
 
@@ -387,7 +393,7 @@ func (m *Model[T]) View() string {
 			var widthTaken int
 			truncated, widthTaken = segment.Take(
 				currentCellsToLeft,
-				m.display.bounds.width,
+				cw,
 				"",
 				highlights,
 			)
@@ -403,7 +409,7 @@ func (m *Model[T]) View() string {
 			// non-wrapped: render segment with horizontal panning
 			truncated, _ = segment.Take(
 				m.display.xOffset,
-				m.display.bounds.width,
+				cw,
 				m.config.continuationIndicator,
 				highlights,
 			)
@@ -419,7 +425,7 @@ func (m *Model[T]) View() string {
 		if !wrap && pannedRight && segmentHasWidth && pannedPastAllWidth {
 			// if panned right past where line ends, show continuation indicator
 			continuation := item.NewItem(m.config.continuationIndicator)
-			truncated, _ = continuation.Take(0, m.display.bounds.width, "", []item.Highlight{})
+			truncated, _ = continuation.Take(0, cw, "", []item.Highlight{})
 			if isSelection {
 				truncated = m.display.styles.SelectedItemStyle.Render(item.StripAnsi(truncated))
 			}
@@ -428,6 +434,15 @@ func (m *Model[T]) View() string {
 		if isSelection && lipgloss.Width(truncated) == 0 {
 			// ensure selection is visible even if line empty
 			truncated = m.display.styles.SelectedItemStyle.Render(" ")
+		}
+
+		// prepend selection prefix or padding
+		if hasPrefix {
+			if isSelection {
+				truncated = m.display.styles.SelectionPrefix + truncated
+			} else {
+				truncated = prefixPad + truncated
+			}
 		}
 
 		truncatedVisibleContentLines[idx] = truncated
@@ -743,7 +758,7 @@ func (m *Model[T]) ensureWrappedPortionInView(itemIdx, startWidth, endWidth, ver
 	if !m.config.wrapText {
 		panic("ensureWrappedPortionInView called when wrapText is false")
 	}
-	viewportWidth := m.display.bounds.width
+	viewportWidth := m.contentWidth()
 	segments := m.content.objects[itemIdx].GetItem().LineBrokenItems()
 	startLineOffset := lineOffsetForCellPosition(segments, startWidth, viewportWidth)
 	endLineOffset := lineOffsetForCellPosition(segments, max(0, endWidth-1), viewportWidth)
@@ -1003,7 +1018,7 @@ func (m *Model[T]) ensureUnwrappedPortionHorizontallyInView(startWidth, endWidth
 	if m.config.wrapText {
 		panic("ensureUnwrappedPortionHorizontallyInView called when wrapText is true")
 	}
-	viewportWidth := m.display.bounds.width
+	viewportWidth := m.contentWidth()
 	currentXOffset := m.display.xOffset
 
 	visibleStartWidth := currentXOffset + 1
@@ -1070,7 +1085,7 @@ func (m *Model[T]) SetXOffset(widthOffset int) {
 	if m.config.wrapText {
 		return
 	}
-	maxXOffset := m.maxItemWidth() - m.display.bounds.width
+	maxXOffset := m.maxItemWidth() - m.contentWidth()
 	m.display.xOffset = max(0, min(maxXOffset, widthOffset))
 }
 
@@ -1131,14 +1146,35 @@ func (m *Model[T]) numLinesForItem(itemIdx int) int {
 	if !m.config.wrapText {
 		return 1
 	}
-	if m.display.bounds.width == 0 {
+	cw := m.contentWidth()
+	if cw == 0 {
 		return 0
 	}
 	if m.content.isEmpty() || itemIdx < 0 || itemIdx >= m.content.numItems() {
 		return 0
 	}
 	items := m.content.objects
-	return items[itemIdx].GetItem().NumWrappedLines(m.display.bounds.width)
+	return items[itemIdx].GetItem().NumWrappedLines(cw)
+}
+
+// contentWidth returns the width available for rendering content items.
+// When selection is enabled and a SelectionPrefix is configured, the prefix
+// reduces the available content width. Headers, footers, and other chrome
+// use the full bounds.width instead.
+func (m *Model[T]) contentWidth() int {
+	if m.navigation.selectionEnabled && m.display.styles.SelectionPrefix != "" {
+		pw := lipgloss.Width(m.display.styles.SelectionPrefix)
+		return max(0, m.display.bounds.width-pw)
+	}
+	return m.display.bounds.width
+}
+
+// selectionPrefixPadding returns whitespace the same width as SelectionPrefix.
+func (m *Model[T]) selectionPrefixPadding() string {
+	if m.display.styles.SelectionPrefix == "" {
+		return ""
+	}
+	return strings.Repeat(" ", lipgloss.Width(m.display.styles.SelectionPrefix))
 }
 
 func (m *Model[T]) setWidthHeight(width, height int) {
@@ -1190,7 +1226,7 @@ func (m *Model[T]) scrollSoSelectionInView() {
 			return
 		}
 		startWidth = m.display.xOffset
-		endWidth = m.display.xOffset + m.display.bounds.width - 1
+		endWidth = m.display.xOffset + m.contentWidth() - 1
 	}
 	m.EnsureItemInView(m.content.selectedIdx, startWidth, endWidth, 0, 0)
 }
@@ -1298,6 +1334,7 @@ func (m *Model[T]) getVisibleHeaderLines() []string {
 		m.display.bounds.height,
 		len(headerItems),
 		func(idx int) item.Item { return headerItems[idx] },
+		m.display.bounds.width, // headers use full viewport width
 	)
 
 	headerLines := make([]string, len(itemIndexes))
@@ -1356,6 +1393,7 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 		func(idx int) item.Item {
 			return m.content.objects[idx].GetItem()
 		},
+		m.contentWidth(), // content uses narrower width when selection prefix is configured
 	)
 	if len(itemIndexes) == 0 {
 		return nil
@@ -1374,13 +1412,15 @@ func (m *Model[T]) getVisibleContentItemIndexes() []int {
 	return itemIndexes
 }
 
-// getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines
+// getItemIndexesSpanningLines returns the item indexes for each line given a top item index, offset and num lines.
+// wrapWidth is the width used for wrapping calculations (content width for content, bounds width for headers).
 func (m *Model[T]) getItemIndexesSpanningLines(
 	topItemIdx int,
 	topItemLineOffset int,
 	totalNumLines int,
 	numItems int,
 	getItem func(int) item.Item,
+	wrapWidth int,
 ) []int {
 	if numItems == 0 || totalNumLines == 0 {
 		return nil
@@ -1403,7 +1443,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 
 	if m.config.wrapText {
 		// first item has potentially fewer lines depending on the line offset
-		numLines := max(0, currItem.NumWrappedLines(m.display.bounds.width)-topItemLineOffset)
+		numLines := max(0, currItem.NumWrappedLines(wrapWidth)-topItemLineOffset)
 		for range numLines {
 			// adding untruncated, unstyled items
 			done = addLine(currItemIdx)
@@ -1418,7 +1458,7 @@ func (m *Model[T]) getItemIndexesSpanningLines(
 				done = true
 			} else {
 				currItem = getItem(currItemIdx)
-				numLines = currItem.NumWrappedLines(m.display.bounds.width)
+				numLines = currItem.NumWrappedLines(wrapWidth)
 				for range numLines {
 					// adding untruncated, unstyled items
 					done = addLine(currItemIdx)

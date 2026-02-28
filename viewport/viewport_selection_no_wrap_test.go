@@ -1932,3 +1932,98 @@ func TestViewport_SelectionOn_WrapOff_SetHighlightsAnsiUnicode(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, vp.View())
 }
+
+func TestViewport_SelectionPrefix_Basic(t *testing.T) {
+	w, h := 20, 6
+	prefix := "> "
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              lipgloss.NewStyle(),
+		HighlightStyle:           lipgloss.NewStyle(),
+		HighlightStyleIfSelected: lipgloss.NewStyle(),
+		SelectedItemStyle:        selectionStyle,
+	}))
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{"first", "second", "third"})
+
+	// selection on first item: prefix on first, padding on others
+	expectedView := internal.Pad(w, h, []string{
+		prefix + selectionStyle.Render("first"),
+		"  " + "second",
+		"  " + "third",
+		"",
+		"",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move selection down
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(w, h, []string{
+		"  " + "first",
+		prefix + selectionStyle.Render("second"),
+		"  " + "third",
+		"",
+		"",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// verify content width is reduced (long line truncated at contentWidth = 18)
+	setContent(vp, []string{"short", "this is a longer line that should truncate"})
+	vp.SetSelectedItemIdx(0)
+	expectedView = internal.Pad(w, h, []string{
+		prefix + selectionStyle.Render("short"),
+		"  " + "this is a longe...",
+		"",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionPrefix_NoColor(t *testing.T) {
+	// simulates NO_COLOR: all styles are empty, only the prefix shows selection
+	w, h := 20, 5
+	prefix := "> "
+	emptyStyle := lipgloss.NewStyle()
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              emptyStyle,
+		HighlightStyle:           emptyStyle,
+		HighlightStyleIfSelected: emptyStyle,
+		SelectedItemStyle:        emptyStyle,
+	}))
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{"alpha", "beta"})
+
+	expectedView := internal.Pad(w, h, []string{
+		// selected line has prefix but no style (emptyStyle is a no-op)
+		prefix + "alpha",
+		"  " + "beta",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionPrefix_EmptyPrefix(t *testing.T) {
+	// when SelectionPrefix is empty, no prefix or padding is added
+	w, h := 20, 5
+	vp := newViewport(w, h) // default test helper has empty prefix
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{"first", "second"})
+
+	expectedView := internal.Pad(w, h, []string{
+		selectionStyle.Render("first"),
+		"second",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}

@@ -11,15 +11,18 @@ type Styles struct {
 
 // MatchStyles contains styles for matches in the filterable viewport
 type MatchStyles struct {
-	Focused   lipgloss.Style
-	Unfocused lipgloss.Style
+	Focused           lipgloss.Style
+	FocusedIfSelected lipgloss.Style // used when the focused match is on the selected item
+	Unfocused         lipgloss.Style
 }
 
-// DefaultMatchStyles returns a set of default styles for matches
+// DefaultMatchStyles returns a set of default styles for matches.
+// Uses only reverse video and safe ANSI colors — no 256-color or true-color values.
 func DefaultMatchStyles() MatchStyles {
 	return MatchStyles{
-		Focused:   lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11")),
-		Unfocused: lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("7")),
+		Focused:           lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.Cyan),
+		FocusedIfSelected: lipgloss.NewStyle().Foreground(lipgloss.Cyan),
+		Unfocused:         lipgloss.NewStyle().Foreground(lipgloss.BrightRed),
 	}
 }
 

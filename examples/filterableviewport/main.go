@@ -119,6 +119,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				filterableviewport.WithStyles[object](styles),
 				filterableviewport.WithPrefixText[object]("Filter:"),
 				filterableviewport.WithEmptyText[object]("No Current Filter"),
+				filterableviewport.WithFilterLinePosition[object](filterableviewport.FilterLineTop),
 				filterableviewport.WithMatchingItemsOnly[object](false),
 				filterableviewport.WithCanToggleMatchingItemsOnly[object](true),
 				filterableviewport.WithVerticalPad[object](10),
@@ -153,12 +154,11 @@ func (m model) View() tea.View {
 			[]key.Binding{
 				filterableViewportKeyMap.FilterKey,
 				filterableViewportKeyMap.RegexFilterKey,
+				filterableViewportKeyMap.CaseInsensitiveFilterKey,
 				filterableViewportKeyMap.ApplyFilterKey,
 				filterableViewportKeyMap.CancelFilterKey,
 				filterableViewportKeyMap.ToggleMatchingItemsOnlyKey,
 			},
-			m.viewportWidth,
-			m.viewportHeight,
 		), "\n")
 		content = lipgloss.JoinVertical(
 			lipgloss.Left,
@@ -171,9 +171,9 @@ func (m model) View() tea.View {
 	return v
 }
 
-func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding, vpWidth, vpHeight int) []string {
+func getHeader(wrapped, selectionEnabled bool, viewportKeyMap viewport.KeyMap, bindings []key.Binding) []string {
 	var header []string
-	suffix := fmt.Sprintf(" (%s to quit) [viewport is %d by %d]", appKeyMap.quit.Help().Key, vpWidth, vpHeight)
+	suffix := fmt.Sprintf(" (%s to quit)", appKeyMap.quit.Help().Key)
 	header = append(header, lipgloss.NewStyle().Bold(true).Render("A Supercharged Filterable Viewport"+suffix))
 	header = append(header, "- Wrapping enabled: "+fmt.Sprint(wrapped)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleWrapTextKey.Help().Key))
 	header = append(header, "- Selection enabled: "+fmt.Sprint(selectionEnabled)+fmt.Sprintf(" (%s to toggle)", appKeyMap.toggleSelectionKey.Help().Key))

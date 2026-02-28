@@ -2351,6 +2351,150 @@ func TestViewport_SelectionOn_ToggleWrap_ScrollInBounds(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionPrefix_WrapOn_Basic(t *testing.T) {
+	// width=20, prefix="> " (2 chars), so content wraps at 18
+	w, h := 20, 7
+	prefix := "> "
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              lipgloss.NewStyle(),
+		HighlightStyle:           lipgloss.NewStyle(),
+		HighlightStyleIfSelected: lipgloss.NewStyle(),
+		SelectedItemStyle:        selectionStyle,
+	}))
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{"short", "medium length", "third"})
+
+	// selection on first item
+	expectedView := internal.Pad(w, h, []string{
+		prefix + selectionStyle.Render("short"),
+		"  " + "medium length",
+		"  " + "third",
+		"",
+		"",
+		"",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move down
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(w, h, []string{
+		"  " + "short",
+		prefix + selectionStyle.Render("medium length"),
+		"  " + "third",
+		"",
+		"",
+		"",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionPrefix_WrapOn_LongItemWraps(t *testing.T) {
+	// width=12, prefix="> " (2 chars), so content wraps at 10
+	w, h := 12, 7
+	prefix := "> "
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              lipgloss.NewStyle(),
+		HighlightStyle:           lipgloss.NewStyle(),
+		HighlightStyleIfSelected: lipgloss.NewStyle(),
+		SelectedItemStyle:        selectionStyle,
+	}))
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+
+	// "hello world!!" is 13 chars, wraps at content width 10 into 2 lines
+	setContent(vp, []string{"hello world!!", "short"})
+
+	// selected item wraps: prefix on both wrapped lines
+	expectedView := internal.Pad(w, h, []string{
+		prefix + selectionStyle.Render("hello worl"),
+		prefix + selectionStyle.Render("d!!"),
+		"  " + "short",
+		"",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// move down - unselected item still wraps, gets padding on both lines
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView = internal.Pad(w, h, []string{
+		"  " + "hello worl",
+		"  " + "d!!",
+		prefix + selectionStyle.Render("short"),
+		"",
+		"",
+		"",
+		"100% (2/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionPrefix_WrapOn_WithHeader(t *testing.T) {
+	// header uses full width (no prefix), content uses contentWidth
+	w, h := 20, 6
+	prefix := "> "
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              lipgloss.NewStyle(),
+		HighlightStyle:           lipgloss.NewStyle(),
+		HighlightStyleIfSelected: lipgloss.NewStyle(),
+		SelectedItemStyle:        selectionStyle,
+	}))
+	vp.SetHeader([]string{"header line"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{"alpha", "beta"})
+
+	expectedView := internal.Pad(w, h, []string{
+		"header line",
+		prefix + selectionStyle.Render("alpha"),
+		"  " + "beta",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionPrefix_WrapOn_NoColor(t *testing.T) {
+	// all styles empty, only prefix distinguishes selection
+	w, h := 16, 6
+	prefix := "> "
+	emptyStyle := lipgloss.NewStyle()
+
+	vp := newViewport(w, h, WithStyles[object](Styles{
+		SelectionPrefix:          prefix,
+		FooterStyle:              emptyStyle,
+		HighlightStyle:           emptyStyle,
+		HighlightStyleIfSelected: emptyStyle,
+		SelectedItemStyle:        emptyStyle,
+	}))
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+
+	// "a]long item here" is 16 chars, wraps at content width 14 into 2 lines
+	setContent(vp, []string{"a long item here!", "other"})
+
+	expectedView := internal.Pad(w, h, []string{
+		prefix + "a long item he",
+		prefix + "re!",
+		"  " + "other",
+		"",
+		"",
+		"50% (1/2)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func setContent(vp *Model[object], content []string) {
 	renderableStrings := make([]object, len(content))
 	for i := range content {

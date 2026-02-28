@@ -49,12 +49,14 @@ var (
 	// cursorStyle matches the default virtual cursor rendering from textinput v2:
 	// cursor.Model.View() renders Style.Inline(true).Reverse(true).Render(char)
 	// where Style = lipgloss.NewStyle().Foreground(cursorColor) and cursorColor defaults to "7"
-	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Reverse(true)
-	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
-	unfocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
-	matchStyles    = MatchStyles{
-		Focused:   focusedStyle,
-		Unfocused: unfocusedStyle,
+	cursorStyle            = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Reverse(true)
+	focusedStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
+	focusedIfSelectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	unfocusedStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
+	matchStyles            = MatchStyles{
+		Focused:           focusedStyle,
+		FocusedIfSelected: focusedStyle,
+		Unfocused:         unfocusedStyle,
 	}
 	filterableViewportStyles = Styles{
 		Match: matchStyles,
@@ -1722,6 +1724,72 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 
 	fv, _ = fv.Update(prevMatchKeyMsg)
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
+}
+
+func TestFocusedIfSelectedMatchStyle(t *testing.T) {
+	fv := makeFilterableViewport(
+		40,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+			viewport.WithSelectionEnabled[object](true),
+		},
+		[]Option[object]{
+			WithStyles[object](Styles{
+				Match: MatchStyles{
+					Focused:           focusedStyle,
+					FocusedIfSelected: focusedIfSelectedStyle,
+					Unfocused:         unfocusedStyle,
+				},
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+
+	// start filtering for "apple"
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "apple" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// focused match is on item 0 (selected) — should use focusedIfSelectedStyle
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedIfSelectedStyle.Render("apple") + selectedItemStyle.Render(" pie"),
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("33% (1/3)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// navigate to next match — focused match moves to item 2 (now selected),
+	// item 0 becomes unfocused
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		unfocusedStyle.Render("apple") + " pie",
+		"banana bread",
+		focusedIfSelectedStyle.Render("apple") + selectedItemStyle.Render(" cake"),
+		"[exact] apple  (2/2 matches on 2 items)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// navigate back — focused match on item 0 again (selected),
+	// uses focusedIfSelectedStyle again
+	fv, _ = fv.Update(prevMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedIfSelectedStyle.Render("apple") + selectedItemStyle.Render(" pie"),
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		footerStyle.Render("33% (1/3)"),
+	})
+	internal.CmpStr(t, expected, fv.View())
 }
 
 func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
