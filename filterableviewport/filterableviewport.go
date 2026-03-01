@@ -353,8 +353,14 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 	}
 
 	if m.filterMode != filterModeEditing {
+		prevSelectedIdx := m.vp.GetSelectedItemIdx()
 		m.vp, cmd = m.vp.Update(msg)
 		cmds = append(cmds, cmd)
+		// when the selection moves, re-evaluate focused match highlight style
+		// since it differs depending on whether the focused match is on the selected item
+		if m.vp.GetSelectedItemIdx() != prevSelectedIdx && len(m.allMatches) > 0 {
+			m.updateFocusedMatchHighlight()
+		}
 	} else {
 		m.filterTextInput, cmd = m.filterTextInput.Update(msg)
 		m.updateMatchingItems()

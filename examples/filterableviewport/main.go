@@ -45,7 +45,6 @@ var appKeyMap = appKeys{
 
 var viewportKeyMap = viewport.DefaultKeyMap()
 var filterableViewportKeyMap = filterableviewport.DefaultKeyMap()
-var styles = filterableviewport.DefaultStyles()
 
 type model struct {
 	// fv is the filterable container for the objects
@@ -116,7 +115,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fv = filterableviewport.New[object](
 				vp,
 				filterableviewport.WithKeyMap[object](filterableViewportKeyMap),
-				filterableviewport.WithStyles[object](styles),
+				filterableviewport.WithStyles[object](filterableviewport.DefaultStyles()),
 				filterableviewport.WithPrefixText[object]("Filter:"),
 				filterableviewport.WithEmptyText[object]("No Current Filter"),
 				filterableviewport.WithFilterLinePosition[object](filterableviewport.FilterLineTop),

@@ -1792,6 +1792,80 @@ func TestFocusedIfSelectedMatchStyle(t *testing.T) {
 	internal.CmpStr(t, expected, fv.View())
 }
 
+func TestFocusedIfSelectedWithReverseSelection(t *testing.T) {
+	reverseStyle := lipgloss.NewStyle().Reverse(true)
+	cyanFgStyle := lipgloss.NewStyle().Foreground(lipgloss.Cyan)
+	reverseCyanStyle := lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.Cyan)
+	brightRedStyle := lipgloss.NewStyle().Foreground(lipgloss.BrightRed)
+
+	fv := makeFilterableViewport(
+		40,
+		5,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+			viewport.WithSelectionEnabled[object](true),
+			viewport.WithStyles[object](viewport.Styles{
+				SelectedItemStyle: reverseStyle,
+			}),
+		},
+		[]Option[object]{
+			WithStyles[object](Styles{
+				Match: MatchStyles{
+					Focused:           reverseCyanStyle,
+					FocusedIfSelected: cyanFgStyle,
+					Unfocused:         brightRedStyle,
+				},
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+
+	// Apply filter
+	fv, _ = fv.Update(filterKeyMsg)
+	for _, c := range "apple" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(c))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// After apply: focused match (1/2) on item 0 which IS selected
+	// FocusedIfSelected should be used for "apple", SelectedItemStyle for " pie"
+	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		cyanFgStyle.Render("apple") + reverseStyle.Render(" pie"),
+		"banana bread",
+		brightRedStyle.Render("apple") + " cake",
+		"[exact] apple  (1/2 matches on 2 items)",
+		"33% (1/3)",
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// Press n — focused match moves to item 2, selection follows
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		brightRedStyle.Render("apple") + " pie",
+		"banana bread",
+		cyanFgStyle.Render("apple") + reverseStyle.Render(" cake"),
+		"[exact] apple  (2/2 matches on 2 items)",
+		"100% (3/3)",
+	})
+	internal.CmpStr(t, expected, fv.View())
+
+	// Move selection up — focused match stays on item 2 but selection moves to item 1,
+	// so focused match should now use Focused (reverse+cyan) instead of FocusedIfSelected
+	fv, _ = fv.Update(internal.MakeKeyMsg('k'))
+	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		brightRedStyle.Render("apple") + " pie",
+		reverseStyle.Render("banana bread"),
+		reverseCyanStyle.Render("apple") + " cake",
+		"[exact] apple  (2/2 matches on 2 items)",
+		"66% (2/3)",
+	})
+	internal.CmpStr(t, expected, fv.View())
+}
+
 func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 	fv := makeFilterableViewport(
 		20,
