@@ -2495,6 +2495,104 @@ func TestViewport_SelectionPrefix_WrapOn_NoColor(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOn_WrapOn_SetSameDimensionsPreservesScrollPosition(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line",
+		"the fifth line",
+		"the sixth line",
+		"the seventh line",
+		"the eighth line",
+	})
+
+	// move selection to fifth item, causing a scroll
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView := internal.Pad(w, h, []string{
+		"header",
+		" line",
+		internal.BlueFg.Render("the fifth "),
+		internal.BlueFg.Render("line"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// setting the same width and height should not change the scroll position
+	vp.SetWidth(w)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetHeight(h)
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOn_ChangeHeightPreservesSelectionPosition(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetWrapText(true)
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"the first line",
+		"the second line",
+		"the third line",
+		"the fourth line",
+		"the fifth line",
+		"the sixth line",
+		"the seventh line",
+		"the eighth line",
+	})
+
+	// move selection to fifth item
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView := internal.Pad(w, h, []string{
+		"header",
+		"the fourth",
+		" line",
+		internal.BlueFg.Render("the fifth "),
+		internal.BlueFg.Render("line"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// increase height - selection should remain visible and not jump to the top
+	vp.SetHeight(10)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"the fourth",
+		" line",
+		internal.BlueFg.Render("the fifth "),
+		internal.BlueFg.Render("line"),
+		"the sixth ",
+		"line",
+		"the sevent",
+		"h line",
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// reduce height - selection should still be visible
+	vp.SetHeight(4)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		internal.BlueFg.Render("the fifth "),
+		internal.BlueFg.Render("line"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func setContent(vp *Model[object], content []string) {
 	renderableStrings := make([]object, len(content))
 	for i := range content {

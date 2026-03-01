@@ -2011,6 +2011,102 @@ func TestViewport_SelectionPrefix_NoColor(t *testing.T) {
 	internal.CmpStr(t, expectedView, vp.View())
 }
 
+func TestViewport_SelectionOn_WrapOff_SetSameDimensionsPreservesScrollPosition(t *testing.T) {
+	w, h := 10, 5
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+		"fifth",
+		"sixth",
+		"seventh",
+		"eighth",
+	})
+
+	// move selection to fifth item, causing a scroll
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView := internal.Pad(w, h, []string{
+		"header",
+		"third",
+		"fourth",
+		internal.BlueFg.Render("fifth"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// setting the same width and height should not change the scroll position
+	vp.SetWidth(w)
+	internal.CmpStr(t, expectedView, vp.View())
+
+	vp.SetHeight(h)
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
+func TestViewport_SelectionOn_WrapOff_ChangeHeightPreservesSelectionPosition(t *testing.T) {
+	w, h := 10, 6
+	vp := newViewport(w, h)
+	vp.SetHeader([]string{"header"})
+	vp.SetSelectionEnabled(true)
+	setContent(vp, []string{
+		"first",
+		"second",
+		"third",
+		"fourth",
+		"fifth",
+		"sixth",
+		"seventh",
+		"eighth",
+	})
+
+	// move selection to fifth item
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	vp, _ = vp.Update(downKeyMsg)
+	expectedView := internal.Pad(w, h, []string{
+		"header",
+		"second",
+		"third",
+		"fourth",
+		internal.BlueFg.Render("fifth"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// increase height - selection should remain visible and not jump to the top
+	vp.SetHeight(10)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"first",
+		"second",
+		"third",
+		"fourth",
+		internal.BlueFg.Render("fifth"),
+		"sixth",
+		"seventh",
+		"eighth",
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+
+	// reduce height - selection should still be visible
+	vp.SetHeight(4)
+	expectedView = internal.Pad(vp.GetWidth(), vp.GetHeight(), []string{
+		"header",
+		"fourth",
+		internal.BlueFg.Render("fifth"),
+		"62% (5/8)",
+	})
+	internal.CmpStr(t, expectedView, vp.View())
+}
+
 func TestViewport_SelectionPrefix_EmptyPrefix(t *testing.T) {
 	// when SelectionPrefix is empty, no prefix or padding is added
 	w, h := 20, 5

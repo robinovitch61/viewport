@@ -1178,11 +1178,14 @@ func (m *Model[T]) selectionPrefixPadding() string {
 }
 
 func (m *Model[T]) setWidthHeight(width, height int) {
-	m.display.setBounds(rectangle{width: width, height: height})
-	if m.navigation.selectionEnabled {
-		m.safelySetTopItemIdxAndOffset(m.content.getSelectedIdx(), 0)
+	if m.display.bounds.width == width && m.display.bounds.height == height {
+		return
 	}
+	m.display.setBounds(rectangle{width: width, height: height})
 	m.safelySetTopItemIdxAndOffset(m.display.topItemIdx, m.display.topItemLineOffset)
+	if m.navigation.selectionEnabled {
+		m.scrollSoSelectionInView()
+	}
 }
 
 func (m *Model[T]) safelySetTopItemIdxAndOffset(topItemIdx, topItemLineOffset int) {
