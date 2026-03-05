@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/internal"
 	"github.com/robinovitch61/viewport/viewport/item"
 )
@@ -150,10 +149,8 @@ func TestViewport_SelectionOff_WrapOn_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOff_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		FooterStyle:              internal.RedFg,
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		FooterStyle:       internal.RedFg,
+		SelectedItemStyle: selectionStyle,
 	}))
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)

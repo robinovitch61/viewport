@@ -164,10 +164,8 @@ func TestViewport_SelectionOn_WrapOn_ShowFooter(t *testing.T) {
 func TestViewport_SelectionOn_WrapOn_FooterStyle(t *testing.T) {
 	w, h := 15, 5
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		FooterStyle:              internal.RedFg,
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		FooterStyle:       internal.RedFg,
+		SelectedItemStyle: selectionStyle,
 	}))
 	vp.SetHeader([]string{"header"})
 	vp.SetWrapText(true)
@@ -2357,11 +2355,9 @@ func TestViewport_SelectionPrefix_WrapOn_Basic(t *testing.T) {
 	prefix := "> "
 
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		SelectionPrefix:          prefix,
-		FooterStyle:              lipgloss.NewStyle(),
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		SelectionPrefix:   prefix,
+		FooterStyle:       lipgloss.NewStyle(),
+		SelectedItemStyle: selectionStyle,
 	}))
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
@@ -2399,11 +2395,9 @@ func TestViewport_SelectionPrefix_WrapOn_LongItemWraps(t *testing.T) {
 	prefix := "> "
 
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		SelectionPrefix:          prefix,
-		FooterStyle:              lipgloss.NewStyle(),
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		SelectionPrefix:   prefix,
+		FooterStyle:       lipgloss.NewStyle(),
+		SelectedItemStyle: selectionStyle,
 	}))
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)
@@ -2443,11 +2437,9 @@ func TestViewport_SelectionPrefix_WrapOn_WithHeader(t *testing.T) {
 	prefix := "> "
 
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		SelectionPrefix:          prefix,
-		FooterStyle:              lipgloss.NewStyle(),
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		SelectionPrefix:   prefix,
+		FooterStyle:       lipgloss.NewStyle(),
+		SelectedItemStyle: selectionStyle,
 	}))
 	vp.SetHeader([]string{"header line"})
 	vp.SetWrapText(true)
@@ -2472,11 +2464,9 @@ func TestViewport_SelectionPrefix_WrapOn_NoColor(t *testing.T) {
 	emptyStyle := lipgloss.NewStyle()
 
 	vp := newViewport(w, h, WithStyles[object](Styles{
-		SelectionPrefix:          prefix,
-		FooterStyle:              emptyStyle,
-		HighlightStyle:           emptyStyle,
-		HighlightStyleIfSelected: emptyStyle,
-		SelectedItemStyle:        emptyStyle,
+		SelectionPrefix:   prefix,
+		FooterStyle:       emptyStyle,
+		SelectedItemStyle: emptyStyle,
 	}))
 	vp.SetWrapText(true)
 	vp.SetSelectionEnabled(true)

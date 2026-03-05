@@ -37,10 +37,8 @@ var (
 
 func newViewport(width, height int, options ...Option[object]) *Model[object] {
 	styles := Styles{
-		FooterStyle:              lipgloss.NewStyle(),
-		HighlightStyle:           lipgloss.NewStyle(),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
-		SelectedItemStyle:        selectionStyle,
+		FooterStyle:       lipgloss.NewStyle(),
+		SelectedItemStyle: selectionStyle,
 	}
 
 	options = append([]Option[object]{

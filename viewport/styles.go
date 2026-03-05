@@ -12,20 +12,16 @@ type Styles struct {
 	// This is the primary mechanism for selection visibility under NO_COLOR.
 	SelectionPrefix string
 
-	FooterStyle              lipgloss.Style
-	HighlightStyle           lipgloss.Style
-	HighlightStyleIfSelected lipgloss.Style
-	SelectedItemStyle        lipgloss.Style
+	FooterStyle       lipgloss.Style
+	SelectedItemStyle lipgloss.Style
 }
 
 // DefaultStyles returns a set of default styles for the viewport.
 // Uses only reverse video — no 256-color or true-color values.
 func DefaultStyles() Styles {
 	return Styles{
-		SelectionPrefix:          "",
-		FooterStyle:              lipgloss.NewStyle(),
-		SelectedItemStyle:        lipgloss.NewStyle().Reverse(true),
-		HighlightStyle:           lipgloss.NewStyle().Reverse(true),
-		HighlightStyleIfSelected: lipgloss.NewStyle(),
+		SelectionPrefix:   "",
+		FooterStyle:       lipgloss.NewStyle(),
+		SelectedItemStyle: lipgloss.NewStyle().Reverse(true),
 	}
 }

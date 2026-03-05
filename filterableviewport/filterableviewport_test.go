@@ -35,15 +35,11 @@ var (
 	prevMatchKeyMsg             = internal.MakeKeyMsg('N')
 	downKeyMsg                  = tea.KeyPressMsg{Code: tea.KeyDown, Text: "down"}
 
-	footerStyle              = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	highlightStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
-	highlightStyleIfSelected = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Underline(true)
-	selectedItemStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
-	viewportStyles           = viewport.Styles{
-		FooterStyle:              footerStyle,
-		HighlightStyle:           highlightStyle,
-		HighlightStyleIfSelected: highlightStyleIfSelected,
-		SelectedItemStyle:        selectedItemStyle,
+	footerStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	selectedItemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+	viewportStyles    = viewport.Styles{
+		FooterStyle:       footerStyle,
+		SelectedItemStyle: selectedItemStyle,
 	}
 
 	// cursorStyle matches the default virtual cursor rendering from textinput v2:
