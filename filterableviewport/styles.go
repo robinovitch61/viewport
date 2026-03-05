@@ -21,8 +21,8 @@ type MatchStyles struct {
 func DefaultMatchStyles() MatchStyles {
 	return MatchStyles{
 		Focused:           lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.Cyan),
-		FocusedIfSelected: lipgloss.NewStyle().Foreground(lipgloss.Cyan),
-		Unfocused:         lipgloss.NewStyle().Foreground(lipgloss.BrightRed),
+		FocusedIfSelected: lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.Cyan),
+		Unfocused:         lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.BrightRed),
 	}
 }
 
