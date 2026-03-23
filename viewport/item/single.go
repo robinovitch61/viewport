@@ -18,6 +18,7 @@ type SingleItem struct {
 	ansiCodeIndexes      [][]uint32 // slice of startByte, endByte indexes of ansi codes
 	numNoAnsiRunes       int        // number of runes in lineNoAnsi
 	totalWidth           int        // total width in terminal cells
+	fillToWidth          bool       // when true, Take() pads remaining width with spaces (emulates \x1b[K)
 
 	sparsity                        int      // interval for which to store cumulative cell width
 	sparseRuneIdxToNoAnsiByteOffset []uint32 // rune idx to byte offset of lineNoAnsi, stored every sparsity runes
@@ -32,8 +33,21 @@ var _ Item = (*SingleItem)(nil)
 
 // NewItem creates a new SingleItem from the given string.
 func NewItem(line string) SingleItem {
+	// \x1b[K and \x1b[0K tell the terminal to fill from cursor to end of line
+	// with the current background color. we can't preserve them as-is because
+	// the viewport's render() pads every line to a fixed width with lipgloss,
+	// and those plain padding spaces overwrite the \x1b[K fill. instead, strip
+	// them here and emulate in Take() by inserting spaces before the trailing
+	// ANSI reset so they inherit the active background color.
+	var fillToWidth bool
+	if strings.Contains(line, "\x1b[K") || strings.Contains(line, "\x1b[0K") {
+		line = strings.ReplaceAll(line, "\x1b[0K", "")
+		line = strings.ReplaceAll(line, "\x1b[K", "")
+		fillToWidth = true
+	}
+
 	if len(line) <= 0 {
-		return SingleItem{line: line}
+		return SingleItem{line: line, fillToWidth: fillToWidth}
 	}
 
 	// keep sparsity small for short lines
@@ -43,8 +57,9 @@ func NewItem(line string) SingleItem {
 	}
 
 	item := SingleItem{
-		line:     line,
-		sparsity: sparsity,
+		line:        line,
+		sparsity:    sparsity,
+		fillToWidth: fillToWidth,
 	}
 
 	item.ansiCodeIndexes = findAnsiByteRanges(line)
@@ -143,6 +158,19 @@ func (l SingleItem) Take(
 	startRuneIdx := l.findRuneIndexWithWidthToLeft(widthToLeft)
 
 	if startRuneIdx >= l.numNoAnsiRunes || takeWidth == 0 {
+		if l.fillToWidth && takeWidth > 0 {
+			// content is empty but fill is requested — produce styled padding
+			res := reapplyAnsi(l.line, "", 0, l.ansiCodeIndexes)
+			padding := strings.Repeat(" ", takeWidth)
+			if strings.HasSuffix(res, "\x1b[m") {
+				res = res[:len(res)-3] + padding + "\x1b[m"
+			} else if strings.HasSuffix(res, "\x1b[0m") {
+				res = res[:len(res)-4] + padding + "\x1b[0m"
+			} else {
+				res += padding
+			}
+			return removeEmptyAnsiSequences(res), takeWidth
+		}
 		return "", 0
 	}
 
@@ -220,6 +248,22 @@ func (l SingleItem) Take(
 		if leftRuneIdx < l.numNoAnsiRunes {
 			res = replaceEndWithContinuation(res, continuationRunes)
 		}
+	}
+
+	// emulate \x1b[K: insert padding spaces before the trailing ANSI reset
+	// so they inherit the active background color. we use explicit spaces
+	// rather than re-emitting \x1b[K because render() pads lines via
+	// lipgloss.Width(), and those unstyled spaces would overwrite the fill.
+	if l.fillToWidth && remainingWidth > 0 {
+		padding := strings.Repeat(" ", remainingWidth)
+		if strings.HasSuffix(res, "\x1b[m") {
+			res = res[:len(res)-3] + padding + "\x1b[m"
+		} else if strings.HasSuffix(res, "\x1b[0m") {
+			res = res[:len(res)-4] + padding + "\x1b[0m"
+		} else {
+			res += padding
+		}
+		remainingWidth = 0
 	}
 
 	res = removeEmptyAnsiSequences(res)

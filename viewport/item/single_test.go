@@ -888,6 +888,82 @@ func TestSingle_Take(t *testing.T) {
 	}
 }
 
+func TestSingle_Take_EraseInLine(t *testing.T) {
+	greenBg := "\x1b[42m"
+	redBg := "\x1b[41m"
+	reset := "\x1b[m"
+
+	tests := []struct {
+		name       string
+		s          string
+		width      int
+		startWidth int
+		expected   string
+		// expectedWidth is the width returned by Take; defaults to width if zero
+		expectedWidth int
+	}{
+		{
+			name:     "\\x1b[K pads to fill width with background",
+			s:        greenBg + "+added" + "\x1b[K" + reset,
+			width:    20,
+			expected: greenBg + "+added" + strings.Repeat(" ", 14) + reset,
+		},
+		{
+			name:     "\\x1b[0K pads to fill width with background",
+			s:        redBg + "-removed" + "\x1b[0K" + reset,
+			width:    20,
+			expected: redBg + "-removed" + strings.Repeat(" ", 12) + reset,
+		},
+		{
+			name:     "no padding when content fills width",
+			s:        greenBg + "1234567890" + "\x1b[K" + reset,
+			width:    10,
+			expected: greenBg + "1234567890" + reset,
+		},
+		{
+			name:          "no padding without \\x1b[K",
+			s:             greenBg + "+added" + reset,
+			width:         20,
+			expected:      greenBg + "+added" + reset,
+			expectedWidth: 6,
+		},
+		{
+			name:       "pads when scrolled right",
+			s:          greenBg + "+added line" + "\x1b[K" + reset,
+			width:      20,
+			startWidth: 5,
+			expected:   greenBg + "d line" + strings.Repeat(" ", 14) + reset,
+		},
+		{
+			name:     "empty content with \\x1b[K",
+			s:        greenBg + "\x1b[K" + reset,
+			width:    10,
+			expected: strings.Repeat(" ", 10),
+		},
+		{
+			name:     "plain text with \\x1b[K (no styling)",
+			s:        "hello\x1b[K",
+			width:    10,
+			expected: "hello" + strings.Repeat(" ", 5),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := NewItem(tt.s)
+			actual, actualWidth := item.Take(tt.startWidth, tt.width, "", []Highlight{})
+			internal.CmpStr(t, tt.expected, actual)
+			expectedWidth := tt.expectedWidth
+			if expectedWidth == 0 {
+				expectedWidth = tt.width
+			}
+			if actualWidth != expectedWidth {
+				t.Errorf("expected width %d, got %d", expectedWidth, actualWidth)
+			}
+		})
+	}
+}
+
 func TestSingle_Take_NoAnsiLeak(t *testing.T) {
 	// simulates git diff syntax-highlighted output where " is one color and \b another.
 	// when highlighting ", ANSI code internals like "38;2;190;132;255m" must not
