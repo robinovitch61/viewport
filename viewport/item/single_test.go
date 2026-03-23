@@ -891,7 +891,8 @@ func TestSingle_Take(t *testing.T) {
 func TestSingle_Take_EraseInLine(t *testing.T) {
 	greenBg := "\x1b[42m"
 	redBg := "\x1b[41m"
-	reset := "\x1b[m"
+	baseBg := "\x1b[48;2;0;40;0m"
+	highlightBg := "\x1b[48;2;0;96;0m"
 
 	tests := []struct {
 		name       string
@@ -903,48 +904,62 @@ func TestSingle_Take_EraseInLine(t *testing.T) {
 		expectedWidth int
 	}{
 		{
-			name:     "\\x1b[K pads to fill width with background",
-			s:        greenBg + "+added" + "\x1b[K" + reset,
+			name:     "\\x1b[K pads with preceding style",
+			s:        greenBg + "+added" + "\x1b[K" + RST,
 			width:    20,
-			expected: greenBg + "+added" + strings.Repeat(" ", 14) + reset,
+			expected: greenBg + "+added" + RST + greenBg + strings.Repeat(" ", 14) + RST,
 		},
 		{
-			name:     "\\x1b[0K pads to fill width with background",
-			s:        redBg + "-removed" + "\x1b[0K" + reset,
+			name:     "\\x1b[0K pads with preceding style",
+			s:        redBg + "-removed" + "\x1b[0K" + RST,
 			width:    20,
-			expected: redBg + "-removed" + strings.Repeat(" ", 12) + reset,
+			expected: redBg + "-removed" + RST + redBg + strings.Repeat(" ", 12) + RST,
+		},
+		{
+			name:     "uses fill style not content style",
+			s:        baseBg + "text" + highlightBg + "hl" + RST + baseBg + "\x1b[0K" + RST,
+			width:    20,
+			expected: baseBg + "text" + highlightBg + "hl" + RST + baseBg + strings.Repeat(" ", 14) + RST,
 		},
 		{
 			name:     "no padding when content fills width",
-			s:        greenBg + "1234567890" + "\x1b[K" + reset,
+			s:        greenBg + "1234567890" + "\x1b[K" + RST,
 			width:    10,
-			expected: greenBg + "1234567890" + reset,
+			expected: greenBg + "1234567890" + RST,
 		},
 		{
 			name:          "no padding without \\x1b[K",
-			s:             greenBg + "+added" + reset,
+			s:             greenBg + "+added" + RST,
 			width:         20,
-			expected:      greenBg + "+added" + reset,
+			expected:      greenBg + "+added" + RST,
 			expectedWidth: 6,
 		},
 		{
 			name:       "pads when scrolled right",
-			s:          greenBg + "+added line" + "\x1b[K" + reset,
+			s:          greenBg + "+added line" + "\x1b[K" + RST,
 			width:      20,
 			startWidth: 5,
-			expected:   greenBg + "d line" + strings.Repeat(" ", 14) + reset,
+			expected:   greenBg + "d line" + RST + greenBg + strings.Repeat(" ", 14) + RST,
 		},
 		{
 			name:     "empty content with \\x1b[K",
-			s:        greenBg + "\x1b[K" + reset,
+			s:        greenBg + "\x1b[K" + RST,
 			width:    10,
-			expected: strings.Repeat(" ", 10),
+			expected: greenBg + strings.Repeat(" ", 10) + RST,
 		},
 		{
-			name:     "plain text with \\x1b[K (no styling)",
-			s:        "hello\x1b[K",
-			width:    10,
-			expected: "hello" + strings.Repeat(" ", 5),
+			name:          "plain text with \\x1b[K but no preceding style",
+			s:             "hello\x1b[K",
+			width:         10,
+			expected:      "hello",
+			expectedWidth: 5,
+		},
+		{
+			name:          "\\x1b[K preceded by reset means no fill",
+			s:             greenBg + "text" + RST + "\x1b[K" + RST,
+			width:         20,
+			expected:      greenBg + "text" + RST,
+			expectedWidth: 4,
 		},
 	}
 
