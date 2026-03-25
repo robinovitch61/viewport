@@ -979,6 +979,56 @@ func TestSingle_Take_EraseInLine(t *testing.T) {
 	}
 }
 
+func TestSingle_NewItem_stripsNonSGR(t *testing.T) {
+	tests := []struct {
+		name            string
+		input           string
+		expectedContent string
+		expectedNoAnsi  string
+		expectedWidth   int
+	}{
+		{
+			name:            "non-sgr csi stripped from content",
+			input:           "\x1b[31m\x1b[2Jhello\x1b[m",
+			expectedContent: "\x1b[31mhello\x1b[m",
+			expectedNoAnsi:  "hello",
+			expectedWidth:   5,
+		},
+		{
+			name:            "cursor movement stripped",
+			input:           "\x1b[10;20Hworld",
+			expectedContent: "world",
+			expectedNoAnsi:  "world",
+			expectedWidth:   5,
+		},
+		{
+			name:            "osc stripped",
+			input:           "\x1b]0;title\x07hello",
+			expectedContent: "hello",
+			expectedNoAnsi:  "hello",
+			expectedWidth:   5,
+		},
+		{
+			name:            "escK with non-sgr still works",
+			input:           "\x1b[41m\x1b[2Jhello\x1b[K",
+			expectedContent: "\x1b[41mhello",
+			expectedNoAnsi:  "hello",
+			expectedWidth:   5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := NewItem(tt.input)
+			internal.CmpStr(t, tt.expectedContent, item.Content())
+			internal.CmpStr(t, tt.expectedNoAnsi, item.ContentNoAnsi())
+			if item.Width() != tt.expectedWidth {
+				t.Errorf("expected width %d, got %d", tt.expectedWidth, item.Width())
+			}
+		})
+	}
+}
+
 func TestSingle_Take_NoAnsiLeak(t *testing.T) {
 	// simulates git diff syntax-highlighted output where " is one color and \b another.
 	// when highlighting ", ANSI code internals like "38;2;190;132;255m" must not

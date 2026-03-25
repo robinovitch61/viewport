@@ -385,6 +385,160 @@ func findAnsiRuneRanges(s string) [][]uint32 {
 	return ranges[:rangeIdx]
 }
 
+// stripNonSGR removes all non-SGR ANSI escape sequences from the input string.
+// SGR sequences (\x1b[...m) are preserved. all other escape sequences (CSI non-SGR,
+// OSC, Fe, Fp, nF, SS2, SS3) are stripped. uses lazy allocation so lines containing
+// only SGR sequences (the common case) incur zero allocations.
+func stripNonSGR(line string) string {
+	if !strings.Contains(line, "\x1b") {
+		return line
+	}
+
+	var b strings.Builder
+	allocated := false
+	lastCopied := 0
+
+	i := 0
+	for i < len(line) {
+		if line[i] != '\x1b' {
+			i++
+			continue
+		}
+
+		seqStart := i
+		i++ // past \x1b
+
+		if i >= len(line) {
+			// bare \x1b at end of string — keep it
+			break
+		}
+
+		next := line[i]
+		switch {
+		case next == '[':
+			// CSI sequence: \x1b[ + params (0x30-0x3F) + intermediates (0x20-0x2F) + final (0x40-0x7E)
+			i++ // past [
+
+			// consume parameter bytes
+			for i < len(line) && line[i] >= 0x30 && line[i] <= 0x3F {
+				i++
+			}
+			// consume intermediate bytes
+			for i < len(line) && line[i] >= 0x20 && line[i] <= 0x2F {
+				i++
+			}
+			// final byte
+			if i >= len(line) {
+				// truncated CSI — keep as literal text
+				i = seqStart + 1
+				continue
+			}
+			finalByte := line[i]
+			i++ // past final byte
+
+			if finalByte < 0x40 || finalByte > 0x7E {
+				// malformed — keep as literal text
+				i = seqStart + 1
+				continue
+			}
+
+			if finalByte == 'm' {
+				// SGR — keep
+				continue
+			}
+
+			// non-SGR CSI — strip
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		case next == ']':
+			// OSC sequence: \x1b] ... terminated by BEL (\x07) or ST (\x1b\\)
+			i++ // past ]
+			for i < len(line) {
+				if line[i] == '\x07' {
+					i++ // past BEL
+					break
+				}
+				if line[i] == '\x1b' && i+1 < len(line) && line[i+1] == '\\' {
+					i += 2 // past ST
+					break
+				}
+				i++
+			}
+			// strip (including unterminated OSC at end of string)
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		case next == 'N' || next == 'O':
+			// SS2 or SS3: \x1b + N/O + one designated character
+			i++ // past N or O
+			if i < len(line) {
+				i++ // past designated character
+			}
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		case next >= 0x40 && next <= 0x5F:
+			// Fe sequence (excluding [, ], N, O handled above): \x1b + Fe byte
+			i++ // past Fe byte
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		case next >= 0x30 && next <= 0x3F:
+			// Fp (DEC private): \x1b + byte in 0x30-0x3F (ESC-7, ESC-8, ESC-=, ESC->)
+			i++ // past Fp byte
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		case next >= 0x20 && next <= 0x2F:
+			// nF sequence: \x1b + intermediates (0x20-0x2F) + final (0x30-0x7E)
+			i++ // past first intermediate
+			for i < len(line) && line[i] >= 0x20 && line[i] <= 0x2F {
+				i++
+			}
+			if i < len(line) && line[i] >= 0x30 && line[i] <= 0x7E {
+				i++ // past final byte
+			}
+			if !allocated {
+				b.Grow(len(line))
+				allocated = true
+			}
+			b.WriteString(line[lastCopied:seqStart])
+			lastCopied = i
+
+		default:
+			// bare \x1b followed by unrecognized byte — keep as literal
+			continue
+		}
+	}
+
+	if !allocated {
+		return line
+	}
+	b.WriteString(line[lastCopied:])
+	return b.String()
+}
+
 func removeEmptyAnsiSequences(s string) string {
 	if len(s) == 0 {
 		return s

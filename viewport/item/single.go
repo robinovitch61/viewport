@@ -75,6 +75,8 @@ func NewItem(line string) SingleItem {
 		line = strings.ReplaceAll(line, "\x1b[K", "")
 	}
 
+	line = stripNonSGR(line)
+
 	if len(line) <= 0 {
 		return SingleItem{line: line, fillStyle: fillStyle}
 	}

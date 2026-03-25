@@ -486,6 +486,395 @@ func TestAnsi_getNonAnsiBytes(t *testing.T) {
 	}
 }
 
+func TestStripNonSGR(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "no escape sequences",
+			input:    "hello world",
+			expected: "hello world",
+		},
+		{
+			name:     "sgr only preserved",
+			input:    "\x1b[31mhello\x1b[m",
+			expected: "\x1b[31mhello\x1b[m",
+		},
+		{
+			name:     "complex sgr preserved",
+			input:    "\x1b[38;2;255;0;0mhi\x1b[m",
+			expected: "\x1b[38;2;255;0;0mhi\x1b[m",
+		},
+		{
+			name:     "cursor up stripped",
+			input:    "\x1b[Ahello",
+			expected: "hello",
+		},
+		{
+			name:     "cursor down stripped",
+			input:    "\x1b[Bhello",
+			expected: "hello",
+		},
+		{
+			name:     "cursor forward stripped",
+			input:    "\x1b[Chello",
+			expected: "hello",
+		},
+		{
+			name:     "cursor back stripped",
+			input:    "\x1b[Dhello",
+			expected: "hello",
+		},
+		{
+			name:     "cursor position stripped",
+			input:    "\x1b[10;20Hhello",
+			expected: "hello",
+		},
+		{
+			name:     "erase display stripped",
+			input:    "\x1b[2Jhello",
+			expected: "hello",
+		},
+		{
+			name:     "erase line 1K stripped",
+			input:    "\x1b[1Khello",
+			expected: "hello",
+		},
+		{
+			name:     "erase line 2K stripped",
+			input:    "\x1b[2Khello",
+			expected: "hello",
+		},
+		{
+			name:     "scroll up stripped",
+			input:    "\x1b[Shello",
+			expected: "hello",
+		},
+		{
+			name:     "scroll down stripped",
+			input:    "\x1b[Thello",
+			expected: "hello",
+		},
+		{
+			name:     "device status stripped",
+			input:    "\x1b[6nhello",
+			expected: "hello",
+		},
+		{
+			name:     "private marker stripped",
+			input:    "\x1b[?25hhello",
+			expected: "hello",
+		},
+		{
+			name:     "sgr mixed with csi",
+			input:    "\x1b[31m\x1b[2Jhello\x1b[m",
+			expected: "\x1b[31mhello\x1b[m",
+		},
+		{
+			name:     "osc bel terminated stripped",
+			input:    "\x1b]0;title\x07hello",
+			expected: "hello",
+		},
+		{
+			name:     "osc st terminated stripped",
+			input:    "\x1b]0;title\x1b\\hello",
+			expected: "hello",
+		},
+		{
+			name:     "osc hyperlink stripped",
+			input:    "\x1b]8;;https://example.com\x1b\\click\x1b]8;;\x1b\\",
+			expected: "click",
+		},
+		{
+			name:     "esc-M reverse index stripped",
+			input:    "\x1bMhello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-D index stripped",
+			input:    "\x1bDhello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-7 dec save cursor stripped",
+			input:    "\x1b7hello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-8 dec restore cursor stripped",
+			input:    "\x1b8hello",
+			expected: "hello",
+		},
+		{
+			name:     "ss2 stripped",
+			input:    "\x1bNA hello",
+			expected: " hello",
+		},
+		{
+			name:     "ss3 stripped",
+			input:    "\x1bOA hello",
+			expected: " hello",
+		},
+		{
+			name:     "nf designate charset stripped",
+			input:    "\x1b(Bhello",
+			expected: "hello",
+		},
+		{
+			name:     "multiple non-sgr stripped",
+			input:    "\x1b[31m\x1b[2J\x1b[Hhello\x1b[m",
+			expected: "\x1b[31mhello\x1b[m",
+		},
+		{
+			name:     "bare esc at end preserved",
+			input:    "hello\x1b",
+			expected: "hello\x1b",
+		},
+		{
+			name:     "truncated csi preserved",
+			input:    "hello\x1b[",
+			expected: "hello\x1b[",
+		},
+		{
+			name:     "truncated csi params preserved",
+			input:    "hello\x1b[31",
+			expected: "hello\x1b[31",
+		},
+		{
+			name:     "unicode with non-sgr",
+			input:    "\x1b[2J世界\x1b[31m星\x1b[m",
+			expected: "世界\x1b[31m星\x1b[m",
+		},
+		{
+			name:     "all stripped leaves empty",
+			input:    "\x1b[2J\x1b[H",
+			expected: "",
+		},
+		{
+			name:     "unterminated osc stripped to end",
+			input:    "hello\x1b]0;title",
+			expected: "hello",
+		},
+		{
+			name:     "esc followed by lowercase kept",
+			input:    "\x1b" + "ahello",
+			expected: "\x1b" + "ahello",
+		},
+		// additional CSI variants
+		{
+			name:     "csi with intermediate bytes stripped",
+			input:    "\x1b[ q hello",
+			expected: " hello",
+		},
+		{
+			name:     "csi insert line stripped",
+			input:    "\x1b[3Lhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi delete line stripped",
+			input:    "\x1b[3Mhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi delete char stripped",
+			input:    "\x1b[Phello",
+			expected: "hello",
+		},
+		{
+			name:     "csi erase char stripped",
+			input:    "\x1b[Xhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi set mode stripped",
+			input:    "\x1b[4hhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi reset mode stripped",
+			input:    "\x1b[4lhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi cursor save stripped",
+			input:    "\x1b[shello",
+			expected: "hello",
+		},
+		{
+			name:     "csi cursor restore stripped",
+			input:    "\x1b[uhello",
+			expected: "hello",
+		},
+		{
+			name:     "csi sgr with intermediate preserved",
+			input:    "\x1b[1;31mhello\x1b[m",
+			expected: "\x1b[1;31mhello\x1b[m",
+		},
+		{
+			name:     "csi 256-color sgr preserved",
+			input:    "\x1b[38;5;196mhello\x1b[m",
+			expected: "\x1b[38;5;196mhello\x1b[m",
+		},
+		{
+			name:     "sgr reset 0m preserved",
+			input:    "\x1b[0mhello",
+			expected: "\x1b[0mhello",
+		},
+		{
+			name:     "sgr bare m preserved",
+			input:    "\x1b[mhello",
+			expected: "\x1b[mhello",
+		},
+		// more OSC variants
+		{
+			name:     "osc with numeric param and bel",
+			input:    "\x1b]2;my window\x07text",
+			expected: "text",
+		},
+		{
+			name:     "osc empty payload bel terminated",
+			input:    "\x1b]\x07text",
+			expected: "text",
+		},
+		{
+			name:     "osc with embedded semicolons",
+			input:    "\x1b]8;id=link;https://example.com\x1b\\click here\x1b]8;;\x1b\\",
+			expected: "click here",
+		},
+		{
+			name:     "osc between text",
+			input:    "before\x1b]0;title\x07after",
+			expected: "beforeafter",
+		},
+		// more Fe sequences
+		{
+			name:     "esc-E next line stripped",
+			input:    "\x1bEhello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-H set tab stop stripped",
+			input:    "\x1bHhello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-P (DCS) stripped as Fe",
+			input:    "\x1bPhello",
+			expected: "hello",
+		},
+		// more Fp sequences
+		{
+			name:     "esc-= keypad application mode stripped",
+			input:    "\x1b=hello",
+			expected: "hello",
+		},
+		{
+			name:     "esc-> keypad numeric mode stripped",
+			input:    "\x1b>hello",
+			expected: "hello",
+		},
+		// nF variants
+		{
+			name:     "nf G0 designate stripped",
+			input:    "\x1b(0hello",
+			expected: "hello",
+		},
+		{
+			name:     "nf G1 designate stripped",
+			input:    "\x1b)Bhello",
+			expected: "hello",
+		},
+		{
+			name:     "nf multi-intermediate stripped",
+			input:    "\x1b$ Bhello",
+			expected: "hello",
+		},
+		{
+			name:     "nf truncated at end stripped",
+			input:    "hello\x1b(",
+			expected: "hello",
+		},
+		// SS2/SS3 edge cases
+		{
+			name:     "ss2 at end of string",
+			input:    "hello\x1bN",
+			expected: "hello",
+		},
+		{
+			name:     "ss3 at end of string",
+			input:    "hello\x1bO",
+			expected: "hello",
+		},
+		// complex mixed sequences
+		{
+			name:     "sgr surrounded by many non-sgr",
+			input:    "\x1b[2J\x1b[H\x1b7\x1b[31mhello\x1b[m\x1b8\x1b[?25h",
+			expected: "\x1b[31mhello\x1b[m",
+		},
+		{
+			name:     "alternating sgr and non-sgr",
+			input:    "\x1b[1mA\x1b[HB\x1b[32mC\x1b[2JD\x1b[m",
+			expected: "\x1b[1mAB\x1b[32mCD\x1b[m",
+		},
+		{
+			name:     "non-sgr between text preserves all text",
+			input:    "one\x1b[Htwo\x1b[2Jthree",
+			expected: "onetwothree",
+		},
+		{
+			name:     "consecutive non-sgr sequences stripped",
+			input:    "\x1b[A\x1b[B\x1b[C\x1b[Dhello",
+			expected: "hello",
+		},
+		{
+			name:     "sgr only no alloc returns same string",
+			input:    "\x1b[1m\x1b[31m\x1b[42mhello\x1b[m",
+			expected: "\x1b[1m\x1b[31m\x1b[42mhello\x1b[m",
+		},
+		// unicode and wide chars
+		{
+			name:     "emoji with non-sgr stripped",
+			input:    "\x1b[H🎉\x1b[31m🌍\x1b[m",
+			expected: "🎉\x1b[31m🌍\x1b[m",
+		},
+		{
+			name:     "cjk wide chars with non-sgr stripped",
+			input:    "\x1b[2J你好\x1b[31m世界\x1b[m",
+			expected: "你好\x1b[31m世界\x1b[m",
+		},
+		// malformed sequences
+		{
+			name:     "csi with invalid final byte kept as text",
+			input:    "hello\x1b[\x10world",
+			expected: "hello\x1b[\x10world",
+		},
+		{
+			name:     "multiple bare esc preserved",
+			input:    "\x1b\x1b\x1bhello",
+			expected: "\x1b\x1b\x1bhello",
+		},
+		{
+			name:     "esc followed by space is nf stripped",
+			input:    "\x1b Fhello",
+			expected: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			internal.CmpStr(t, tt.expected, stripNonSGR(tt.input))
+		})
+	}
+}
+
 // testing helper
 func assertPanic(t *testing.T, f func()) {
 	defer func() {
