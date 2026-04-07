@@ -2852,9 +2852,9 @@ func TestToggleWrap_DoesNotJumpToMatchWhenScrolledAway(t *testing.T) {
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"line 5",
 		"line 6",
-		focusedStyle.Render("match") + " here",
+		focusedStyle.Render("match") + selectedItemStyle.Render(" here"),
 		"[exact] match  (1/1 matches...",
-		footerStyle.Render("12% (1/8)"),
+		footerStyle.Render("87% (7/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
 
@@ -3789,6 +3789,114 @@ func TestAdjustObjectsForFilter_ClearFilterRestoresOriginalBehavior(t *testing.T
 		"",
 		"No Filter",
 		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_SelectionAtBottomWithBottomSticky(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{
+			viewport.WithSelectionEnabled[object](true),
+			viewport.WithStickyBottom[object](true),
+		},
+		[]Option[object]{},
+	)
+
+	items := stringsToItems([]string{
+		"error: something broke",
+		"info: all good",
+		"info: still good",
+		"info: yep good",
+		"error: another problem",
+		"info: fine",
+		"info: ok",
+		"info: last line",
+	})
+	fv.SetObjects(items)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"error: another problem",
+		"info: fine",
+		"info: ok",
+		selectedItemStyle.Render("info: last line"),
+		"No Filter",
+		footerStyle.Render("100% (8/8)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// apply filter - should move selection to the first match
+	fv.SetFilter("error", false)
+
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("error") + selectedItemStyle.Render(": something broke"),
+		"info: all good",
+		"info: still good",
+		"info: yep good",
+		"[exact] error  (1/2 matches on 2 items)",
+		footerStyle.Render("12% (1/8)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilter_SelectionAtBottomWithBottomSticky_AppendDoesNotJump(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{
+			viewport.WithSelectionEnabled[object](true),
+			viewport.WithStickyBottom[object](true),
+		},
+		[]Option[object]{},
+	)
+
+	items := stringsToItems([]string{
+		"error: something broke",
+		"info: all good",
+		"info: still good",
+		"info: yep good",
+		"error: another problem",
+		"info: fine",
+		"info: ok",
+		"info: last line",
+	})
+	fv.SetObjects(items)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"error: another problem",
+		"info: fine",
+		"info: ok",
+		selectedItemStyle.Render("info: last line"),
+		"No Filter",
+		footerStyle.Render("100% (8/8)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// apply filter while selection is at bottom
+	fv.SetFilter("error", false)
+
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("error") + selectedItemStyle.Render(": something broke"),
+		"info: all good",
+		"info: still good",
+		"info: yep good",
+		"[exact] error  (1/2 matches on 2 items)",
+		footerStyle.Render("12% (1/8)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+
+	// append new logs - selection should stay at the first match, not jump to bottom
+	fv.AppendObjects(stringsToItems([]string{
+		"error: whoops",
+	}))
+	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("error") + selectedItemStyle.Render(": something broke"),
+		"info: all good",
+		"info: still good",
+		"info: yep good",
+		"[exact] error  (1/3 matches on 3 items)",
+		footerStyle.Render("11% (1/9)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }

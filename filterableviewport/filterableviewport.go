@@ -514,6 +514,7 @@ func (m *Model[T]) SetFilter(value string, isRegex bool) {
 		m.filterMode = filterModeOff
 	}
 	m.updateMatchingItems()
+	m.ensureCurrentMatchInView()
 }
 
 // GetMatchingItemsOnly returns whether only matching items are shown
@@ -541,7 +542,7 @@ func (m *Model[T]) SetViewportStyles(styles viewport.Styles) {
 
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
-	matchingObjects := m.getMatchingObjectsAndUpdateMatches()
+	matchingObjects, filterChanged := m.getMatchingObjectsAndUpdateMatches()
 
 	if !m.matchLimitExceeded {
 		m.numMatchingItems = len(matchingObjects)
@@ -554,6 +555,10 @@ func (m *Model[T]) updateMatchingItems() {
 		m.vp.SetObjects(m.objects)
 	}
 
+	// when the filter changed, move selection to the focused match
+	if filterChanged {
+		m.setSelectionToCurrentMatch()
+	}
 	m.updateFocusedMatchHighlight()
 
 	// update the pre-footer line with the current filter state
@@ -677,8 +682,9 @@ func (m *Model[T]) getModeIndicator() string {
 	return "[exact]"
 }
 
-// getMatchingObjectsAndUpdateMatches filters objects and updates match tracking
-func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
+// getMatchingObjectsAndUpdateMatches filters objects and updates match tracking.
+// Returns the matching objects and whether the filter value changed.
+func (m *Model[T]) getMatchingObjectsAndUpdateMatches() ([]T, bool) {
 	filterValue := m.filterTextInput.Value()
 	filterChanged := filterValue != m.lastFilterValue || m.isRegexMode != m.lastIsRegexMode
 	m.lastFilterValue = filterValue
@@ -698,7 +704,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	m.matchLimitExceeded = false
 
 	if m.filterMode == filterModeOff || filterValue == "" {
-		return m.objects
+		return m.objects, filterChanged
 	}
 
 	var highlights []viewport.Highlight
@@ -707,7 +713,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 	if m.isRegexMode {
 		regex, err = regexp.Compile(filterValue)
 		if err != nil {
-			return []T{}
+			return []T{}, filterChanged
 		}
 	}
 
@@ -744,7 +750,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		m.totalMatchesOnAllItems = totalMatchCount
 		// count of items with matches up to the limit
 		m.numMatchingItems = len(itemsWithMatchesSet)
-		return m.objects
+		return m.objects, filterChanged
 	}
 
 	filteredObjects := make([]T, 0, len(m.objects))
@@ -778,7 +784,7 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() []T {
 		}
 	}
 
-	return filteredObjects
+	return filteredObjects, filterChanged
 }
 
 // appendMatchesForNewObjects processes only newly appended objects for matches
@@ -1051,12 +1057,15 @@ func (m *Model[T]) ensureCurrentMatchInView() {
 }
 
 func (m *Model[T]) setSelectionToCurrentMatch() {
+	if !m.vp.GetSelectionEnabled() {
+		return
+	}
 	currentMatch := m.getFocusedMatch()
 	if currentMatch == nil {
 		return
 	}
 	itemIdx := m.getItemIdx(currentMatch)
-	if m.vp.GetSelectionEnabled() && m.vp.GetSelectedItemIdx() != itemIdx {
+	if m.vp.GetSelectedItemIdx() != itemIdx {
 		m.vp.SetSelectedItemIdx(itemIdx)
 	}
 }
