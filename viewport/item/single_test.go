@@ -1845,3 +1845,199 @@ func TestSingle_getByteOffsetAtRuneIdx(t *testing.T) {
 		})
 	}
 }
+
+func TestSingleItem_ByteRangesToMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		s          string
+		byteRanges []ByteRange
+		expected   []Match
+	}{
+		{
+			name:       "nil byte ranges",
+			s:          "hello world",
+			byteRanges: nil,
+			expected:   nil,
+		},
+		{
+			name:       "empty byte ranges",
+			s:          "hello world",
+			byteRanges: []ByteRange{},
+			expected:   nil,
+		},
+		{
+			name: "single ASCII range",
+			s:    "hello world",
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name: "multiple ASCII ranges",
+			s:    "hello world hello",
+			byteRanges: []ByteRange{
+				{Start: 0, End: 5},
+				{Start: 12, End: 17},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 5},
+					WidthRange: WidthRange{Start: 0, End: 5},
+				},
+				{
+					ByteRange:  ByteRange{Start: 12, End: 17},
+					WidthRange: WidthRange{Start: 12, End: 17},
+				},
+			},
+		},
+		{
+			name: "unicode double-width characters",
+			// 世 is 3 bytes 2 width, 界 is 3 bytes 2 width, 🌟 is 4 bytes 2 width
+			s: "世界 hello 🌟",
+			byteRanges: []ByteRange{
+				{Start: 3, End: 17}, // "界 hello 🌟"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 3, End: 17},
+					WidthRange: WidthRange{Start: 2, End: 13},
+				},
+			},
+		},
+		{
+			name: "range at start",
+			s:    "hello world",
+			byteRanges: []ByteRange{
+				{Start: 0, End: 5},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 5},
+					WidthRange: WidthRange{Start: 0, End: 5},
+				},
+			},
+		},
+		{
+			name: "single character range",
+			s:    "hello",
+			byteRanges: []ByteRange{
+				{Start: 2, End: 3},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 2, End: 3},
+					WidthRange: WidthRange{Start: 2, End: 3},
+				},
+			},
+		},
+		{
+			name: "ANSI-styled content uses no-ansi positions",
+			s:    "\x1b[38;2;255;0;0mhello world" + RST,
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name: "mixed unicode widths",
+			// A (1w, 1b), 💖 (2w, 4b), 中 (2w, 3b), é (1w, 3b) = 6w, 11b
+			s: "A💖中é",
+			byteRanges: []ByteRange{
+				{Start: 1, End: 8}, // 💖中
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 1, End: 8},
+					WidthRange: WidthRange{Start: 1, End: 5},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			itm := NewItem(tt.s)
+			actual := itm.ByteRangesToMatches(tt.byteRanges)
+
+			if len(actual) != len(tt.expected) {
+				t.Fatalf("expected %d matches, got %d", len(tt.expected), len(actual))
+			}
+
+			for i, expected := range tt.expected {
+				match := actual[i]
+				if match.ByteRange != expected.ByteRange {
+					t.Errorf("match %d: expected byte range %+v, got %+v", i, expected.ByteRange, match.ByteRange)
+				}
+				if match.WidthRange != expected.WidthRange {
+					t.Errorf("match %d: expected width range %+v, got %+v", i, expected.WidthRange, match.WidthRange)
+				}
+			}
+		})
+	}
+}
+
+// TestSingleItem_ByteRangesToMatches_ConsistentWithExtract verifies that
+// ByteRangesToMatches produces the same results as ExtractExactMatches
+// for the same byte ranges.
+func TestSingleItem_ByteRangesToMatches_ConsistentWithExtract(t *testing.T) {
+	tests := []struct {
+		name  string
+		s     string
+		query string
+	}{
+		{name: "ASCII", s: "hello world hello", query: "hello"},
+		{name: "unicode", s: "世界 test 🌟", query: "test"},
+		{name: "single char", s: "abcabc", query: "a"},
+		{name: "ANSI styled", s: "\x1b[31mhello world\x1b[0m", query: "world"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			itm := NewItem(tt.s)
+
+			// Get matches via ExtractExactMatches
+			exactMatches := itm.ExtractExactMatches(tt.query)
+
+			// Manually compute byte ranges the same way
+			content := itm.ContentNoAnsi()
+			var byteRanges []ByteRange
+			start := 0
+			for {
+				idx := strings.Index(content[start:], tt.query)
+				if idx == -1 {
+					break
+				}
+				actualStart := start + idx
+				end := actualStart + len(tt.query)
+				byteRanges = append(byteRanges, ByteRange{Start: actualStart, End: end})
+				start = end
+			}
+
+			// Get matches via ByteRangesToMatches
+			brMatches := itm.ByteRangesToMatches(byteRanges)
+
+			if len(exactMatches) != len(brMatches) {
+				t.Fatalf("length mismatch: ExtractExactMatches=%d, ByteRangesToMatches=%d",
+					len(exactMatches), len(brMatches))
+			}
+
+			for i := range exactMatches {
+				if exactMatches[i] != brMatches[i] {
+					t.Errorf("match %d: ExtractExactMatches=%+v, ByteRangesToMatches=%+v",
+						i, exactMatches[i], brMatches[i])
+				}
+			}
+		})
+	}
+}

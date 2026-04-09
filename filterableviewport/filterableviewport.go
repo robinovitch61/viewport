@@ -2,7 +2,6 @@ package filterableviewport
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -108,9 +107,17 @@ func WithMaxMatchLimit[T viewport.Object](maxMatchLimit int) Option[T] {
 // This is independent behavior from SetMatchingItemsOnly - when showing matching items only, the filterable viewport
 // will still call this function to determine which items to show, but it will also filter that list down to matching
 // items only. See tests for concrete examples of use.
-func WithAdjustObjectsForFilter[T viewport.Object](fn func(filterText string, isRegex bool) []T) Option[T] {
+func WithAdjustObjectsForFilter[T viewport.Object](fn func(filterText string, mode FilterModeName) []T) Option[T] {
 	return func(m *Model[T]) {
 		m.adjustObjectsForFilter = fn
+	}
+}
+
+// WithFilterModes sets the filter modes for the filterable viewport.
+// If not provided, New() defaults to DefaultFilterModes().
+func WithFilterModes[T viewport.Object](modes []FilterMode) Option[T] {
+	return func(m *Model[T]) {
+		m.filterModes = modes
 	}
 }
 
@@ -135,7 +142,7 @@ func (m *Model[T]) SetFilterLinePrefix(prefix string) {
 }
 
 // SetAdjustObjectsForFilter updates the function used to adjust visible objects when the filter changes.
-func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex bool) []T) {
+func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, mode FilterModeName) []T) {
 	m.adjustObjectsForFilter = fn
 }
 
@@ -143,16 +150,19 @@ func (m *Model[T]) SetAdjustObjectsForFilter(fn func(filterText string, isRegex 
 type Model[T viewport.Object] struct {
 	vp *viewport.Model[T]
 
-	keyMap             KeyMap
-	filterTextInput    textinput.Model
-	filterMode         filterMode
-	prefixText         string
-	emptyText          string
-	filterLinePosition FilterLinePosition
-	filterLinePrefix   string
-	objects            []T
-	isRegexMode        bool
-	styles             Styles
+	keyMap                   KeyMap
+	filterTextInput          textinput.Model
+	filterMode               filterMode
+	prefixText               string
+	emptyText                string
+	filterLinePosition       FilterLinePosition
+	filterLinePrefix         string
+	objects                  []T
+	filterModes              []FilterMode
+	filterModesByName        map[FilterModeName]int // name -> index in filterModes
+	activeFilterModeName     FilterModeName         // "" when no mode active
+	lastActiveFilterModeName FilterModeName
+	styles                   Styles
 
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
@@ -164,10 +174,9 @@ type Model[T viewport.Object] struct {
 	itemIdxToFilteredIdx       map[int]int
 	matchWidthsByMatchIdx      map[int]item.WidthRange
 	lastFilterValue            string
-	lastIsRegexMode            bool
 	maxMatchLimit              int // 0 = unlimited
 	matchLimitExceeded         bool
-	adjustObjectsForFilter     func(filterText string, isRegex bool) []T
+	adjustObjectsForFilter     func(filterText string, mode FilterModeName) []T
 
 	verticalPad   int
 	horizontalPad int
@@ -202,7 +211,9 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		prefixText:                 "",
 		emptyText:                  "No Filter",
 		objects:                    []T{},
-		isRegexMode:                false,
+		filterModes:                DefaultFilterModes(),
+		activeFilterModeName:       "",
+		lastActiveFilterModeName:   "",
 		styles:                     defaultStyles,
 		matchingItemsOnly:          false,
 		canToggleMatchingItemsOnly: true,
@@ -229,6 +240,23 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		}
 	}
 
+	// validate that at least one filter mode is set
+	if len(m.filterModes) == 0 {
+		panic("filterableviewport: no filter modes set; use viewport.Model directly if filtering is not needed")
+	}
+
+	// build name -> index lookup and validate uniqueness
+	m.filterModesByName = make(map[FilterModeName]int, len(m.filterModes))
+	for i, mode := range m.filterModes {
+		if mode.Name == "" {
+			panic(fmt.Sprintf("filterableviewport: FilterMode at index %d has empty Name", i))
+		}
+		if _, exists := m.filterModesByName[mode.Name]; exists {
+			panic(fmt.Sprintf("filterableviewport: duplicate FilterModeName %q", mode.Name))
+		}
+		m.filterModesByName[mode.Name] = i
+	}
+
 	// set initial pre-footer line
 	m.setFilterLine(m.renderFilterLine())
 
@@ -252,53 +280,22 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// check if any filter mode key matches
+		if m.filterMode != filterModeEditing {
+			for i := range m.filterModes {
+				if key.Matches(msg, m.filterModes[i].Key) {
+					m.activeFilterModeName = m.filterModes[i].Name
+					m.filterTextInput.Focus()
+					m.filterMode = filterModeEditing
+					m.resetSearchHistoryBrowsing()
+					m.updateMatchingItems()
+					m.ensureCurrentMatchInView()
+					return m, textinput.Blink
+				}
+			}
+		}
+
 		switch {
-		case key.Matches(msg, m.keyMap.FilterKey):
-			if m.filterMode != filterModeEditing {
-				m.isRegexMode = false
-				// remove (?i) prefix when switching to non-regex mode
-				if newValue, found := strings.CutPrefix(m.filterTextInput.Value(), "(?i)"); found {
-					m.filterTextInput.SetValue(newValue)
-					m.filterTextInput.SetCursor(len(newValue))
-				}
-				m.filterTextInput.Focus()
-				m.filterMode = filterModeEditing
-				m.resetSearchHistoryBrowsing()
-				m.updateMatchingItems()
-				m.ensureCurrentMatchInView()
-				return m, textinput.Blink
-			}
-		case key.Matches(msg, m.keyMap.RegexFilterKey):
-			if m.filterMode != filterModeEditing {
-				m.isRegexMode = true
-				m.filterTextInput.Focus()
-				m.filterMode = filterModeEditing
-				m.resetSearchHistoryBrowsing()
-				m.updateMatchingItems()
-				m.ensureCurrentMatchInView()
-				return m, textinput.Blink
-			}
-		case key.Matches(msg, m.keyMap.CaseInsensitiveFilterKey):
-			if m.filterMode != filterModeEditing {
-				m.isRegexMode = true
-				currentValue := m.filterTextInput.Value()
-				if currentValue == "" {
-					m.filterTextInput.SetValue("(?i)")
-					m.filterTextInput.SetCursor(4)
-				} else if !strings.HasPrefix(currentValue, "(?i)") {
-					// add the (?i) prefix if not already present when toggling case-insensitive mode
-					newValue := "(?i)" + currentValue
-					m.filterTextInput.SetValue(newValue)
-					m.filterTextInput.SetCursor(len(newValue))
-				}
-				// already has (?i) prefix
-				m.filterTextInput.Focus()
-				m.filterMode = filterModeEditing
-				m.resetSearchHistoryBrowsing()
-				m.updateMatchingItems()
-				m.ensureCurrentMatchInView()
-				return m, textinput.Blink
-			}
 		case key.Matches(msg, m.keyMap.ApplyFilterKey):
 			if m.filterMode == filterModeEditing {
 				m.addToSearchHistory(m.filterTextInput.Value())
@@ -328,7 +325,7 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 			}
 		case key.Matches(msg, m.keyMap.CancelFilterKey):
 			m.filterMode = filterModeOff
-			m.isRegexMode = false
+			m.activeFilterModeName = ""
 			m.filterTextInput.Blur()
 			m.filterTextInput.SetValue("")
 			m.resetSearchHistoryBrowsing()
@@ -464,9 +461,18 @@ func (m *Model[T]) GetFilterText() string {
 	return m.filterTextInput.Value()
 }
 
-// IsRegexMode returns whether the filter is in regex mode
-func (m *Model[T]) IsRegexMode() bool {
-	return m.isRegexMode
+// GetActiveFilterMode returns the currently active filter mode, or nil if none.
+func (m *Model[T]) GetActiveFilterMode() *FilterMode {
+	idx, ok := m.filterModesByName[m.activeFilterModeName]
+	if !ok {
+		return nil
+	}
+	return &m.filterModes[idx]
+}
+
+// FilterModes returns the configured filter modes.
+func (m *Model[T]) FilterModes() []FilterMode {
+	return m.filterModes
 }
 
 // GetSelectedItem returns the currently selected item, or nil if no selection
@@ -504,14 +510,18 @@ func (m *Model[T]) SetSelectionComparator(compareFn viewport.CompareFn[T]) {
 	m.vp.SetSelectionComparator(compareFn)
 }
 
-// SetFilter sets the filter text and regex mode programmatically
-func (m *Model[T]) SetFilter(value string, isRegex bool) {
+// SetFilter sets the filter text and mode programmatically.
+// Use the FilterModeName constants (e.g. FilterExact, FilterRegex) or your own custom names.
+func (m *Model[T]) SetFilter(value string, mode FilterModeName) {
 	m.filterTextInput.SetValue(value)
-	m.isRegexMode = isRegex
+	if _, ok := m.filterModesByName[mode]; ok {
+		m.activeFilterModeName = mode
+	}
 	if value != "" && m.filterMode == filterModeOff {
 		m.filterMode = filterModeApplied
 	} else if value == "" {
 		m.filterMode = filterModeOff
+		m.activeFilterModeName = ""
 	}
 	m.updateMatchingItems()
 	m.ensureCurrentMatchInView()
@@ -668,30 +678,34 @@ func (m *Model[T]) renderFilterLine() string {
 // setFilterLine sets the rendered filter line on the appropriate viewport line based on position
 func (m *Model[T]) setFilterLine(line string) {
 	switch m.filterLinePosition {
+	case FilterLineBottom:
+		m.vp.SetPreFooterLine(line)
 	case FilterLineTop:
 		m.vp.SetPostHeaderLine(line)
-	default:
-		m.vp.SetPreFooterLine(line)
 	}
 }
 
 func (m *Model[T]) getModeIndicator() string {
-	if m.isRegexMode {
-		return "[regex]"
+	if mode := m.GetActiveFilterMode(); mode != nil {
+		return mode.Label
 	}
-	return "[exact]"
+	return ""
 }
 
 // getMatchingObjectsAndUpdateMatches filters objects and updates match tracking.
 // Returns the matching objects and whether the filter value changed.
 func (m *Model[T]) getMatchingObjectsAndUpdateMatches() ([]T, bool) {
 	filterValue := m.filterTextInput.Value()
-	filterChanged := filterValue != m.lastFilterValue || m.isRegexMode != m.lastIsRegexMode
+	filterChanged := filterValue != m.lastFilterValue || m.activeFilterModeName != m.lastActiveFilterModeName
 	m.lastFilterValue = filterValue
-	m.lastIsRegexMode = m.isRegexMode
+	m.lastActiveFilterModeName = m.activeFilterModeName
 
 	if filterChanged && m.adjustObjectsForFilter != nil {
-		if newObjects := m.adjustObjectsForFilter(filterValue, m.isRegexMode); newObjects != nil {
+		modeName := m.activeFilterModeName
+		if modeName == "" && len(m.filterModes) > 0 {
+			modeName = m.filterModes[0].Name
+		}
+		if newObjects := m.adjustObjectsForFilter(filterValue, modeName); newObjects != nil {
 			m.objects = newObjects
 		}
 	}
@@ -707,23 +721,27 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() ([]T, bool) {
 		return m.objects, filterChanged
 	}
 
-	var highlights []viewport.Highlight
-	var regex *regexp.Regexp
-	var err error
-	if m.isRegexMode {
-		regex, err = regexp.Compile(filterValue)
+	// get the MatchFunc from the active mode
+	var matchFn MatchFunc
+	if mode := m.GetActiveFilterMode(); mode != nil {
+		var err error
+		matchFn, err = mode.GetMatchFunc(filterValue)
 		if err != nil {
 			return []T{}, filterChanged
 		}
 	}
+	if matchFn == nil {
+		return m.objects, filterChanged
+	}
 
+	var highlights []viewport.Highlight
 	matchIdx := 0
 	totalMatchCount := 0
 	maxReached := false
 	itemsWithMatchesSet := make(map[int]bool)
 
 	for itemIdx := range m.objects {
-		matches := m.extractMatches(m.objects[itemIdx], filterValue, regex)
+		matches := m.extractMatches(m.objects[itemIdx], matchFn)
 
 		if len(matches) > 0 {
 			itemsWithMatchesSet[itemIdx] = true
@@ -792,15 +810,19 @@ func (m *Model[T]) getMatchingObjectsAndUpdateMatches() ([]T, bool) {
 func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 	filterValue := m.filterTextInput.Value()
 
-	var regex *regexp.Regexp
-	var err error
-	if m.isRegexMode {
-		regex, err = regexp.Compile(filterValue)
+	var matchFn MatchFunc
+	if mode := m.GetActiveFilterMode(); mode != nil {
+		var err error
+		matchFn, err = mode.GetMatchFunc(filterValue)
 		if err != nil {
-			// invalid regex, fallback to full update
+			// invalid match (e.g. bad regex), fallback to full update
 			m.updateMatchingItems()
 			return
 		}
+	}
+	if matchFn == nil {
+		m.updateMatchingItems()
+		return
 	}
 
 	matchIdx := len(m.allMatches)
@@ -811,7 +833,7 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 
 	for i, obj := range newObjects {
 		itemIdx := startIdx + i
-		matches := m.extractMatches(obj, filterValue, regex)
+		matches := m.extractMatches(obj, matchFn)
 
 		if len(matches) > 0 {
 			itemsWithMatchesSet[itemIdx] = true
@@ -868,12 +890,11 @@ func (m *Model[T]) appendMatchesForNewObjects(startIdx int, newObjects []T) {
 	m.setFilterLine(m.renderFilterLine())
 }
 
-// extractMatches extracts matches from an object using the current filter settings
-func (m *Model[T]) extractMatches(obj T, filterValue string, regex *regexp.Regexp) []item.Match {
-	if m.isRegexMode && regex != nil {
-		return obj.GetItem().ExtractRegexMatches(regex)
-	}
-	return obj.GetItem().ExtractExactMatches(filterValue)
+// extractMatches extracts matches from an object using the provided MatchFunc
+func (m *Model[T]) extractMatches(obj T, matchFn MatchFunc) []item.Match {
+	itm := obj.GetItem()
+	byteRanges := matchFn(itm.ContentNoAnsi())
+	return itm.ByteRangesToMatches(byteRanges)
 }
 
 // buildHighlightsFromMatches creates viewport highlights from item matches
@@ -990,15 +1011,6 @@ func (m *Model[T]) resetSearchHistoryBrowsing() {
 	m.searchHistoryDraft = ""
 }
 
-// adjustSearchHistoryText prepends (?i) to history entries when browsing in
-// case-insensitive mode (detected by checking the saved draft).
-func (m *Model[T]) adjustSearchHistoryText(text string) string {
-	if m.isRegexMode && strings.HasPrefix(m.searchHistoryDraft, "(?i)") && !strings.HasPrefix(text, "(?i)") {
-		return "(?i)" + text
-	}
-	return text
-}
-
 func (m *Model[T]) navigateSearchHistoryPrev() {
 	if len(m.searchHistory) == 0 {
 		return
@@ -1009,7 +1021,7 @@ func (m *Model[T]) navigateSearchHistoryPrev() {
 	if m.searchHistoryIdx > 0 {
 		m.searchHistoryIdx--
 	}
-	text := m.adjustSearchHistoryText(m.searchHistory[m.searchHistoryIdx])
+	text := m.searchHistory[m.searchHistoryIdx]
 	m.filterTextInput.SetValue(text)
 	m.filterTextInput.SetCursor(len(text))
 }
@@ -1023,7 +1035,7 @@ func (m *Model[T]) navigateSearchHistoryNext() {
 		m.filterTextInput.SetValue(m.searchHistoryDraft)
 		m.filterTextInput.SetCursor(len(m.searchHistoryDraft))
 	} else {
-		text := m.adjustSearchHistoryText(m.searchHistory[m.searchHistoryIdx])
+		text := m.searchHistory[m.searchHistoryIdx]
 		m.filterTextInput.SetValue(text)
 		m.filterTextInput.SetCursor(len(text))
 	}

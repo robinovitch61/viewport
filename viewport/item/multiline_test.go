@@ -3,6 +3,7 @@ package item
 import (
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -298,5 +299,189 @@ func TestMultiLineItem_Repr(t *testing.T) {
 	repr := m.repr()
 	if repr != `MultiLine(Item("a"), Item("b"))` {
 		t.Errorf("unexpected repr: %s", repr)
+	}
+}
+
+func TestMultiLineItem_ByteRangesToMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		items      []SingleItem
+		byteRanges []ByteRange
+		expected   []Match
+	}{
+		{
+			name:       "nil byte ranges",
+			items:      []SingleItem{NewItem("hello"), NewItem("world")},
+			byteRanges: nil,
+			expected:   nil,
+		},
+		{
+			name:       "empty byte ranges",
+			items:      []SingleItem{NewItem("hello"), NewItem("world")},
+			byteRanges: []ByteRange{},
+			expected:   nil,
+		},
+		{
+			name:       "empty items",
+			items:      []SingleItem{},
+			byteRanges: []ByteRange{{Start: 0, End: 5}},
+			expected:   nil,
+		},
+		{
+			name:  "single item delegates to SingleItem",
+			items: []SingleItem{NewItem("hello world")},
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name:  "range in first item",
+			items: []SingleItem{NewItem("hello"), NewItem("world")},
+			// ContentNoAnsi = "hello\nworld"
+			byteRanges: []ByteRange{
+				{Start: 0, End: 5}, // "hello"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 5},
+					WidthRange: WidthRange{Start: 0, End: 5},
+				},
+			},
+		},
+		{
+			name:  "range in second item",
+			items: []SingleItem{NewItem("hello"), NewItem("world")},
+			// ContentNoAnsi = "hello\nworld", "world" starts at byte 6
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11}, // "world"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 5, End: 10}, // width offset = 5 (width of "hello")
+				},
+			},
+		},
+		{
+			name:  "range spanning newline",
+			items: []SingleItem{NewItem("hello"), NewItem("world")},
+			// ContentNoAnsi = "hello\nworld", "o\nw" = bytes 4-7
+			byteRanges: []ByteRange{
+				{Start: 4, End: 7}, // "o\nw"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 4, End: 7},
+					WidthRange: WidthRange{Start: 4, End: 6}, // "o" ends at width 5, "w" starts at width 5, ends at 6
+				},
+			},
+		},
+		{
+			name:  "multiple ranges across items",
+			items: []SingleItem{NewItem("abc"), NewItem("def")},
+			// ContentNoAnsi = "abc\ndef"
+			byteRanges: []ByteRange{
+				{Start: 0, End: 3}, // "abc"
+				{Start: 4, End: 7}, // "def"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 3},
+					WidthRange: WidthRange{Start: 0, End: 3},
+				},
+				{
+					ByteRange:  ByteRange{Start: 4, End: 7},
+					WidthRange: WidthRange{Start: 3, End: 6},
+				},
+			},
+		},
+		{
+			name:  "three items with match in middle",
+			items: []SingleItem{NewItem("aaa"), NewItem("bbb"), NewItem("ccc")},
+			// ContentNoAnsi = "aaa\nbbb\nccc", "bbb" starts at byte 4
+			byteRanges: []ByteRange{
+				{Start: 4, End: 7}, // "bbb"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 4, End: 7},
+					WidthRange: WidthRange{Start: 3, End: 6},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewMultiLineItem(tt.items...)
+			actual := m.ByteRangesToMatches(tt.byteRanges)
+
+			if !reflect.DeepEqual(actual, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, actual)
+			}
+		})
+	}
+}
+
+// TestMultiLineItem_ByteRangesToMatches_ConsistentWithExtract verifies that
+// ByteRangesToMatches and ExtractExactMatches produce the same results.
+func TestMultiLineItem_ByteRangesToMatches_ConsistentWithExtract(t *testing.T) {
+	tests := []struct {
+		name  string
+		items []SingleItem
+		query string
+	}{
+		{
+			name:  "match in first line",
+			items: []SingleItem{NewItem("hello world"), NewItem("foo bar")},
+			query: "hello",
+		},
+		{
+			name:  "match in second line",
+			items: []SingleItem{NewItem("hello"), NewItem("world")},
+			query: "world",
+		},
+		{
+			name:  "match in multiple lines",
+			items: []SingleItem{NewItem("abc"), NewItem("abcd")},
+			query: "abc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewMultiLineItem(tt.items...)
+
+			// Get matches via ExtractExactMatches
+			exactMatches := m.ExtractExactMatches(tt.query)
+
+			// Manually find byte ranges in ContentNoAnsi
+			content := m.ContentNoAnsi()
+			var byteRanges []ByteRange
+			start := 0
+			for {
+				idx := strings.Index(content[start:], tt.query)
+				if idx == -1 {
+					break
+				}
+				actualStart := start + idx
+				end := actualStart + len(tt.query)
+				byteRanges = append(byteRanges, ByteRange{Start: actualStart, End: end})
+				start = end
+			}
+
+			// Get matches via ByteRangesToMatches
+			brMatches := m.ByteRangesToMatches(byteRanges)
+
+			if !reflect.DeepEqual(exactMatches, brMatches) {
+				t.Errorf("ExtractExactMatches=%+v, ByteRangesToMatches=%+v", exactMatches, brMatches)
+			}
+		})
 	}
 }

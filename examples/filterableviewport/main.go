@@ -46,6 +46,8 @@ var appKeyMap = appKeys{
 var viewportKeyMap = viewport.DefaultKeyMap()
 var filterableViewportKeyMap = filterableviewport.DefaultKeyMap()
 
+var defaultFilterModes = filterableviewport.DefaultFilterModes()
+
 type model struct {
 	// fv is the filterable container for the objects
 	fv *filterableviewport.Model[object]
@@ -146,18 +148,21 @@ func (m model) View() tea.View {
 	if !m.ready {
 		content = "Initializing filterable viewport..."
 	} else {
+		// Build filter bindings from the configured filter modes
+		var filterBindings []key.Binding
+		for _, mode := range defaultFilterModes {
+			filterBindings = append(filterBindings, mode.Key)
+		}
+		filterBindings = append(filterBindings,
+			filterableViewportKeyMap.ApplyFilterKey,
+			filterableViewportKeyMap.CancelFilterKey,
+			filterableViewportKeyMap.ToggleMatchingItemsOnlyKey,
+		)
 		var header = strings.Join(getHeader(
 			m.fv.GetWrapText(),
 			m.fv.GetSelectionEnabled(),
 			viewportKeyMap,
-			[]key.Binding{
-				filterableViewportKeyMap.FilterKey,
-				filterableViewportKeyMap.RegexFilterKey,
-				filterableViewportKeyMap.CaseInsensitiveFilterKey,
-				filterableViewportKeyMap.ApplyFilterKey,
-				filterableViewportKeyMap.CancelFilterKey,
-				filterableViewportKeyMap.ToggleMatchingItemsOnlyKey,
-			},
+			filterBindings,
 		), "\n")
 		content = lipgloss.JoinVertical(
 			lipgloss.Left,

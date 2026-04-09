@@ -156,6 +156,27 @@ func (m MultiLineItem) repr() string {
 	return v.String()
 }
 
+// ByteRangesToMatches converts byte ranges in the concatenated ANSI-stripped content to Matches.
+func (m MultiLineItem) ByteRangesToMatches(byteRanges []ByteRange) []Match {
+	if len(m.items) == 0 || len(byteRanges) == 0 {
+		return nil
+	}
+	if len(m.items) == 1 {
+		return m.items[0].ByteRangesToMatches(byteRanges)
+	}
+
+	lineByteOffsets, lineWidthOffsets := m.computeOffsets()
+	matches := make([]Match, 0, len(byteRanges))
+	for _, br := range byteRanges {
+		startWidth, endWidth := m.byteRangeToWidthRange(br.Start, br.End, lineByteOffsets, lineWidthOffsets)
+		matches = append(matches, Match{
+			ByteRange:  br,
+			WidthRange: WidthRange{Start: startWidth, End: endWidth},
+		})
+	}
+	return matches
+}
+
 // ExtractExactMatches extracts exact matches from the concatenated content.
 // Byte ranges are relative to ContentNoAnsi(). Width ranges are cumulative across items.
 func (m MultiLineItem) ExtractExactMatches(exactMatch string) []Match {
@@ -167,28 +188,19 @@ func (m MultiLineItem) ExtractExactMatches(exactMatch string) []Match {
 	}
 
 	concatenated := m.ContentNoAnsi()
-	lineByteOffsets, lineWidthOffsets := m.computeOffsets()
-
-	var allMatches []Match
+	var byteRanges []ByteRange
 	startIndex := 0
 	for {
 		foundIndex := strings.Index(concatenated[startIndex:], exactMatch)
 		if foundIndex == -1 {
 			break
 		}
-
 		actualStartIndex := startIndex + foundIndex
 		endIndex := actualStartIndex + len(exactMatch)
-
-		startWidth, endWidth := m.byteRangeToWidthRange(actualStartIndex, endIndex, lineByteOffsets, lineWidthOffsets)
-
-		allMatches = append(allMatches, Match{
-			ByteRange:  ByteRange{Start: actualStartIndex, End: endIndex},
-			WidthRange: WidthRange{Start: startWidth, End: endWidth},
-		})
+		byteRanges = append(byteRanges, ByteRange{Start: actualStartIndex, End: endIndex})
 		startIndex = endIndex
 	}
-	return allMatches
+	return m.ByteRangesToMatches(byteRanges)
 }
 
 // ExtractRegexMatches extracts regex matches from the concatenated content.
@@ -201,18 +213,16 @@ func (m MultiLineItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
 	}
 
 	concatenated := m.ContentNoAnsi()
-	lineByteOffsets, lineWidthOffsets := m.computeOffsets()
-
-	var allMatches []Match
 	regexMatches := regex.FindAllStringIndex(concatenated, -1)
-	for _, rm := range regexMatches {
-		startWidth, endWidth := m.byteRangeToWidthRange(rm[0], rm[1], lineByteOffsets, lineWidthOffsets)
-		allMatches = append(allMatches, Match{
-			ByteRange:  ByteRange{Start: rm[0], End: rm[1]},
-			WidthRange: WidthRange{Start: startWidth, End: endWidth},
-		})
+	if len(regexMatches) == 0 {
+		return nil
 	}
-	return allMatches
+
+	byteRanges := make([]ByteRange, 0, len(regexMatches))
+	for _, rm := range regexMatches {
+		byteRanges = append(byteRanges, ByteRange{Start: rm[0], End: rm[1]})
+	}
+	return m.ByteRangesToMatches(byteRanges)
 }
 
 // computeOffsets returns cumulative byte offsets and width offsets for each line-broken item.

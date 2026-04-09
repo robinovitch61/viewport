@@ -436,15 +436,15 @@ func TestCaseInsensitiveFilterKeyEmpty(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  (1/4 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestCaseInsensitiveFilterKeyAddsPrefix(t *testing.T) {
+func TestSwitchFromExactToCaseInsensitive(t *testing.T) {
 	fv := makeFilterableViewport(
-		50,
+		60,
 		4,
 		[]viewport.Option[object]{},
 		[]Option[object]{
@@ -467,20 +467,20 @@ func TestCaseInsensitiveFilterKeyAddsPrefix(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
-	// 'i' to add case-insensitive prefix
+	// 'i' to switch to case-insensitive mode
 	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
 
-	// now has (?i) prefix and matches both cases
+	// now matches both cases, no (?i) in text, label is [iregex]
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[regex] Filter: (?i)a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		"[iregex] Filter: a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
+func TestSwitchFromCaseInsensitiveToExact(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -491,7 +491,7 @@ func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
 	)
 	fv.SetObjects(stringsToItems([]string{"Apple", "banana"}))
 
-	// start case-insensitive regex filter
+	// start case-insensitive filter
 	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
 	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
@@ -500,7 +500,7 @@ func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  (1/4 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -508,7 +508,7 @@ func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
 	// switch to exact mode with '/'
 	fv, _ = fv.Update(filterKeyMsg)
 
-	// (?i) prefix should be removed, leaving just 'a' in exact mode
+	// filter text preserved as-is, just switches to exact mode
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"Apple",
 		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
@@ -518,7 +518,7 @@ func TestSwitchToNonRegexRemovesCaseInsensitivePrefix(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestCaseInsensitiveKeyDoesNotTogglePrefix(t *testing.T) {
+func TestCaseInsensitiveKeyReEntersEditingMode(t *testing.T) {
 	fv := makeFilterableViewport(
 		50,
 		4,
@@ -538,19 +538,19 @@ func TestCaseInsensitiveKeyDoesNotTogglePrefix(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[regex] Filter: (?i)a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  (1/4 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 
-	// press 'i' again - should NOT toggle off the prefix, just enter editing mode
+	// press 'i' again - should just re-enter editing mode
 	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg)
 
-	// prefix should still be present, filter should be focused for editing
+	// still case-insensitive, filter should be focused for editing
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[regex] Filter: (?i)a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		"[iregex] Filter: a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -786,21 +786,22 @@ func TestNoMatchesShowsNoMatchesText(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 }
 
-func TestWithKeyMap(t *testing.T) {
-	customKeyMap := DefaultKeyMap()
-	customKeyMap.FilterKey = key.NewBinding(key.WithKeys("g"))
+func TestWithFilterModes(t *testing.T) {
+	customModes := []FilterMode{
+		ExactFilterMode(key.NewBinding(key.WithKeys("g"))),
+	}
 	fv := makeFilterableViewport(
 		20,
 		4,
 		[]viewport.Option[object]{},
 		[]Option[object]{
-			WithKeyMap[object](customKeyMap),
+			WithFilterModes[object](customModes),
 		},
 	)
 	fv.SetObjects(stringsToItems([]string{"test"}))
-	fv, _ = fv.Update(filterKeyMsg) // should not match custom key
+	fv, _ = fv.Update(filterKeyMsg) // '/' should not match custom key 'g'
 	if fv.FilterFocused() {
-		t.Error("filter should not be focused with custom keymap")
+		t.Error("filter should not be focused with custom filter modes")
 	}
 }
 
@@ -3086,13 +3087,13 @@ func TestSetFilter_ExactMode(t *testing.T) {
 		"apple cake",
 	}))
 
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	if fv.GetFilterText() != "apple" {
 		t.Errorf("expected filter text 'apple', got '%s'", fv.GetFilterText())
 	}
-	if fv.IsRegexMode() {
-		t.Error("expected regex mode to be false")
+	if fv.GetActiveFilterMode().Name != FilterExact {
+		t.Errorf("expected active filter mode %q, got %q", FilterExact, fv.GetActiveFilterMode().Name)
 	}
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3118,13 +3119,13 @@ func TestSetFilter_RegexMode(t *testing.T) {
 		"apricot tart",
 	}))
 
-	fv.SetFilter("ap.*e", true)
+	fv.SetFilter("ap.*e", FilterRegex)
 
 	if fv.GetFilterText() != "ap.*e" {
 		t.Errorf("expected filter text 'ap.*e', got '%s'", fv.GetFilterText())
 	}
-	if !fv.IsRegexMode() {
-		t.Error("expected regex mode to be true")
+	if fv.GetActiveFilterMode().Name != FilterRegex {
+		t.Errorf("expected active filter mode %q, got %q", FilterRegex, fv.GetActiveFilterMode().Name)
 	}
 
 	// regex ap.*e matches "apple pie" (greedy match to the last 'e')
@@ -3153,13 +3154,13 @@ func TestSetFilter_ClearsFilterWhenEmpty(t *testing.T) {
 	}))
 
 	// First set a filter
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 	if fv.GetFilterText() != "apple" {
 		t.Errorf("expected filter text 'apple', got '%s'", fv.GetFilterText())
 	}
 
 	// Then clear it
-	fv.SetFilter("", false)
+	fv.SetFilter("", "")
 	if fv.GetFilterText() != "" {
 		t.Errorf("expected empty filter text, got '%s'", fv.GetFilterText())
 	}
@@ -3187,15 +3188,15 @@ func TestSetFilter_SwitchBetweenModes(t *testing.T) {
 	}))
 
 	// Start with exact mode
-	fv.SetFilter("test", false)
-	if fv.IsRegexMode() {
-		t.Error("expected regex mode to be false")
+	fv.SetFilter("test", FilterExact)
+	if fv.GetActiveFilterMode().Name != FilterExact {
+		t.Errorf("expected active filter mode %q, got %q", FilterExact, fv.GetActiveFilterMode().Name)
 	}
 
 	// Switch to regex mode with same filter
-	fv.SetFilter("test\\d+", true)
-	if !fv.IsRegexMode() {
-		t.Error("expected regex mode to be true")
+	fv.SetFilter("test\\d+", FilterRegex)
+	if fv.GetActiveFilterMode().Name != FilterRegex {
+		t.Errorf("expected active filter mode %q, got %q", FilterRegex, fv.GetActiveFilterMode().Name)
 	}
 	if fv.GetFilterText() != "test\\d+" {
 		t.Errorf("expected filter text 'test\\d+', got '%s'", fv.GetFilterText())
@@ -3227,7 +3228,7 @@ func TestSetFilter_WithMatchingItemsOnly(t *testing.T) {
 		"apple cake",
 	}))
 
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Only matching items should be shown
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3254,7 +3255,7 @@ func TestSetMatchingItemsOnly_EnableShowsOnlyMatches(t *testing.T) {
 		"banana bread",
 		"apple cake",
 	}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Initially all items shown
 	if fv.GetMatchingItemsOnly() {
@@ -3299,7 +3300,7 @@ func TestSetMatchingItemsOnly_DisableShowsAllItems(t *testing.T) {
 		"banana bread",
 		"apple cake",
 	}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Initially only matching items shown
 	if !fv.GetMatchingItemsOnly() {
@@ -3342,7 +3343,7 @@ func TestSetMatchingItemsOnly_ToggleBackAndForth(t *testing.T) {
 		"banana",
 		"apricot",
 	}))
-	fv.SetFilter("a", false)
+	fv.SetFilter("a", FilterExact)
 
 	// Default is false
 	if fv.GetMatchingItemsOnly() {
@@ -3408,7 +3409,7 @@ func TestSetFilterableViewportStyles_ChangesMatchStyles(t *testing.T) {
 		"banana bread",
 		"apple cake",
 	}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Verify initial styles are applied
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3453,7 +3454,7 @@ func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
 		"test two",
 		"test three",
 	}))
-	fv.SetFilter("test", false)
+	fv.SetFilter("test", FilterExact)
 
 	// Navigate to second match
 	fv, _ = fv.Update(nextMatchKeyMsg)
@@ -3492,7 +3493,7 @@ func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
 func TestAdjustObjectsForFilter_CalledOnFilterChange(t *testing.T) {
 	var hookCalls []struct {
 		filterText string
-		isRegex    bool
+		mode       FilterModeName
 	}
 
 	fv := makeFilterableViewport(
@@ -3500,11 +3501,11 @@ func TestAdjustObjectsForFilter_CalledOnFilterChange(t *testing.T) {
 		5,
 		[]viewport.Option[object]{},
 		[]Option[object]{
-			WithAdjustObjectsForFilter[object](func(filterText string, isRegex bool) []object {
+			WithAdjustObjectsForFilter[object](func(filterText string, mode FilterModeName) []object {
 				hookCalls = append(hookCalls, struct {
 					filterText string
-					isRegex    bool
-				}{filterText, isRegex})
+					mode       FilterModeName
+				}{filterText, mode})
 				return nil // return nil to keep existing objects
 			}),
 		},
@@ -3519,26 +3520,26 @@ func TestAdjustObjectsForFilter_CalledOnFilterChange(t *testing.T) {
 		t.Fatal("expected hook to be called at least once")
 	}
 
-	// Check last call has correct filter text
+	// Check last call has correct filter text and mode
 	lastCall := hookCalls[len(hookCalls)-1]
 	if lastCall.filterText != "a" {
 		t.Errorf("expected filterText 'a', got %q", lastCall.filterText)
 	}
-	if lastCall.isRegex {
-		t.Error("expected isRegex=false for exact filter")
+	if lastCall.mode != FilterExact {
+		t.Errorf("expected mode %q (exact), got %q", FilterExact, lastCall.mode)
 	}
 }
 
 func TestAdjustObjectsForFilter_CalledWithRegexMode(t *testing.T) {
-	var lastIsRegex bool
+	var lastMode FilterModeName
 
 	fv := makeFilterableViewport(
 		80,
 		5,
 		[]viewport.Option[object]{},
 		[]Option[object]{
-			WithAdjustObjectsForFilter[object](func(_ string, isRegex bool) []object {
-				lastIsRegex = isRegex
+			WithAdjustObjectsForFilter[object](func(_ string, mode FilterModeName) []object {
+				lastMode = mode
 				return nil
 			}),
 		},
@@ -3549,8 +3550,8 @@ func TestAdjustObjectsForFilter_CalledWithRegexMode(t *testing.T) {
 	fv, _ = fv.Update(regexFilterKeyMsg)
 	_, _ = fv.Update(internal.MakeKeyMsg('a'))
 
-	if !lastIsRegex {
-		t.Error("expected isRegex=true for regex filter")
+	if lastMode != FilterRegex {
+		t.Errorf("expected mode %q (regex), got %q", FilterRegex, lastMode)
 	}
 }
 
@@ -3562,7 +3563,7 @@ func TestAdjustObjectsForFilter_ReplacesObjects(t *testing.T) {
 		[]viewport.Option[object]{},
 		[]Option[object]{
 			WithMatchingItemsOnly[object](false),
-			WithAdjustObjectsForFilter[object](func(filterText string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(filterText string, _ FilterModeName) []object {
 				if filterText == "" {
 					return stringsToItems([]string{"apple", "banana", "cherry"})
 				}
@@ -3610,7 +3611,7 @@ func TestAdjustObjectsForFilter_NilKeepsExistingObjects(t *testing.T) {
 		[]viewport.Option[object]{},
 		[]Option[object]{
 			WithMatchingItemsOnly[object](false),
-			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(_ string, _ FilterModeName) []object {
 				hookCallCount++
 				return nil // explicitly return nil
 			}),
@@ -3622,8 +3623,9 @@ func TestAdjustObjectsForFilter_NilKeepsExistingObjects(t *testing.T) {
 	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
 	fv, _ = fv.Update(applyFilterKeyMsg)
 
-	if hookCallCount != 1 {
-		t.Error("hook should have been called once")
+	// hook is called twice: once when mode activates (empty text), once when text changes to "a"
+	if hookCallCount != 2 {
+		t.Errorf("hook should have been called twice, got %d", hookCallCount)
 	}
 
 	// Original objects should still be shown, with "a" highlighted
@@ -3645,14 +3647,14 @@ func TestAdjustObjectsForFilter_WithMatchingItemsOnlyTrue(t *testing.T) {
 		[]viewport.Option[object]{},
 		[]Option[object]{
 			WithMatchingItemsOnly[object](true),
-			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(_ string, _ FilterModeName) []object {
 				// Return parent + child, but only child matches "apple"
 				return stringsToItems([]string{"parent-node", "child-apple"})
 			}),
 		},
 	)
 	fv.SetObjects(stringsToItems([]string{"initial"}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Only child-apple matches "apple", so only it should be shown
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3673,13 +3675,13 @@ func TestAdjustObjectsForFilter_WithMatchingItemsOnlyFalse(t *testing.T) {
 		[]viewport.Option[object]{},
 		[]Option[object]{
 			WithMatchingItemsOnly[object](false),
-			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(_ string, _ FilterModeName) []object {
 				return stringsToItems([]string{"parent-node", "child-apple"})
 			}),
 		},
 	)
 	fv.SetObjects(stringsToItems([]string{"initial"}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Both should be visible, child-apple has match highlighted
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3700,7 +3702,7 @@ func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
 		[]viewport.Option[object]{},
 		[]Option[object]{
 			WithMatchingItemsOnly[object](false),
-			WithAdjustObjectsForFilter[object](func(_ string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(_ string, _ FilterModeName) []object {
 				return stringsToItems([]string{
 					"first-apple",
 					"no-match-here",
@@ -3710,7 +3712,7 @@ func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
 		},
 	)
 	fv.SetObjects(stringsToItems([]string{"initial"}))
-	fv.SetFilter("apple", false)
+	fv.SetFilter("apple", FilterExact)
 
 	// Should show "1/2 matches" (two items contain "apple"), first match focused
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
@@ -3755,7 +3757,7 @@ func TestAdjustObjectsForFilter_ClearFilterRestoresOriginalBehavior(t *testing.T
 		5,
 		[]viewport.Option[object]{},
 		[]Option[object]{
-			WithAdjustObjectsForFilter[object](func(filterText string, _ bool) []object {
+			WithAdjustObjectsForFilter[object](func(filterText string, _ FilterModeName) []object {
 				callCount++
 				if filterText != "" {
 					return stringsToItems([]string{"hook-provided"})
@@ -3827,7 +3829,7 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky(t *testing.T) {
 	internal.CmpStr(t, expectedView, fv.View())
 
 	// apply filter - should move selection to the first match
-	fv.SetFilter("error", false)
+	fv.SetFilter("error", FilterExact)
 
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("error") + selectedItemStyle.Render(": something broke"),
@@ -3874,7 +3876,7 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky_AppendDoesNotJump(t *testin
 	internal.CmpStr(t, expectedView, fv.View())
 
 	// apply filter while selection is at bottom
-	fv.SetFilter("error", false)
+	fv.SetFilter("error", FilterExact)
 
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("error") + selectedItemStyle.Render(": something broke"),
@@ -3899,4 +3901,469 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky_AppendDoesNotJump(t *testin
 		footerStyle.Render("11% (1/9)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
+}
+
+// TestCustomFilterMode verifies that a custom filter mode with a custom MatchFunc works correctly.
+func TestCustomFilterMode(t *testing.T) {
+	// Custom filter mode: matches only lines that start with the filter text
+	prefixMode := FilterMode{
+		Name: "prefix",
+		Key: key.NewBinding(
+			key.WithKeys("p"),
+			key.WithHelp("p", "prefix filter"),
+		),
+		Label: "[prefix]",
+		GetMatchFunc: func(filterText string) (MatchFunc, error) {
+			return func(content string) []item.ByteRange {
+				if strings.HasPrefix(content, filterText) {
+					return []item.ByteRange{{Start: 0, End: len(filterText)}}
+				}
+				return nil
+			}, nil
+		},
+	}
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{prefixMode}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"alpha one",
+		"beta two alpha",
+		"alpha three",
+	}))
+
+	// Activate custom mode with 'p'
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
+	if fv.GetActiveFilterMode().Name != "prefix" {
+		t.Fatalf("expected active mode 'prefix', got %q", fv.GetActiveFilterMode().Name)
+	}
+	if fv.GetActiveFilterMode().Label != "[prefix]" {
+		t.Fatalf("expected label '[prefix]', got %q", fv.GetActiveFilterMode().Label)
+	}
+
+	// Type "alpha"
+	for _, ch := range "alpha" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Should have 2 matches (alpha one and alpha three)
+	if fv.totalMatchesOnAllItems != 2 {
+		t.Errorf("expected 2 total matches, got %d", fv.totalMatchesOnAllItems)
+	}
+	if fv.numMatchingItems != 2 {
+		t.Errorf("expected 2 matching items, got %d", fv.numMatchingItems)
+	}
+}
+
+// TestCustomFilterModeWithError verifies that a custom filter mode returning an error shows no matches.
+func TestCustomFilterModeWithError(t *testing.T) {
+	errorMode := FilterMode{
+		Name: "error",
+		Key: key.NewBinding(
+			key.WithKeys("e"),
+			key.WithHelp("e", "error filter"),
+		),
+		Label: "[error]",
+		GetMatchFunc: func(_ string) (MatchFunc, error) {
+			return nil, fmt.Errorf("always fails")
+		},
+	}
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{errorMode}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+
+	fv, _ = fv.Update(internal.MakeKeyMsg('e'))
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Error mode should result in 0 matches
+	if fv.totalMatchesOnAllItems != 0 {
+		t.Errorf("expected 0 matches with error mode, got %d", fv.totalMatchesOnAllItems)
+	}
+}
+
+// TestModeSwitching verifies that switching between filter modes preserves the filter text
+// and re-evaluates matches.
+func TestModeSwitching(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"Hello World",
+		"hello world",
+		"HELLO WORLD",
+	}))
+
+	// Activate exact mode and type "hello"
+	fv, _ = fv.Update(filterKeyMsg) // '/'
+	for _, ch := range "hello" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	if fv.GetActiveFilterMode().Name != FilterExact {
+		t.Fatalf("expected exact mode, got %q", fv.GetActiveFilterMode().Name)
+	}
+	// Exact match should find only "hello world" (case-sensitive)
+	exactMatchCount := fv.totalMatchesOnAllItems
+	if exactMatchCount != 1 {
+		t.Fatalf("expected 1 exact match, got %d", exactMatchCount)
+	}
+
+	// Cancel and switch to case-insensitive mode
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	fv, _ = fv.Update(caseInsensitiveFilterKeyMsg) // 'i'
+	if fv.GetActiveFilterMode().Name != FilterCaseInsensitive {
+		t.Fatalf("expected case-insensitive mode, got %q", fv.GetActiveFilterMode().Name)
+	}
+
+	// Type "hello" again
+	for _, ch := range "hello" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Case-insensitive should match all 3 items
+	if fv.totalMatchesOnAllItems != 3 {
+		t.Errorf("expected 3 case-insensitive matches, got %d", fv.totalMatchesOnAllItems)
+	}
+
+	// Cancel and switch to regex mode
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	fv, _ = fv.Update(regexFilterKeyMsg) // 'r'
+	if fv.GetActiveFilterMode().Name != FilterRegex {
+		t.Fatalf("expected regex mode, got %q", fv.GetActiveFilterMode().Name)
+	}
+
+	// Type regex pattern
+	for _, ch := range `^[hH]ello` {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Should match "Hello World" and "hello world" but not "HELLO WORLD"
+	if fv.totalMatchesOnAllItems != 2 {
+		t.Errorf("expected 2 regex matches for ^[hH]ello, got %d", fv.totalMatchesOnAllItems)
+	}
+}
+
+// TestSetFilterWithVariousModes verifies that SetFilter works with different filter modes.
+func TestSetFilterWithVariousModes(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"Hello World",
+		"hello world",
+		"HELLO WORLD",
+	}))
+
+	// SetFilter with exact mode
+	fv.SetFilter("hello", FilterExact)
+	if fv.GetActiveFilterMode().Name != FilterExact {
+		t.Errorf("expected mode %q, got %q", FilterExact, fv.GetActiveFilterMode().Name)
+	}
+	if fv.GetFilterText() != "hello" {
+		t.Errorf("expected filter text 'hello', got %q", fv.GetFilterText())
+	}
+	if fv.totalMatchesOnAllItems != 1 {
+		t.Errorf("expected 1 exact match, got %d", fv.totalMatchesOnAllItems)
+	}
+
+	// SetFilter with regex mode
+	fv.SetFilter("HELLO", FilterRegex)
+	if fv.GetActiveFilterMode().Name != FilterRegex {
+		t.Errorf("expected mode %q, got %q", FilterRegex, fv.GetActiveFilterMode().Name)
+	}
+	if fv.totalMatchesOnAllItems != 1 {
+		t.Errorf("expected 1 regex match for 'HELLO', got %d", fv.totalMatchesOnAllItems)
+	}
+
+	// SetFilter with case-insensitive mode
+	fv.SetFilter("hello", FilterCaseInsensitive)
+	if fv.GetActiveFilterMode().Name != FilterCaseInsensitive {
+		t.Errorf("expected mode %q, got %q", FilterCaseInsensitive, fv.GetActiveFilterMode().Name)
+	}
+	if fv.totalMatchesOnAllItems != 3 {
+		t.Errorf("expected 3 case-insensitive matches, got %d", fv.totalMatchesOnAllItems)
+	}
+
+	// SetFilter with empty string clears filter
+	fv.SetFilter("", "")
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected nil active filter mode after empty filter, got %q", fv.GetActiveFilterMode().Name)
+	}
+	if fv.filterMode != filterModeOff {
+		t.Errorf("expected filterModeOff after empty filter, got %d", fv.filterMode)
+	}
+
+	// SetFilter with unknown mode name should be ignored (keeps current mode)
+	fv.SetFilter("test", "nonexistent")
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected nil active filter mode for unknown mode, got %q", fv.GetActiveFilterMode().Name)
+	}
+}
+
+// TestFilterModesAccessor verifies the FilterModes() accessor.
+func TestFilterModesAccessor(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+
+	modes := fv.FilterModes()
+	if len(modes) != 3 {
+		t.Fatalf("expected 3 default filter modes, got %d", len(modes))
+	}
+
+	if modes[0].Name != FilterExact || modes[0].Label != "[exact]" {
+		t.Errorf("expected first mode Name=%q Label='[exact]', got Name=%q Label=%q", FilterExact, modes[0].Name, modes[0].Label)
+	}
+	if modes[1].Name != FilterRegex || modes[1].Label != "[regex]" {
+		t.Errorf("expected second mode Name=%q Label='[regex]', got Name=%q Label=%q", FilterRegex, modes[1].Name, modes[1].Label)
+	}
+	if modes[2].Name != FilterCaseInsensitive || modes[2].Label != "[iregex]" {
+		t.Errorf("expected third mode Name=%q Label='[iregex]', got Name=%q Label=%q", FilterCaseInsensitive, modes[2].Name, modes[2].Label)
+	}
+}
+
+// TestGetActiveFilterModeNil verifies GetActiveFilterMode returns nil when no mode is active.
+func TestGetActiveFilterModeNil(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected nil active filter mode initially")
+	}
+
+	// Activate mode
+	fv, _ = fv.Update(filterKeyMsg)
+	if fv.GetActiveFilterMode() == nil {
+		t.Errorf("expected non-nil active filter mode after activation")
+	}
+
+	// Cancel
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected nil active filter mode after cancel")
+	}
+}
+
+// TestWithFilterModesCustom verifies WithFilterModes overrides defaults.
+func TestWithFilterModesCustom(t *testing.T) {
+	customMode := FilterMode{
+		Name: "custom",
+		Key: key.NewBinding(
+			key.WithKeys("x"),
+			key.WithHelp("x", "custom"),
+		),
+		Label: "[custom]",
+		GetMatchFunc: func(filterText string) (MatchFunc, error) {
+			return func(content string) []item.ByteRange {
+				// Simple: match everything
+				if len(content) > 0 && filterText != "" {
+					return []item.ByteRange{{Start: 0, End: len(content)}}
+				}
+				return nil
+			}, nil
+		},
+	}
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{customMode}),
+		},
+	)
+
+	modes := fv.FilterModes()
+	if len(modes) != 1 {
+		t.Fatalf("expected 1 custom filter mode, got %d", len(modes))
+	}
+	if modes[0].Label != "[custom]" {
+		t.Errorf("expected label '[custom]', got %q", modes[0].Label)
+	}
+
+	// Default filter key '/' should not activate anything since we replaced modes
+	fv.SetObjects(stringsToItems([]string{"hello"}))
+	fv, _ = fv.Update(filterKeyMsg) // '/' — should not match any mode key
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected no mode activation from '/', got %q", fv.GetActiveFilterMode().Name)
+	}
+
+	// Custom key 'x' should work
+	fv, _ = fv.Update(internal.MakeKeyMsg('x'))
+	if fv.GetActiveFilterMode().Name != "custom" {
+		t.Errorf("expected mode 'custom' after 'x', got %q", fv.GetActiveFilterMode().Name)
+	}
+}
+
+// TestAdjustObjectsForFilter_ModeNonEmptyOnClear verifies that the callback
+// always receives a valid (non-empty) mode name, even when clearing the filter.
+func TestAdjustObjectsForFilter_ModeNonEmptyOnClear(t *testing.T) {
+	var receivedModes []FilterModeName
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithAdjustObjectsForFilter[object](func(_ string, mode FilterModeName) []object {
+				receivedModes = append(receivedModes, mode)
+				if mode == "" {
+					t.Fatalf("adjustObjectsForFilter received empty mode name")
+				}
+				return nil
+			}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{"apple", "banana"}))
+
+	// Activate filter, type, apply
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Clear filter — this sets activeFilterModeName to "" internally,
+	// but the callback should still receive a valid (non-empty) mode name
+	_, _ = fv.Update(cancelFilterKeyMsg)
+
+	if len(receivedModes) == 0 {
+		t.Fatal("expected adjustObjectsForFilter to be called at least once")
+	}
+	for i, mode := range receivedModes {
+		if mode == "" {
+			t.Errorf("call %d: received empty mode name", i)
+		}
+	}
+}
+
+func TestModeSwitchAfterCancel(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+
+	// Activate exact mode, type, apply
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// "apple" has 1 'a', "banana" has 3 'a's = 4 total matches
+	if fv.totalMatchesOnAllItems != 4 {
+		t.Fatalf("expected 4 matches for 'a', got %d", fv.totalMatchesOnAllItems)
+	}
+
+	// Cancel filter
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	if fv.GetActiveFilterMode() != nil {
+		t.Errorf("expected nil active filter mode after cancel, got %q", fv.GetActiveFilterMode().Name)
+	}
+	if fv.filterMode != filterModeOff {
+		t.Errorf("expected filterModeOff after cancel")
+	}
+
+	// Switch to regex mode
+	fv, _ = fv.Update(regexFilterKeyMsg)
+	if fv.GetActiveFilterMode().Name != FilterRegex {
+		t.Errorf("expected mode %q (regex), got %q", FilterRegex, fv.GetActiveFilterMode().Name)
+	}
+	// Filter text should be empty (was cleared on cancel)
+	if fv.GetFilterText() != "" {
+		t.Errorf("expected empty filter text after cancel+mode switch, got %q", fv.GetFilterText())
+	}
+}
+
+func TestDuplicateFilterModeNamePanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for duplicate FilterModeName, got none")
+		}
+		msg := fmt.Sprint(r)
+		if !strings.Contains(msg, "duplicate FilterModeName") {
+			t.Errorf("expected panic message about duplicate FilterModeName, got: %s", msg)
+		}
+	}()
+
+	vp := viewport.New[object](80, 6)
+	New[object](vp,
+		WithFilterModes[object]([]FilterMode{
+			ExactFilterMode(key.NewBinding(key.WithKeys("/"))),
+			ExactFilterMode(key.NewBinding(key.WithKeys("f"))), // same Name: "exact"
+		}),
+	)
+}
+
+func TestNoFilterModesPanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for no filter modes, got none")
+		}
+		msg := fmt.Sprint(r)
+		if !strings.Contains(msg, "no filter modes set") {
+			t.Errorf("expected panic message about no filter modes, got: %s", msg)
+		}
+	}()
+
+	vp := viewport.New[object](80, 6)
+	New[object](vp,
+		WithFilterModes[object]([]FilterMode{}),
+	)
+}
+
+func TestEmptyFilterModeNamePanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for empty FilterMode Name, got none")
+		}
+		msg := fmt.Sprint(r)
+		if !strings.Contains(msg, "empty Name") {
+			t.Errorf("expected panic message about empty Name, got: %s", msg)
+		}
+	}()
+
+	vp := viewport.New[object](80, 6)
+	New[object](vp,
+		WithFilterModes[object]([]FilterMode{
+			{Key: key.NewBinding(key.WithKeys("x")), Label: "[x]", GetMatchFunc: func(_ string) (MatchFunc, error) { return nil, nil }},
+		}),
+	)
 }

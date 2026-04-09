@@ -453,15 +453,44 @@ func (l SingleItem) findRuneIndexWithWidthToLeft(widthToLeft int) int {
 	return left + 1
 }
 
+// ByteRangesToMatches converts byte ranges in the ANSI-stripped content to Matches.
+func (l SingleItem) ByteRangesToMatches(byteRanges []ByteRange) []Match {
+	if len(byteRanges) == 0 {
+		return nil
+	}
+	matches := make([]Match, 0, len(byteRanges))
+	for _, br := range byteRanges {
+		startWidth, endWidth := l.byteRangeToWidthRange(br.Start, br.End)
+		matches = append(matches, Match{
+			ByteRange:  br,
+			WidthRange: WidthRange{Start: startWidth, End: endWidth},
+		})
+	}
+	return matches
+}
+
+// byteRangeToWidthRange converts a byte range to a width range for a SingleItem.
+func (l SingleItem) byteRangeToWidthRange(startByte, endByte int) (startWidth, endWidth int) {
+	startRuneIdx := l.getRuneIndexAtByteOffset(startByte)
+	endRuneIdx := l.getRuneIndexAtByteOffset(endByte)
+
+	if startRuneIdx > 0 {
+		startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
+	}
+	if endRuneIdx > 0 {
+		endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
+	}
+	return
+}
+
 // ExtractExactMatches extracts exact matches from the item's content without ANSI codes
 func (l SingleItem) ExtractExactMatches(exactMatch string) []Match {
-	var matches []Match
-
 	if exactMatch == "" {
-		return matches
+		return nil
 	}
 
 	unstyled := l.lineNoAnsi
+	var byteRanges []ByteRange
 	startIndex := 0
 	for {
 		foundIndex := strings.Index(unstyled[startIndex:], exactMatch)
@@ -470,66 +499,21 @@ func (l SingleItem) ExtractExactMatches(exactMatch string) []Match {
 		}
 		actualStartIndex := startIndex + foundIndex
 		endIndex := actualStartIndex + len(exactMatch)
-
-		// convert byte ranges to rune indices
-		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
-		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
-
-		// convert rune indices to width positions
-		var startWidth, endWidth int
-		if startRuneIdx > 0 {
-			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
-		}
-		if endRuneIdx > 0 {
-			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
-		}
-
-		matches = append(matches, Match{
-			ByteRange: ByteRange{
-				Start: actualStartIndex,
-				End:   endIndex,
-			},
-			WidthRange: WidthRange{
-				Start: startWidth,
-				End:   endWidth,
-			},
-		})
+		byteRanges = append(byteRanges, ByteRange{Start: actualStartIndex, End: endIndex})
 		startIndex = endIndex // overlapping matches are not considered
 	}
-	return matches
+	return l.ByteRangesToMatches(byteRanges)
 }
 
 // ExtractRegexMatches extracts regex matches from the item's content without ANSI codes
 func (l SingleItem) ExtractRegexMatches(regex *regexp.Regexp) []Match {
-	var matches []Match
 	regexMatches := regex.FindAllStringIndex(l.lineNoAnsi, -1)
-	for _, regexMatch := range regexMatches {
-		actualStartIndex := regexMatch[0]
-		endIndex := regexMatch[1]
-
-		// convert byte ranges to rune indices
-		startRuneIdx := l.getRuneIndexAtByteOffset(actualStartIndex)
-		endRuneIdx := l.getRuneIndexAtByteOffset(endIndex)
-
-		// convert rune indices to width positions
-		var startWidth, endWidth int
-		if startRuneIdx > 0 {
-			startWidth = int(l.getCumulativeWidthAtRuneIdx(startRuneIdx - 1))
-		}
-		if endRuneIdx > 0 {
-			endWidth = int(l.getCumulativeWidthAtRuneIdx(endRuneIdx - 1))
-		}
-
-		matches = append(matches, Match{
-			ByteRange: ByteRange{
-				Start: actualStartIndex,
-				End:   endIndex,
-			},
-			WidthRange: WidthRange{
-				Start: startWidth,
-				End:   endWidth,
-			},
-		})
+	if len(regexMatches) == 0 {
+		return nil
 	}
-	return matches
+	byteRanges := make([]ByteRange, 0, len(regexMatches))
+	for _, rm := range regexMatches {
+		byteRanges = append(byteRanges, ByteRange{Start: rm[0], End: rm[1]})
+	}
+	return l.ByteRangesToMatches(byteRanges)
 }

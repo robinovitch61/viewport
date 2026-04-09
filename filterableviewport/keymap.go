@@ -4,11 +4,10 @@ import (
 	"charm.land/bubbles/v2/key"
 )
 
-// KeyMap defines the key bindings for the filterable viewport
+// KeyMap defines the key bindings for the filterable viewport.
+// Filter mode activation keys (exact, regex, case-insensitive) are defined on
+// each FilterMode.Key — see DefaultFilterModes() and WithFilterModes().
 type KeyMap struct {
-	FilterKey                  key.Binding
-	RegexFilterKey             key.Binding
-	CaseInsensitiveFilterKey   key.Binding
 	ApplyFilterKey             key.Binding
 	CancelFilterKey            key.Binding
 	ToggleMatchingItemsOnlyKey key.Binding
@@ -21,18 +20,6 @@ type KeyMap struct {
 // DefaultKeyMap returns a default keymap for the filterable viewport
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
-		FilterKey: key.NewBinding(
-			key.WithKeys("/"),
-			key.WithHelp("/", "filter"),
-		),
-		RegexFilterKey: key.NewBinding(
-			key.WithKeys("r"),
-			key.WithHelp("r", "regex filter"),
-		),
-		CaseInsensitiveFilterKey: key.NewBinding(
-			key.WithKeys("i"),
-			key.WithHelp("i", "case insensitive filter"),
-		),
 		ApplyFilterKey: key.NewBinding(
 			key.WithKeys("enter"),
 			key.WithHelp("enter", "apply filter"),

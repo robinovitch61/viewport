@@ -238,7 +238,7 @@ func TestSearchHistoryUpDownNotEditingDoesNotBrowseHistory(t *testing.T) {
 	}
 }
 
-func TestSearchHistoryCaseInsensitivePrefixAdded(t *testing.T) {
+func TestSearchHistoryCaseInsensitiveNoPrefix(t *testing.T) {
 	fv := makeSearchHistoryFV()
 
 	// apply a plain exact search
@@ -249,16 +249,16 @@ func TestSearchHistoryCaseInsensitivePrefixAdded(t *testing.T) {
 	fv.Update(caseInsensitiveFilterKeyMsg)
 	fv.Update(upKeyMsg)
 
-	// should show with (?i) prefix
-	if fv.filterTextInput.Value() != "(?i)butt" {
-		t.Errorf("expected '(?i)butt', got %q", fv.filterTextInput.Value())
+	// history text is stored without any prefix — mode is separate
+	if fv.filterTextInput.Value() != "butt" {
+		t.Errorf("expected 'butt', got %q", fv.filterTextInput.Value())
 	}
 }
 
-func TestSearchHistoryCaseInsensitiveNoDuplicatePrefix(t *testing.T) {
+func TestSearchHistoryCaseInsensitiveStoredPlain(t *testing.T) {
 	fv := makeSearchHistoryFV()
 
-	// apply a case-insensitive search (stored with prefix)
+	// apply a case-insensitive search
 	fv.Update(cancelFilterKeyMsg)
 	fv.Update(caseInsensitiveFilterKeyMsg)
 	typeFilter(fv, "butt")
@@ -269,9 +269,9 @@ func TestSearchHistoryCaseInsensitiveNoDuplicatePrefix(t *testing.T) {
 	fv.Update(caseInsensitiveFilterKeyMsg)
 	fv.Update(upKeyMsg)
 
-	// should NOT double-prefix
-	if fv.filterTextInput.Value() != "(?i)butt" {
-		t.Errorf("expected '(?i)butt', got %q", fv.filterTextInput.Value())
+	// stored as plain "butt", no (?i) prefix
+	if fv.filterTextInput.Value() != "butt" {
+		t.Errorf("expected 'butt', got %q", fv.filterTextInput.Value())
 	}
 }
 
@@ -281,12 +281,12 @@ func TestSearchHistoryRegexModeNoPrefix(t *testing.T) {
 	// apply a plain exact search
 	applyFilter(fv, "butt")
 
-	// enter regex mode (not case-insensitive) and browse history
+	// enter regex mode and browse history
 	fv.Update(cancelFilterKeyMsg)
 	fv.Update(regexFilterKeyMsg)
 	fv.Update(upKeyMsg)
 
-	// should NOT add (?i) prefix in regular regex mode
+	// should show plain text without any prefix
 	if fv.filterTextInput.Value() != "butt" {
 		t.Errorf("expected 'butt', got %q", fv.filterTextInput.Value())
 	}

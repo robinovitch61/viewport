@@ -1341,3 +1341,174 @@ func toHighlights(matches []Match, style lipgloss.Style) []Highlight {
 	}
 	return highlights
 }
+
+func TestConcatItem_ByteRangesToMatches(t *testing.T) {
+	tests := []struct {
+		name       string
+		items      []SingleItem
+		byteRanges []ByteRange
+		expected   []Match
+	}{
+		{
+			name:       "nil byte ranges",
+			items:      []SingleItem{NewItem("hello"), NewItem(" world")},
+			byteRanges: nil,
+			expected:   nil,
+		},
+		{
+			name:       "empty byte ranges",
+			items:      []SingleItem{NewItem("hello"), NewItem(" world")},
+			byteRanges: []ByteRange{},
+			expected:   nil,
+		},
+		{
+			name:       "empty items",
+			items:      []SingleItem{},
+			byteRanges: []ByteRange{{Start: 0, End: 5}},
+			expected:   nil,
+		},
+		{
+			name:  "single item delegates to SingleItem",
+			items: []SingleItem{NewItem("hello world")},
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11},
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name:  "range in first item",
+			items: []SingleItem{NewItem("hello"), NewItem(" world")},
+			byteRanges: []ByteRange{
+				{Start: 0, End: 5}, // "hello"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 5},
+					WidthRange: WidthRange{Start: 0, End: 5},
+				},
+			},
+		},
+		{
+			name:  "range in second item",
+			items: []SingleItem{NewItem("hello"), NewItem(" world")},
+			byteRanges: []ByteRange{
+				{Start: 6, End: 11}, // "world"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name:  "range spanning two items",
+			items: []SingleItem{NewItem("hello"), NewItem(" world")},
+			byteRanges: []ByteRange{
+				{Start: 3, End: 8}, // "lo wo"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 3, End: 8},
+					WidthRange: WidthRange{Start: 3, End: 8},
+				},
+			},
+		},
+		{
+			name:  "multiple ranges across items",
+			items: []SingleItem{NewItem("hello"), NewItem(" "), NewItem("world")},
+			byteRanges: []ByteRange{
+				{Start: 0, End: 5},  // "hello"
+				{Start: 6, End: 11}, // "world"
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 0, End: 5},
+					WidthRange: WidthRange{Start: 0, End: 5},
+				},
+				{
+					ByteRange:  ByteRange{Start: 6, End: 11},
+					WidthRange: WidthRange{Start: 6, End: 11},
+				},
+			},
+		},
+		{
+			name: "unicode across items",
+			// A (1w, 1b), 💖 (2w, 4b) | 中 (2w, 3b), é (1w, 3b)
+			items: []SingleItem{NewItem("A💖"), NewItem("中é")},
+			byteRanges: []ByteRange{
+				{Start: 1, End: 8}, // 💖中
+			},
+			expected: []Match{
+				{
+					ByteRange:  ByteRange{Start: 1, End: 8},
+					WidthRange: WidthRange{Start: 1, End: 5},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			concat := NewConcat(tt.items...)
+			actual := concat.ByteRangesToMatches(tt.byteRanges)
+
+			if len(actual) != len(tt.expected) {
+				t.Fatalf("expected %d matches, got %d", len(tt.expected), len(actual))
+			}
+
+			for i, expected := range tt.expected {
+				match := actual[i]
+				if match.ByteRange != expected.ByteRange {
+					t.Errorf("match %d: expected byte range %+v, got %+v", i, expected.ByteRange, match.ByteRange)
+				}
+				if match.WidthRange != expected.WidthRange {
+					t.Errorf("match %d: expected width range %+v, got %+v", i, expected.WidthRange, match.WidthRange)
+				}
+			}
+		})
+	}
+}
+
+// TestConcatItem_ByteRangesToMatches_EquivalentItems verifies that ByteRangesToMatches
+// produces consistent results across equivalent items with different item boundaries.
+func TestConcatItem_ByteRangesToMatches_EquivalentItems(t *testing.T) {
+	for key, items := range getEquivalentItems() {
+		if key == "none" || len(items) == 0 {
+			continue
+		}
+
+		// Find some byte ranges to test with
+		content := items[0].ContentNoAnsi()
+		if len(content) < 2 {
+			continue
+		}
+		byteRanges := []ByteRange{
+			{Start: 0, End: min(3, len(content))},
+		}
+		if len(content) > 5 {
+			byteRanges = append(byteRanges, ByteRange{Start: len(content) - 3, End: len(content)})
+		}
+
+		// All equivalent items should produce the same matches
+		reference := items[0].ByteRangesToMatches(byteRanges)
+		for _, eq := range items[1:] {
+			actual := eq.ByteRangesToMatches(byteRanges)
+			if len(actual) != len(reference) {
+				t.Errorf("[%s] %s: expected %d matches, got %d", key, eq.repr(), len(reference), len(actual))
+				continue
+			}
+			for i := range reference {
+				if actual[i] != reference[i] {
+					t.Errorf("[%s] %s: match %d: expected %+v, got %+v",
+						key, eq.repr(), i, reference[i], actual[i])
+				}
+			}
+		}
+	}
+}
