@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/key"
+	"github.com/robinovitch61/viewport/internal/fuzzy"
 	"github.com/robinovitch61/viewport/viewport/item"
 )
 
@@ -20,6 +21,8 @@ const (
 	FilterRegex FilterModeName = "regex"
 	// FilterCaseInsensitive identifies the built-in case-insensitive regex filter mode.
 	FilterCaseInsensitive FilterModeName = "iregex"
+	// FilterFuzzy identifies the built-in fuzzy filter mode.
+	FilterFuzzy FilterModeName = "fuzzy"
 )
 
 // MatchFunc extracts match byte ranges from ANSI-stripped item content.
@@ -132,6 +135,38 @@ func CaseInsensitiveFilterMode(k key.Binding) FilterMode {
 					ranges = append(ranges, item.ByteRange{Start: rm[0], End: rm[1]})
 				}
 				return ranges
+			}, nil
+		},
+	}
+}
+
+// FuzzyFilterMode returns a FilterMode that performs fuzzy matching similar to fzf.
+// Characters in the query must appear in order in the content but need not be contiguous.
+// Matching is case-insensitive. The highlighted range spans from the first to the last
+// matched character.
+func FuzzyFilterMode(k key.Binding) FilterMode {
+	return FilterMode{
+		Name:  FilterFuzzy,
+		Key:   k,
+		Label: "[fuzzy]",
+		GetMatchFunc: func(filterText string) (MatchFunc, error) {
+			return func(content string) []item.ByteRange {
+				if filterText == "" {
+					return nil
+				}
+				matches := fuzzy.Find([]string{content}, filterText)
+				if len(matches) == 0 {
+					return nil
+				}
+				fuzzyRanges := matches[0].MatchedByteRanges()
+				if len(fuzzyRanges) == 0 {
+					return nil
+				}
+				// Single span from first matched char to last matched char.
+				return []item.ByteRange{{
+					Start: fuzzyRanges[0].Start,
+					End:   fuzzyRanges[len(fuzzyRanges)-1].End,
+				}}
 			}, nil
 		},
 	}

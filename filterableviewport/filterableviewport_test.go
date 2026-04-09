@@ -3998,6 +3998,161 @@ func TestCustomFilterModeWithError(t *testing.T) {
 	}
 }
 
+func TestFuzzyFilterMode(t *testing.T) {
+	fuzzyMode := FuzzyFilterMode(key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "fuzzy filter"),
+	))
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{fuzzyMode}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"hello world",
+		"help wanted",
+		"goodbye",
+		"hxexlxlxo",
+	}))
+
+	// Activate fuzzy mode
+	fv, _ = fv.Update(internal.MakeKeyMsg('f'))
+	if fv.GetActiveFilterMode().Label != "[fuzzy]" {
+		t.Fatalf("expected label '[fuzzy]', got %q", fv.GetActiveFilterMode().Label)
+	}
+
+	// Type "hlo" — should match "hello world" (h-e-l-l-o), "hxexlxlxo" (h-x-e-x-l-x-l-x-o)
+	// but not "help wanted" (no 'o' after 'l') or "goodbye" (no 'h')
+	for _, ch := range "hlo" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	if fv.numMatchingItems != 2 {
+		t.Errorf("expected 2 matching items, got %d", fv.numMatchingItems)
+	}
+}
+
+func TestFuzzyFilterModeNoMatch(t *testing.T) {
+	fuzzyMode := FuzzyFilterMode(key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "fuzzy filter"),
+	))
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{fuzzyMode}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"abc",
+		"def",
+	}))
+
+	fv, _ = fv.Update(internal.MakeKeyMsg('f'))
+	for _, ch := range "xyz" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	if fv.numMatchingItems != 0 {
+		t.Errorf("expected 0 matching items, got %d", fv.numMatchingItems)
+	}
+}
+
+func TestFuzzyFilterModeCaseInsensitive(t *testing.T) {
+	fuzzyMode := FuzzyFilterMode(key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "fuzzy filter"),
+	))
+
+	fv := makeFilterableViewport(
+		80,
+		6,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithFilterModes[object]([]FilterMode{fuzzyMode}),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"Hello World",
+		"HELLO",
+		"goodbye",
+	}))
+
+	fv, _ = fv.Update(internal.MakeKeyMsg('f'))
+	for _, ch := range "helo" {
+		fv, _ = fv.Update(internal.MakeKeyMsg(ch))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	// Should match "Hello World" and "HELLO" (case-insensitive)
+	if fv.numMatchingItems != 2 {
+		t.Errorf("expected 2 matching items, got %d", fv.numMatchingItems)
+	}
+}
+
+func TestFuzzyFilterModeEmptyFilter(t *testing.T) {
+	mode := FuzzyFilterMode(key.NewBinding(key.WithKeys("f")))
+	matchFn, err := mode.GetMatchFunc("")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Empty filter should return nil (no matches highlighted)
+	ranges := matchFn("hello")
+	if ranges != nil {
+		t.Errorf("expected nil for empty filter, got %+v", ranges)
+	}
+}
+
+func TestFuzzyFilterModeHighlightRanges(t *testing.T) {
+	mode := FuzzyFilterMode(key.NewBinding(key.WithKeys("f")))
+	matchFn, err := mode.GetMatchFunc("hlo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// "hello world" — h(0) to o(4), single span [0, 5)
+	ranges := matchFn("hello world")
+	if len(ranges) != 1 {
+		t.Fatalf("expected 1 range, got %d", len(ranges))
+	}
+	if ranges[0] != (item.ByteRange{Start: 0, End: 5}) {
+		t.Errorf("expected {0, 5}, got %+v", ranges[0])
+	}
+
+	// No match
+	ranges = matchFn("goodbye")
+	if ranges != nil {
+		t.Errorf("expected nil for non-matching content, got %+v", ranges)
+	}
+}
+
+func TestFuzzyFilterModeUnicode(t *testing.T) {
+	mode := FuzzyFilterMode(key.NewBinding(key.WithKeys("f")))
+	matchFn, err := mode.GetMatchFunc("über")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// "ü--b--e--r" — ü is 2 bytes, so total is 11 bytes; span from ü(0) to r(10-11)
+	ranges := matchFn("ü--b--e--r")
+	if len(ranges) != 1 {
+		t.Fatalf("expected 1 range, got %d", len(ranges))
+	}
+	if ranges[0] != (item.ByteRange{Start: 0, End: 11}) {
+		t.Errorf("expected {0, 11}, got %+v", ranges[0])
+	}
+}
+
 // TestModeSwitching verifies that switching between filter modes preserves the filter text
 // and re-evaluates matches.
 func TestModeSwitching(t *testing.T) {

@@ -188,7 +188,7 @@ if mode := fvp.GetActiveFilterMode(); mode != nil {
 }
 ```
 
-Built-in filter mode names: `FilterExact`, `FilterRegex`, `FilterCaseInsensitive`.
+Built-in filter mode names: `FilterExact`, `FilterRegex`, `FilterCaseInsensitive`, `FilterFuzzy`.
 
 ## Default Key Bindings
 
