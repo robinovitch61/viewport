@@ -69,9 +69,10 @@ func makeFilterableViewport(
 	defaultTestVpStylesOption := viewport.WithStyles[object](viewportStyles)
 	vpOptions = append([]viewport.Option[object]{defaultTestVpStylesOption}, vpOptions...)
 
-	// use default filterable viewport test styles, will be overridden by options if passed in
+	// use default filterable viewport test styles and item descriptor, will be overridden by options if passed in
 	defaultTestFvStylesOption := WithStyles[object](filterableViewportStyles)
-	fvOptions = append([]Option[object]{defaultTestFvStylesOption}, fvOptions...)
+	defaultTestItemDescriptorOption := WithItemDescriptor[object]("items")
+	fvOptions = append([]Option[object]{defaultTestFvStylesOption, defaultTestItemDescriptorOption}, fvOptions...)
 
 	vp := viewport.New[object](width, height, vpOptions...)
 	return New[object](vp, fvOptions...)
@@ -275,6 +276,34 @@ func TestWithMatchesOnlyFalse(t *testing.T) {
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }
+
+func TestNoItemDescriptor(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithItemDescriptor[object](""), // override the test default
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+		"cherry",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
+		"banana",
+		"cherry",
+		"[exact] p  (1/2 matches)",
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
 func TestWithCanToggleMatchesOnlyTrue(t *testing.T) {
 	fv := makeFilterableViewport(
 		80,

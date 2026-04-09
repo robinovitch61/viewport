@@ -135,6 +135,15 @@ func WithFilterLinePrefix[T viewport.Object](prefix string) Option[T] {
 	}
 }
 
+// WithItemDescriptor sets a word describing the items (e.g. "logs", "events").
+// When set, match count text includes the total item count: "4/5 matches on 10 logs".
+// When empty (default), just "4/5 matches" is shown.
+func WithItemDescriptor[T viewport.Object](descriptor string) Option[T] {
+	return func(m *Model[T]) {
+		m.itemDescriptor = descriptor
+	}
+}
+
 // SetFilterLinePrefix updates the string prepended to the filter line and re-renders it.
 func (m *Model[T]) SetFilterLinePrefix(prefix string) {
 	m.filterLinePrefix = prefix
@@ -164,6 +173,7 @@ type Model[T viewport.Object] struct {
 	lastActiveFilterModeName FilterModeName
 	styles                   Styles
 
+	itemDescriptor             string
 	matchingItemsOnly          bool
 	canToggleMatchingItemsOnly bool
 	allMatches                 []viewport.Highlight
@@ -953,7 +963,10 @@ func (m *Model[T]) getTextAfterFilter() string {
 // getMatchCountText returns the formatted match count text
 func (m *Model[T]) getMatchCountText() string {
 	if m.matchLimitExceeded {
-		return fmt.Sprintf("(%d+ matches on %d+ items)", m.maxMatchLimit, m.numMatchingItems)
+		if m.itemDescriptor != "" {
+			return fmt.Sprintf("(%d+ matches on %d+ %s)", m.maxMatchLimit, m.numMatchingItems, m.itemDescriptor)
+		}
+		return fmt.Sprintf("(%d+ matches)", m.maxMatchLimit)
 	}
 	if m.totalMatchesOnAllItems == 0 {
 		return "(no matches)"
@@ -962,7 +975,10 @@ func (m *Model[T]) getMatchCountText() string {
 	if m.focusedMatchIdx < 0 {
 		currentMatch = 0
 	}
-	return fmt.Sprintf("(%d/%d matches on %d items)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems)
+	if m.itemDescriptor != "" {
+		return fmt.Sprintf("(%d/%d matches on %d %s)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems, m.itemDescriptor)
+	}
+	return fmt.Sprintf("(%d/%d matches)", currentMatch, m.totalMatchesOnAllItems)
 }
 
 func (m *Model[T]) navigateToNextMatch() {
