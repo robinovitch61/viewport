@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/mattn/go-runewidth"
+	"github.com/clipperhouse/displaywidth"
 )
 
 // SingleItem provides functionality to get sequential strings of a specified terminal cell width, accounting
@@ -129,7 +129,7 @@ func NewItem(line string) SingleItem {
 	runeIdx := 0
 	for byteOffset := 0; byteOffset < len(item.lineNoAnsi); {
 		r, runeNumBytes := utf8.DecodeRuneInString(item.lineNoAnsi[byteOffset:])
-		rw := runewidth.RuneWidth(r)
+		rw := displaywidth.Rune(r)
 		width := clampIntToUint8(rw)
 
 		// pack 4 widths per byte (2 bits each)
@@ -216,7 +216,7 @@ func (l SingleItem) Take(
 
 	// if only zero-width runes were written, return ""
 	for i := 0; i < runesWritten; i++ {
-		if runewidth.RuneWidth(l.runeAt(startRuneIdx+i)) > 0 {
+		if displaywidth.Rune(l.runeAt(startRuneIdx+i)) > 0 {
 			break
 		}
 		if i == runesWritten-1 {
@@ -228,7 +228,7 @@ func (l SingleItem) Take(
 	if result.Len() > 0 {
 		for ; leftRuneIdx < l.numNoAnsiRunes; leftRuneIdx++ {
 			r := l.runeAt(leftRuneIdx)
-			if runewidth.RuneWidth(r) == 0 {
+			if displaywidth.Rune(r) == 0 {
 				result.WriteRune(r)
 			} else {
 				break

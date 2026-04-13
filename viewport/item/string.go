@@ -3,7 +3,7 @@ package item
 import (
 	"strings"
 
-	"github.com/mattn/go-runewidth"
+	"github.com/clipperhouse/displaywidth"
 )
 
 // overflowsLeft checks if a substring overflows a string on the left if the string were to start at startByteIdx inclusive.
@@ -88,12 +88,12 @@ func replaceStartWithContinuation(s string, continuationRunes []rune) string {
 			}
 		}
 		if len(continuationRunes) > 0 {
-			rWidth := runewidth.RuneWidth(runes[runeIdx])
+			rWidth := displaywidth.Rune(runes[runeIdx])
 
 			// if rune is wider than remaining continuation width, cut off the continuation
 			remainingContinuationWidth := 0
 			for _, cr := range continuationRunes {
-				remainingContinuationWidth += runewidth.RuneWidth(cr)
+				remainingContinuationWidth += displaywidth.Rune(cr)
 			}
 			if rWidth > remainingContinuationWidth {
 				sb.WriteRune(runes[runeIdx])
@@ -105,13 +105,13 @@ func replaceStartWithContinuation(s string, continuationRunes []rune) string {
 				currContinuationRune := continuationRunes[0]
 				sb.WriteRune(currContinuationRune)
 				continuationRunes = continuationRunes[1:]
-				rWidth -= runewidth.RuneWidth(currContinuationRune)
+				rWidth -= displaywidth.Rune(currContinuationRune)
 			}
 
 			// skip subsequent zero-width runes that are not ansi sequences
 			nextIdx := runeIdx + 1
 			for nextIdx < len(runes) {
-				nextRWidth := runewidth.RuneWidth(runes[nextIdx])
+				nextRWidth := displaywidth.Rune(runes[nextIdx])
 				if nextRWidth == 0 && nextIdx < len(runes) && !runesHaveAnsiPrefix(runes[nextIdx:]) {
 					runeIdx++
 					nextIdx = runeIdx + 1
@@ -153,12 +153,12 @@ func replaceEndWithContinuation(s string, continuationRunes []rune) string {
 			}
 		}
 		if len(continuationRunes) > 0 {
-			rWidth := runewidth.RuneWidth(runes[runeIdx])
+			rWidth := displaywidth.Rune(runes[runeIdx])
 
 			// if rune is wider than remaining continuation width, cut off the continuation
 			remainingContinuationWidth := 0
 			for _, cr := range continuationRunes {
-				remainingContinuationWidth += runewidth.RuneWidth(cr)
+				remainingContinuationWidth += displaywidth.Rune(cr)
 			}
 			if rWidth > remainingContinuationWidth {
 				runesToPrepend = append(runesToPrepend, runes[runeIdx])
@@ -170,7 +170,7 @@ func replaceEndWithContinuation(s string, continuationRunes []rune) string {
 				currContinuationRune := continuationRunes[len(continuationRunes)-1]
 				runesToPrepend = append(runesToPrepend, currContinuationRune)
 				continuationRunes = continuationRunes[:len(continuationRunes)-1]
-				rWidth -= runewidth.RuneWidth(currContinuationRune)
+				rWidth -= displaywidth.Rune(currContinuationRune)
 			}
 		} else {
 			runesToPrepend = append(runesToPrepend, runes[runeIdx])
