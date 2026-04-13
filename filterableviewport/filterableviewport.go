@@ -575,6 +575,11 @@ func (m *Model[T]) updateMatchingItems() {
 		m.vp.SetObjects(m.objects)
 	}
 
+	// when no matches found with an active filter and items are unwrapped, reset horizontal scroll
+	if m.totalMatchesOnAllItems == 0 && m.filterMode != filterModeOff && m.filterTextInput.Value() != "" && !m.vp.GetWrapText() {
+		m.vp.SetXOffset(0)
+	}
+
 	// when the filter changed, move selection to the focused match
 	if filterChanged {
 		m.setSelectionToCurrentMatch()

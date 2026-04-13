@@ -4551,3 +4551,45 @@ func TestEmptyFilterModeNamePanics(t *testing.T) {
 		}),
 	)
 }
+
+func TestNoMatchesResetsXOffsetWhenUnwrapped(t *testing.T) {
+	fv := makeFilterableViewport(
+		10,
+		3,
+		[]viewport.Option[object]{
+			viewport.WithWrapText[object](false),
+		},
+		[]Option[object]{},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		strings.Repeat("a", 32),
+	}))
+
+	// filter for "a" and navigate to a right-side match so xOffset > 0
+	fv, _ = fv.Update(filterKeyMsg)
+	for range 4 {
+		fv, _ = fv.Update(internal.MakeKeyMsg('a'))
+	}
+	fv, _ = fv.Update(applyFilterKeyMsg)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	fv, _ = fv.Update(nextMatchKeyMsg)
+	if fv.vp.GetXOffsetWidth() == 0 {
+		t.Fatal("expected xOffset > 0 after navigating to right-side match")
+	}
+
+	// cancel filter and start a new one that produces no matches
+	fv, _ = fv.Update(cancelFilterKeyMsg)
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('z'))
+	fv, _ = fv.Update(applyFilterKeyMsg)
+
+	if fv.vp.GetXOffsetWidth() != 0 {
+		t.Fatalf("expected xOffset=0 when no matches and unwrapped, got %d", fv.vp.GetXOffsetWidth())
+	}
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"aaaaaaa...",
+		"[exact]...",
+		footerStyle.Render("100% (1/1)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
