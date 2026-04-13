@@ -59,6 +59,9 @@ type configuration struct {
 	// styling and the selection style is applied to all non-highlighted regions. When false,
 	// the item keeps its original styling and the selection style is applied only to unstyled regions.
 	selectionStyleOverridesItemStyle bool
+
+	// progressBarEnabled controls whether the footer shows a Unicode progress bar in the footer
+	progressBarEnabled bool
 }
 
 // newConfiguration creates a new configuration with default settings.

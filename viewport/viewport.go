@@ -597,6 +597,11 @@ func (m *Model[T]) SetFooterEnabled(footerEnabled bool) {
 	m.config.footerEnabled = footerEnabled
 }
 
+// SetProgressBarEnabled sets whether the footer displays a Unicode progress bar in the footer
+func (m *Model[T]) SetProgressBarEnabled(enabled bool) {
+	m.config.progressBarEnabled = enabled
+}
+
 // SetPostHeaderLine sets a line to render just below the header.
 // Pass empty string to disable. The line will be truncated to viewport width.
 func (m *Model[T]) SetPostHeaderLine(line string) {
@@ -1499,19 +1504,29 @@ func (m *Model[T]) getTruncatedFooterLine(visibleContentItemIndexes []int) strin
 	}
 
 	var footerString string
+	var percentScrolled int
 
 	// if selection is disabled, numerator should be item index of bottom visible line
 	if !m.navigation.selectionEnabled {
 		numerator = visibleContentItemIndexes[len(visibleContentItemIndexes)-1] + 1
 		if m.config.wrapText && numerator == denominator && !m.isScrolledToBottom() {
 			// if wrapped && bottom visible line is max item index, but actually not fully scrolled to bottom, show 99%
+			percentScrolled = 99
 			footerString = fmt.Sprintf("99%% (%d/%d)", numerator, denominator)
 		}
 	}
 
 	if footerString == "" {
-		percentScrolled := percent(numerator, denominator)
+		percentScrolled = percent(numerator, denominator)
 		footerString = fmt.Sprintf("%d%% (%d/%d)", percentScrolled, numerator, denominator)
+	}
+
+	if m.config.progressBarEnabled {
+		barSpace := m.display.bounds.width - len(footerString) - 1
+		if barSpace >= 3 {
+			barWidth := min(10, barSpace)
+			footerString = buildProgressBar(percentScrolled, barWidth) + " " + footerString
+		}
 	}
 
 	footerItem := item.NewItem(footerString)
@@ -1790,6 +1805,19 @@ func percent(a, b int) int {
 		return 100
 	}
 	return int(float32(a) / float32(b) * 100)
+}
+
+// buildProgressBar returns a string of exactly barWidth cells using U+2588 (█)
+// for the filled portion and U+2591 (░) for the empty portion.
+func buildProgressBar(percentScrolled, barWidth int) string {
+	if barWidth <= 0 {
+		return ""
+	}
+	filled := int(float64(barWidth) * float64(percentScrolled) / 100.0)
+	if filled > barWidth {
+		filled = barWidth
+	}
+	return strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
 }
 
 func safeSliceUpToIdx[T any](s []T, i int) []T {
