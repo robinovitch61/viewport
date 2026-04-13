@@ -83,6 +83,13 @@ func WithFooterEnabled[T Object](enabled bool) Option[T] {
 	}
 }
 
+// WithProgressBarEnabled sets whether the footer displays a Unicode progress bar
+func WithProgressBarEnabled[T Object](enabled bool) Option[T] {
+	return func(m *Model[T]) {
+		m.SetProgressBarEnabled(enabled)
+	}
+}
+
 // WithStickyTop sets whether to automatically scroll to the top when content changes
 func WithStickyTop[T Object](stickyTop bool) Option[T] {
 	return func(m *Model[T]) {

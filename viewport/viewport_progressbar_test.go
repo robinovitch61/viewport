@@ -23,8 +23,7 @@ func TestProgressBarDefaultDisabled(t *testing.T) {
 
 func TestProgressBarEnabled100Percent(t *testing.T) {
 	w, h := 30, 5
-	vp := newViewport(w, h)
-	vp.SetProgressBarEnabled(true)
+	vp := newViewport(w, h, WithProgressBarEnabled[object](true))
 	setContent(vp, []string{"line 1", "line 2", "line 3"})
 
 	// "100% (3/3)" = 10 chars, barSpace=19, barWidth=min(10,19)=10, filled=10
@@ -103,8 +102,7 @@ func TestProgressBarEnabledPartialScrolling(t *testing.T) {
 
 func TestProgressBarTooNarrowOmitted(t *testing.T) {
 	w, h := 13, 5
-	vp := newViewport(w, h)
-	vp.SetProgressBarEnabled(true)
+	vp := newViewport(w, h, WithProgressBarEnabled[object](true))
 	setContent(vp, []string{"line 1", "line 2", "line 3"})
 
 	// "100% (3/3)" = 10 chars, barSpace = 13-10-1 = 2 < 3, no bar
@@ -120,8 +118,7 @@ func TestProgressBarTooNarrowOmitted(t *testing.T) {
 
 func TestProgressBarMinimumWidth(t *testing.T) {
 	w, h := 14, 5
-	vp := newViewport(w, h)
-	vp.SetProgressBarEnabled(true)
+	vp := newViewport(w, h, WithProgressBarEnabled[object](true))
 	setContent(vp, []string{"line 1", "line 2", "line 3"})
 
 	// "100% (3/3)" = 10 chars, barSpace = 14-10-1 = 3, barWidth=min(10,3)=3, filled=3
