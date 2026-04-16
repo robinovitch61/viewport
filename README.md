@@ -237,5 +237,6 @@ go run ./examples/filterableviewport
 
 ## Used By
 
-- [lore](https://github.com/robinovitch61/lore) -- a `less`-like terminal pager
+- [jeeves](https://github.com/robinovitch61/jeeves) -- a TUI for AI agent conversation browsing
 - [kl](https://github.com/robinovitch61/kl) -- a Kubernetes log viewer
+- [lore](https://github.com/robinovitch61/lore) -- a `less`-like terminal pager
