@@ -560,6 +560,56 @@ func (m *Model[T]) SetViewportStyles(styles viewport.Styles) {
 	m.vp.SetStyles(styles)
 }
 
+// GoToTop sets the viewport to the top position.
+func (m *Model[T]) GoToTop() {
+	m.vp.GoToTop()
+}
+
+// GoToBottom sets the viewport to the bottom position.
+func (m *Model[T]) GoToBottom() {
+	m.vp.GoToBottom()
+}
+
+// ScrollUp moves the view up by the given number of lines.
+func (m *Model[T]) ScrollUp(numLines int) {
+	m.vp.ScrollUp(numLines)
+}
+
+// ScrollDown moves the view down by the given number of lines.
+func (m *Model[T]) ScrollDown(numLines int) {
+	m.vp.ScrollDown(numLines)
+}
+
+// PageUp moves the view up by the height of the viewport.
+func (m *Model[T]) PageUp() {
+	m.vp.PageUp()
+}
+
+// PageDown moves the view down by the height of the viewport.
+func (m *Model[T]) PageDown() {
+	m.vp.PageDown()
+}
+
+// ScrollRight moves the view right by the given number of columns.
+func (m *Model[T]) ScrollRight(numCols int) {
+	m.vp.ScrollRight(numCols)
+}
+
+// ScrollLeft moves the view left by the given number of columns.
+func (m *Model[T]) ScrollLeft(numCols int) {
+	m.vp.ScrollLeft(numCols)
+}
+
+// HalfPageUp moves the view up by half the height of the viewport.
+func (m *Model[T]) HalfPageUp() {
+	m.vp.HalfPageUp()
+}
+
+// HalfPageDown moves the view down by half the height of the viewport.
+func (m *Model[T]) HalfPageDown() {
+	m.vp.HalfPageDown()
+}
+
 // updateMatchingItems recalculates the matching items and updates match tracking
 func (m *Model[T]) updateMatchingItems() {
 	matchingObjects, filterChanged := m.getMatchingObjectsAndUpdateMatches()

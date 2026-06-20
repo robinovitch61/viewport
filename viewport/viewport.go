@@ -242,66 +242,18 @@ func (m *Model[T]) Update(msg tea.Msg) (*Model[T], tea.Cmd) {
 
 	// handle navigation for KeyMsg
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
-		navCtx := navigationContext{
-			wrapText:        m.config.wrapText,
-			dimensions:      m.display.bounds,
-			numContentLines: m.getNumContentLines(),
-			numVisibleItems: m.getNumVisibleItems(),
-		}
-		navResult := m.navigation.processKeyMsg(keyMsg, navCtx)
+		navResult := m.navigation.processKeyMsg(keyMsg, m.navCtx())
 
 		switch navResult.action {
-		case actionUp:
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(m.content.getSelectedIdx() - navResult.selectionAmount)
-			} else {
-				m.scrollDownLines(-navResult.scrollAmount)
-			}
-
-		case actionDown:
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(m.content.getSelectedIdx() + navResult.selectionAmount)
-			} else {
-				m.scrollDownLines(navResult.scrollAmount)
-			}
-
-		case actionLeft:
-			if !m.config.wrapText {
-				m.SetXOffset(m.display.xOffset - navResult.scrollAmount)
-			}
-
-		case actionRight:
-			if !m.config.wrapText {
-				m.SetXOffset(m.display.xOffset + navResult.scrollAmount)
-			}
-
-		case actionHalfPageUp, actionPageUp:
-			m.scrollDownLines(-navResult.scrollAmount)
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(m.content.getSelectedIdx() - navResult.selectionAmount)
-			}
-
-		case actionHalfPageDown, actionPageDown:
-			m.scrollDownLines(navResult.scrollAmount)
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(m.content.getSelectedIdx() + navResult.selectionAmount)
-			}
-
 		case actionTop:
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(0)
-			} else {
-				m.display.topItemIdx = 0
-				m.display.topItemLineOffset = 0
-			}
-
+			m.GoToTop()
 		case actionBottom:
-			if m.navigation.selectionEnabled {
-				m.SetSelectedItemIdx(m.content.getSelectedIdx() + m.content.numItems())
-			} else {
-				maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
-				m.display.setTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
-			}
+			m.GoToBottom()
+		case actionUp, actionDown, actionHalfPageUp, actionHalfPageDown, actionPageUp, actionPageDown:
+			m.scrollVertical(navResult)
+
+		case actionLeft, actionRight:
+			m.scrollHorizontal(navResult)
 
 		default:
 			// no-op on keypress that doesn't produce a selection action
@@ -691,6 +643,66 @@ func (m *Model[T]) GetHeight() int {
 	return m.display.bounds.height
 }
 
+// GoToTop sets the viewport to the top position.
+func (m *Model[T]) GoToTop() {
+	if m.navigation.selectionEnabled {
+		m.SetSelectedItemIdx(0)
+	} else {
+		m.display.topItemIdx = 0
+		m.display.topItemLineOffset = 0
+	}
+}
+
+// GoToBottom sets the viewport to the bottom position.
+func (m *Model[T]) GoToBottom() {
+	if m.navigation.selectionEnabled {
+		m.SetSelectedItemIdx(m.content.getSelectedIdx() + m.content.numItems())
+	} else {
+		maxItemIdx, maxTopLineOffset := m.maxItemIdxAndMaxTopLineOffset()
+		m.display.setTopItemIdxAndOffset(maxItemIdx, maxTopLineOffset)
+	}
+}
+
+// ScrollUp moves the view up by the given number of lines.
+func (m *Model[T]) ScrollUp(numLines int) {
+	m.scrollVertical(m.navigation.up(numLines))
+}
+
+// ScrollDown moves the view down by the given number of lines.
+func (m *Model[T]) ScrollDown(numLines int) {
+	m.scrollVertical(m.navigation.down(numLines))
+}
+
+// PageUp moves the view up by the height of the viewport.
+func (m *Model[T]) PageUp() {
+	m.scrollVertical(m.navigation.pageUp(m.navCtx()))
+}
+
+// PageDown moves the view down by the height of the viewport.
+func (m *Model[T]) PageDown() {
+	m.scrollVertical(m.navigation.pageDown(m.navCtx()))
+}
+
+// ScrollRight moves the view right by the given number of columns.
+func (m *Model[T]) ScrollRight(numCols int) {
+	m.scrollHorizontal(m.navigation.right(numCols))
+}
+
+// ScrollLeft moves the view left by the given number of columns.
+func (m *Model[T]) ScrollLeft(numCols int) {
+	m.scrollHorizontal(m.navigation.left(numCols))
+}
+
+// HalfPageUp moves the view up by half the height of the viewport.
+func (m *Model[T]) HalfPageUp() {
+	m.scrollVertical(m.navigation.halfPageUp(m.navCtx()))
+}
+
+// HalfPageDown moves the view down by half the height of the viewport.
+func (m *Model[T]) HalfPageDown() {
+	m.scrollVertical(m.navigation.halfPageDown(m.navCtx()))
+}
+
 // SetStyles sets the styling for the viewport
 func (m *Model[T]) SetStyles(styles Styles) {
 	m.display.styles = styles
@@ -763,6 +775,37 @@ func (m *Model[T]) clampItemAndWidthParams(itemIdx, startWidth, endWidth int) (i
 	startWidth = max(0, min(startWidth, itemWidth))
 	endWidth = max(startWidth, min(endWidth, itemWidth))
 	return itemIdx, startWidth, endWidth
+}
+
+func (m *Model[T]) navCtx() navigationContext {
+	return navigationContext{
+		wrapText:        m.config.wrapText,
+		dimensions:      m.display.bounds,
+		numContentLines: m.getNumContentLines(),
+		numVisibleItems: m.getNumVisibleItems(),
+	}
+}
+
+func (m *Model[T]) scrollVertical(navResult navigationResult) {
+	if !m.navigation.selectionEnabled {
+		m.scrollDownLines(navResult.scrollAmount)
+		return
+	}
+
+	// a single-step move (up/down) only adjusts the selection, letting the
+	// viewport scroll implicitly to keep it in view. A page/half-page jump
+	// scrolls the content by a fixed amount and carries the selection along.
+	movesSelectionOnly := navResult.action == actionUp || navResult.action == actionDown
+	if !movesSelectionOnly {
+		m.scrollDownLines(navResult.scrollAmount)
+	}
+	m.SetSelectedItemIdx(m.content.getSelectedIdx() + navResult.selectionAmount)
+}
+
+func (m *Model[T]) scrollHorizontal(navResult navigationResult) {
+	if !m.config.wrapText {
+		m.SetXOffset(m.display.xOffset + navResult.scrollAmount)
+	}
 }
 
 // ensureWrappedPortionInView ensures the specified portion is visible in wrapped mode
