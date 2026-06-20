@@ -1102,3 +1102,53 @@ func (m *Model[T]) setSelectionToCurrentMatch() {
 		m.vp.SetSelectedItemIdx(itemIdx)
 	}
 }
+
+// GotoTop sets the viewport to the top position.
+func (m *Model[T]) GotoTop() {
+	m.vp.GotoTop()
+}
+
+// GotoBottom sets the viewport to the bottom position.
+func (m *Model[T]) GotoBottom() {
+	m.vp.GotoBottom()
+}
+
+// ScrollUp moves the view up by the given number of lines.
+func (m *Model[T]) ScrollUp(n int) {
+	m.vp.ScrollUp(n)
+}
+
+// ScrollDown moves the view down by the given number of lines.
+func (m *Model[T]) ScrollDown(n int) {
+	m.vp.ScrollDown(n)
+}
+
+// PageUp moves the view up by the height of the viewport.
+func (m *Model[T]) PageUp() {
+	m.vp.PageUp()
+}
+
+// PageDown moves the view down by the height of the viewport.
+func (m *Model[T]) PageDown() {
+	m.vp.PageDown()
+}
+
+// ScrollRight moves viewport to the right.
+func (m *Model[T]) ScrollRight() {
+	m.vp.ScrollRight()
+}
+
+// ScrollLeft moves the viewport to the left by the given number of columns.
+func (m *Model[T]) ScrollLeft() {
+	m.vp.ScrollLeft()
+}
+
+// HalfPageUp moves the view up by half the height of the viewport.
+func (m *Model[T]) HalfPageUp() {
+	m.vp.HalfPageUp()
+}
+
+// HalfPageDown moves the view down by half the height of the viewport.
+func (m *Model[T]) HalfPageDown() {
+	m.vp.HalfPageDown()
+}

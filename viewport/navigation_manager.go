@@ -77,40 +77,32 @@ type navigationResult struct {
 func (nm navigationManager) processKeyMsg(msg tea.KeyMsg, ctx navigationContext) navigationResult {
 	switch {
 	case key.Matches(msg, nm.keyMap.Up):
-		return navigationResult{action: actionUp, scrollAmount: 1, selectionAmount: 1}
+		return nm.up(1)
 
 	case key.Matches(msg, nm.keyMap.Down):
-		return navigationResult{action: actionDown, scrollAmount: 1, selectionAmount: 1}
+		return nm.down(1)
 
 	case key.Matches(msg, nm.keyMap.Left):
 		if !ctx.wrapText {
-			return navigationResult{action: actionLeft, scrollAmount: ctx.dimensions.width / 4}
+			return nm.left(ctx)
 		}
 
 	case key.Matches(msg, nm.keyMap.Right):
 		if !ctx.wrapText {
-			return navigationResult{action: actionRight, scrollAmount: ctx.dimensions.width / 4}
+			return nm.right(ctx)
 		}
 
 	case key.Matches(msg, nm.keyMap.HalfPageUp):
-		scrollAmount := ctx.numContentLines / 2
-		selectionAmount := max(1, ctx.numVisibleItems/2)
-		return navigationResult{action: actionHalfPageUp, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
+		return nm.halfPageUp(ctx)
 
 	case key.Matches(msg, nm.keyMap.HalfPageDown):
-		scrollAmount := ctx.numContentLines / 2
-		selectionAmount := max(1, ctx.numVisibleItems/2)
-		return navigationResult{action: actionHalfPageDown, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
+		return nm.halfPageDown(ctx)
 
 	case key.Matches(msg, nm.keyMap.PageUp):
-		scrollAmount := ctx.numContentLines
-		selectionAmount := ctx.numVisibleItems
-		return navigationResult{action: actionPageUp, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
+		return nm.pageUp(ctx)
 
 	case key.Matches(msg, nm.keyMap.PageDown):
-		scrollAmount := ctx.numContentLines
-		selectionAmount := ctx.numVisibleItems
-		return navigationResult{action: actionPageDown, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
+		return nm.pageDown(ctx)
 
 	case key.Matches(msg, nm.keyMap.Top):
 		return navigationResult{action: actionTop}
@@ -120,4 +112,44 @@ func (nm navigationManager) processKeyMsg(msg tea.KeyMsg, ctx navigationContext)
 	}
 
 	return navigationResult{action: actionNone}
+}
+
+func (nm navigationManager) up(n int) navigationResult {
+	return navigationResult{action: actionUp, scrollAmount: -n, selectionAmount: -n}
+}
+
+func (nm navigationManager) down(n int) navigationResult {
+	return navigationResult{action: actionDown, scrollAmount: n, selectionAmount: n}
+}
+
+func (nm navigationManager) left(ctx navigationContext) navigationResult {
+	return navigationResult{action: actionLeft, scrollAmount: -ctx.dimensions.width / 4}
+}
+
+func (nm navigationManager) right(ctx navigationContext) navigationResult {
+	return navigationResult{action: actionRight, scrollAmount: ctx.dimensions.width / 4}
+}
+
+func (nm navigationManager) pageDown(ctx navigationContext) navigationResult {
+	scrollAmount := ctx.numContentLines
+	selectionAmount := ctx.numVisibleItems
+	return navigationResult{action: actionPageDown, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
+}
+
+func (nm navigationManager) pageUp(ctx navigationContext) navigationResult {
+	scrollAmount := ctx.numContentLines
+	selectionAmount := ctx.numVisibleItems
+	return navigationResult{action: actionPageUp, scrollAmount: -scrollAmount, selectionAmount: -selectionAmount}
+}
+
+func (nm navigationManager) halfPageUp(ctx navigationContext) navigationResult {
+	scrollAmount := ctx.numContentLines / 2
+	selectionAmount := max(1, ctx.numVisibleItems/2)
+	return navigationResult{action: actionHalfPageUp, scrollAmount: -scrollAmount, selectionAmount: -selectionAmount}
+}
+
+func (nm navigationManager) halfPageDown(ctx navigationContext) navigationResult {
+	scrollAmount := ctx.numContentLines / 2
+	selectionAmount := max(1, ctx.numVisibleItems/2)
+	return navigationResult{action: actionHalfPageDown, scrollAmount: scrollAmount, selectionAmount: selectionAmount}
 }
