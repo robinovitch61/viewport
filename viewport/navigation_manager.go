@@ -84,12 +84,12 @@ func (nm navigationManager) processKeyMsg(msg tea.KeyMsg, ctx navigationContext)
 
 	case key.Matches(msg, nm.keyMap.Left):
 		if !ctx.wrapText {
-			return nm.left(ctx)
+			return nm.left(ctx.dimensions.width / 4)
 		}
 
 	case key.Matches(msg, nm.keyMap.Right):
 		if !ctx.wrapText {
-			return nm.right(ctx)
+			return nm.right(ctx.dimensions.width / 4)
 		}
 
 	case key.Matches(msg, nm.keyMap.HalfPageUp):
@@ -114,20 +114,20 @@ func (nm navigationManager) processKeyMsg(msg tea.KeyMsg, ctx navigationContext)
 	return navigationResult{action: actionNone}
 }
 
-func (nm navigationManager) up(n int) navigationResult {
-	return navigationResult{action: actionUp, scrollAmount: -n, selectionAmount: -n}
+func (nm navigationManager) up(numLines int) navigationResult {
+	return navigationResult{action: actionUp, scrollAmount: -numLines, selectionAmount: -numLines}
 }
 
-func (nm navigationManager) down(n int) navigationResult {
-	return navigationResult{action: actionDown, scrollAmount: n, selectionAmount: n}
+func (nm navigationManager) down(numLines int) navigationResult {
+	return navigationResult{action: actionDown, scrollAmount: numLines, selectionAmount: numLines}
 }
 
-func (nm navigationManager) left(ctx navigationContext) navigationResult {
-	return navigationResult{action: actionLeft, scrollAmount: -ctx.dimensions.width / 4}
+func (nm navigationManager) left(numCols int) navigationResult {
+	return navigationResult{action: actionLeft, scrollAmount: -numCols}
 }
 
-func (nm navigationManager) right(ctx navigationContext) navigationResult {
-	return navigationResult{action: actionRight, scrollAmount: ctx.dimensions.width / 4}
+func (nm navigationManager) right(numCols int) navigationResult {
+	return navigationResult{action: actionRight, scrollAmount: numCols}
 }
 
 func (nm navigationManager) pageDown(ctx navigationContext) navigationResult {
