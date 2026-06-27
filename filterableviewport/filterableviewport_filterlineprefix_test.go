@@ -62,7 +62,7 @@ func TestFilterLinePrefixWithActiveFilter(t *testing.T) {
 		focusedStyle.Render("l") + "ine 1",
 		unfocusedStyle.Render("l") + "ine 2",
 		unfocusedStyle.Render("l") + "ine 3",
-		"Prefix [exact] Filter: l  (1/3 matches on 3 items)",
+		"Prefix [exact] Filter: l  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -92,7 +92,7 @@ func TestFilterLinePrefixDuringEditing(t *testing.T) {
 		"line 1",
 		"line 2",
 		"line 3",
-		"Prefix [exact] Filter: " + cursorStyle.Render(" ") + " type to filter",
+		"Prefix [exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " " + cursorStyle.Render(" ") + " " + filterStyles.Placeholder.Render("type to filter"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -240,7 +240,7 @@ func TestFilterLinePrefixAndPositionTopWithActiveFilter(t *testing.T) {
 
 	// Prefix at top with active filter
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"Prefix [exact] Filter: l  (1/3 matches on 3 items)",
+		"Prefix [exact] Filter: l  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		focusedStyle.Render("l") + "ine 1",
 		unfocusedStyle.Render("l") + "ine 2",
 		unfocusedStyle.Render("l") + "ine 3",
@@ -333,7 +333,7 @@ func TestSetFilterLinePrefixWithActiveFilter(t *testing.T) {
 		focusedStyle.Render("l") + "ine 1",
 		unfocusedStyle.Render("l") + "ine 2",
 		unfocusedStyle.Render("l") + "ine 3",
-		"Prefix [exact] Filter: l  (1/3 matches on 3 items)",
+		"Prefix [exact] Filter: l  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())

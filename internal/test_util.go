@@ -31,6 +31,7 @@ var (
 
 // CmpStr compares two strings and fails the test if they are not equal
 func CmpStr(t *testing.T, expected, actual string, extra ...string) {
+	t.Helper()
 	_, file, line, _ := runtime.Caller(1)
 	testName := t.Name()
 	diff := cmp.Diff(expected, actual)

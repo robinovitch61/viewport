@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/internal"
@@ -45,7 +46,7 @@ var (
 	// cursorStyle matches the default virtual cursor rendering from textinput v2:
 	// cursor.Model.View() renders Style.Inline(true).Reverse(true).Render(char)
 	// where Style = lipgloss.NewStyle().Foreground(cursorColor) and cursorColor defaults to "7"
-	cursorStyle            = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Reverse(true)
+	cursorStyle            = lipgloss.NewStyle().Reverse(true)
 	focusedStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("11"))
 	focusedIfSelectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	unfocusedStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Background(lipgloss.Color("12"))
@@ -54,8 +55,20 @@ var (
 		FocusedIfSelected: focusedStyle,
 		Unfocused:         unfocusedStyle,
 	}
+	matchesCountStyle = MatchesCountStyles{
+		NoMatches: lipgloss.NewStyle().Foreground(lipgloss.Blue),
+		Matches:   lipgloss.NewStyle().Foreground(lipgloss.Red),
+	}
+	filterStyles = FilterStyles{
+		Cursor:      textinput.CursorStyle{},
+		Placeholder: lipgloss.NewStyle().Foreground(lipgloss.Green),
+		Focused:     StateFilterStyles{Prefix: lipgloss.NewStyle().Bold(true)},
+		Unfocused:   StateFilterStyles{},
+	}
 	filterableViewportStyles = Styles{
-		Match: matchStyles,
+		MatchesCount: matchesCountStyle,
+		Match:        matchStyles,
+		Filter:       filterStyles,
 	}
 )
 
@@ -244,7 +257,7 @@ func TestWithMatchesOnlyTrue(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"",
-		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items) showing matches only",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " p" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)") + " showing matches only",
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -271,7 +284,7 @@ func TestWithMatchesOnlyFalse(t *testing.T) {
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
 		"cherry",
-		"[exact] Filter: p" + cursorStyle.Render(" ") + " (1/2 matches on 1 items)",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " p" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -298,7 +311,7 @@ func TestNoItemDescriptor(t *testing.T) {
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
 		"cherry",
-		"[exact] p  (1/2 matches)",
+		"[exact] p  " + matchesCountStyle.Matches.Render("(1/2 matches)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -324,7 +337,7 @@ func TestWithCanToggleMatchesOnlyTrue(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
-		"[exact] p  (1/2 matches on 1 items)",
+		"[exact] p  " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)"),
 		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -333,7 +346,7 @@ func TestWithCanToggleMatchesOnlyTrue(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"",
-		"[exact] p  (1/2 matches on 1 items) showing matches only",
+		"[exact] p  " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)") + " showing matches only",
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -359,7 +372,7 @@ func TestWithCanToggleMatchesOnlyFalse(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
 		"banana",
-		"[exact] p  (1/2 matches on 1 items)",
+		"[exact] p  " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)"),
 		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -410,7 +423,7 @@ func TestDefaultText(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"test",
 		"",
-		"[exact] p  (no matches)",
+		"[exact] p  " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -465,7 +478,7 @@ func TestCaseInsensitiveFilterKeyEmpty(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[iregex] Filter: a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -491,7 +504,7 @@ func TestSwitchFromExactToCaseInsensitive(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"Apple",
 		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[exact] Filter: a  (1/3 matches on 1 items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(1/3 matches on 1 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -503,7 +516,7 @@ func TestSwitchFromExactToCaseInsensitive(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[iregex] Filter: a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		"[iregex] " + filterStyles.Focused.Prefix.Render("Filter:") + " a" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -529,7 +542,7 @@ func TestSwitchFromCaseInsensitiveToExact(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[iregex] Filter: a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -541,7 +554,7 @@ func TestSwitchFromCaseInsensitiveToExact(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"Apple",
 		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[exact] Filter: a" + cursorStyle.Render(" ") + " (1/3 matches on 1 items)",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " a" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/3 matches on 1 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -567,7 +580,7 @@ func TestCaseInsensitiveKeyReEntersEditingMode(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[iregex] Filter: a  (1/4 matches on 2 items)",
+		"[iregex] Filter: a  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -579,7 +592,7 @@ func TestCaseInsensitiveKeyReEntersEditingMode(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("A") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[iregex] Filter: a" + cursorStyle.Render(" ") + " (1/4 matches on 2 items)",
+		"[iregex] " + filterStyles.Focused.Prefix.Render("Filter:") + " a" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -602,7 +615,7 @@ func TestApplyFilterKey(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("a") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
-		"[exact] a  (1/4 matches on 2 items)",
+		"[exact] a  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -648,7 +661,7 @@ func TestRegexFilterValidPattern(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("app") + "le",
 		"banana",
-		"[regex] Filter: ap+" + cursorStyle.Render(" ") + " (1/2 matches on 2 items)",
+		"[regex] " + filterStyles.Focused.Prefix.Render("Filter:") + " ap+" + cursorStyle.Render(" ") + " " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -669,7 +682,7 @@ func TestRegexFilterInvalidPattern(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"apple",
 		"banana",
-		"[regex] Filter: [" + cursorStyle.Render(" ") + " (no matches)",
+		"[regex] " + filterStyles.Focused.Prefix.Render("Filter:") + " [" + cursorStyle.Render(" ") + " " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -700,7 +713,7 @@ func TestStyleOverlay(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("apple pie"),
 		unfocusedStyle.Render("apple pie") + " " + internal.BlueFg.Render("yum"),
-		"[exact] apple pie  (1/2 matches on 2 items)",
+		"[exact] apple pie  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("50% (1/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -710,7 +723,7 @@ func TestStyleOverlay(t *testing.T) {
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("apple pie"),
 		unfocusedStyle.Render("apple pie") + selectedItemStyle.Render(" yum"),
-		"[exact] apple pie  (1/2 matches on 2 items)",
+		"[exact] apple pie  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -743,7 +756,7 @@ func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
 		"",
-		"[regex] Filter: \\bthe\\b  (1/4 matches on 2 items)",
+		"[regex] Filter: \\bthe\\b  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -755,7 +768,7 @@ func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
 		"",
-		"[regex] Filter: \\bthe\\b  (2/4 matches on 2 items)",
+		"[regex] Filter: \\bthe\\b  " + matchesCountStyle.Matches.Render("(2/4 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
@@ -767,7 +780,7 @@ func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 		"dog",
 		"another " + focusedStyle.Render("the") + " and " + unfocusedStyle.Render("the") + " end",
 		"",
-		"[regex] Filter: \\bthe\\b  (3/4 matches on 2 items)",
+		"[regex] Filter: \\bthe\\b  " + matchesCountStyle.Matches.Render("(3/4 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
@@ -779,7 +792,7 @@ func TestRegexFilterMultipleMatchesInSingleLine(t *testing.T) {
 		"dog",
 		"another " + unfocusedStyle.Render("the") + " and " + focusedStyle.Render("the") + " end",
 		"",
-		"[regex] Filter: \\bthe\\b  (4/4 matches on 2 items)",
+		"[regex] Filter: \\bthe\\b  " + matchesCountStyle.Matches.Render("(4/4 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFourthMatch, fv.View())
@@ -809,7 +822,7 @@ func TestNoMatchesShowsNoMatchesText(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"apple",
 		"banana",
-		"[exact] xyz" + cursorStyle.Render(" ") + " (no matches)",
+		"[exact] xyz" + cursorStyle.Render(" ") + " " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -893,7 +906,7 @@ func TestEditingEmptyFilterShowsEditingMessage(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"apple",
 		"banana",
-		"[exact] Filter: " + cursorStyle.Render(" ") + " type to filter",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " " + cursorStyle.Render(" ") + " " + filterStyles.Placeholder.Render("type to filter"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -924,7 +937,7 @@ func TestSpecialKeysWhileFiltering(t *testing.T) {
 	expectedViewAfterO := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"apple",
 		"book",
-		"[exact] ponN/r" + cursorStyle.Render(" ") + " (no matches)",
+		"[exact] ponN/r" + cursorStyle.Render(" ") + " " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("50% (2/4)"),
 	})
 	internal.CmpStr(t, expectedViewAfterO, fv.View())
@@ -951,7 +964,7 @@ func TestAnsiEscapeCodesNotMatched(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		internal.RedFg.Render("apple"),
 		internal.RedFg.Render("book"),
-		"[exact] x1b  (no matches)",
+		"[exact] x1b  " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("50% (2/4)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -971,7 +984,7 @@ func TestMatchNavigationWithNoMatches(t *testing.T) {
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"apple",
 		"banana",
-		"[exact] x  (no matches)",
+		"[exact] x  " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -999,7 +1012,7 @@ func TestMatchNavigationWithOverlappingMatches(t *testing.T) {
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("aa") + "a",
 		"",
-		"[exact] aa  (1/1 matches on 1 items)",
+		"[exact] aa  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -1158,7 +1171,7 @@ func TestMatchNavigationWrapLineOffset(t *testing.T) {
 		strings.Repeat("a", 20),
 		strings.Repeat("a", 20),
 		focusedStyle.Render("goose") + strings.Repeat("a", 15),
-		"[exact] goose  (1...",
+		"[exact] goose  " + matchesCountStyle.Matches.Render("(1..."),
 		footerStyle.Render("99% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -1384,7 +1397,7 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		unfocusedStyle.Render("...se") + " duck duck duck duck duck",
 		"...ck duck duck duck duck duck",
 		"",
-		"[exact] goose  (1/3 matches...",
+		"[exact] goose  " + matchesCountStyle.Matches.Render("(1/3 matches..."),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -1395,7 +1408,7 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		focusedStyle.Render("...se") + " duck duck duck duck duck",
 		"...ck duck duck duck duck duck",
 		"",
-		"[exact] goose  (2/3 matches...",
+		"[exact] goose  " + matchesCountStyle.Matches.Render("(2/3 matches..."),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
@@ -1406,7 +1419,7 @@ func TestMatchNavigationNoWrap(t *testing.T) {
 		"duck duck duck duck duck " + unfocusedStyle.Render("go..."),
 		focusedStyle.Render("goose") + " duck duck duck duck d...",
 		"",
-		"[exact] goose  (3/3 matches...",
+		"[exact] goose  " + matchesCountStyle.Matches.Render("(3/3 matches..."),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
@@ -1520,7 +1533,7 @@ func TestMatchNavigationNoWrapUnicode(t *testing.T) {
 	fv, _ = fv.Update(applyFilterKeyMsg)
 	expectedFirstMatch := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"💖💖💖💖💖💖💖💖 " + focusedStyle.Render("hi") + " aaaaaaaaa...",
-		"[exact] hi  (1/1 matches on 1...",
+		"[exact] hi  " + matchesCountStyle.Matches.Render("(1/1 matches on 1..."),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -1549,7 +1562,7 @@ func TestMatchNavigationManyMatchesWrap(t *testing.T) {
 	for i := range rest {
 		rest[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
 	}
-	rest = append(rest, fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs))
+	rest = append(rest, "[exact] a  "+matchesCountStyle.Matches.Render(fmt.Sprintf("(1/%d matches on 1 items)", numAs)))
 	rest = append(rest, footerStyle.Render("99% (1/1)"))
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
 	internal.CmpStr(t, expected, fv.View())
@@ -1579,7 +1592,7 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 		for i := range rest {
 			rest[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
 		}
-		rest = append(rest, fmt.Sprintf("[exact] a  (1/%d matches on 1 items)", numAs))
+		rest = append(rest, "[exact] a  "+matchesCountStyle.Matches.Render(fmt.Sprintf("(1/%d matches on 1 items)", numAs)))
 		rest = append(rest, footerStyle.Render("99% (1/1)"))
 		expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(firstRows, rest...))
 		internal.CmpStr(t, expected, fv.View())
@@ -1595,7 +1608,7 @@ func TestMatchNavigationManyMatchesWrapPerformance(t *testing.T) {
 		for i := range restAfterNext {
 			restAfterNext[i] = strings.Repeat(unfocusedStyle.Render("a"), fv.GetWidth())
 		}
-		restAfterNext = append(restAfterNext, fmt.Sprintf("[exact] a  (%d/%d matches on 1 items)", numNext+1, numAs))
+		restAfterNext = append(restAfterNext, "[exact] a  "+matchesCountStyle.Matches.Render(fmt.Sprintf("(%d/%d matches on 1 items)", numNext+1, numAs)))
 		restAfterNext = append(restAfterNext, footerStyle.Render("99% (1/1)"))
 		expectedAfterNextView := internal.Pad(fv.GetWidth(), fv.GetHeight(), append(expectedAfterNext, restAfterNext...))
 		internal.CmpStr(t, expectedAfterNextView, fv.View())
@@ -1733,7 +1746,7 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 		focusedStyle.Render("apple") + selectedItemStyle.Render(" pie"),
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("33% (1/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -1743,7 +1756,7 @@ func TestMatchNavigationWithSelectionEnabled(t *testing.T) {
 		unfocusedStyle.Render("apple") + " pie",
 		"banana bread",
 		focusedStyle.Render("apple") + selectedItemStyle.Render(" cake"),
-		"[exact] apple  (2/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(2/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
@@ -1919,7 +1932,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		"jumped over " + unfocusedStyle.Render("the") + " lazy",
 		" dog",
 		unfocusedStyle.Render("the") + " end",
-		"[exact] the  (1/3...",
+		"[exact] the  " + matchesCountStyle.Matches.Render("(1/3..."),
 		footerStyle.Render("33% (1/3)"),
 	})
 	internal.CmpStr(t, expectedFirstMatch, fv.View())
@@ -1930,7 +1943,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		selectedItemStyle.Render("jumped over ") + focusedStyle.Render("the") + selectedItemStyle.Render(" lazy"),
 		selectedItemStyle.Render(" dog"),
 		unfocusedStyle.Render("the") + " end",
-		"[exact] the  (2/3...",
+		"[exact] the  " + matchesCountStyle.Matches.Render("(2/3..."),
 		footerStyle.Render("66% (2/3)"),
 	})
 	internal.CmpStr(t, expectedSecondMatch, fv.View())
@@ -1941,7 +1954,7 @@ func TestMatchNavigationWithSelectionEnabledWrap(t *testing.T) {
 		"jumped over " + unfocusedStyle.Render("the") + " lazy",
 		" dog",
 		focusedStyle.Render("the") + selectedItemStyle.Render(" end"),
-		"[exact] the  (3/3...",
+		"[exact] the  " + matchesCountStyle.Matches.Render("(3/3..."),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedThirdMatch, fv.View())
@@ -2017,7 +2030,7 @@ func TestToggleWrap(t *testing.T) {
 		"",
 		"",
 		"",
-		"[exact] lazy  (1/...",
+		"[exact] lazy  " + matchesCountStyle.Matches.Render("(1/..."),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2030,7 +2043,7 @@ func TestToggleWrap(t *testing.T) {
 		"jumped over the " + focusedStyle.Render("lazy"),
 		" dog",
 		"",
-		"[exact] lazy  (1/...",
+		"[exact] lazy  " + matchesCountStyle.Matches.Render("(1/..."),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2042,7 +2055,7 @@ func TestToggleWrap(t *testing.T) {
 		"",
 		"",
 		"",
-		"[exact] lazy  (1/...",
+		"[exact] lazy  " + matchesCountStyle.Matches.Render("(1/..."),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2084,7 +2097,7 @@ func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
 		"line 5",
 		"line 6",
 		focusedStyle.Render("match") + " here",
-		"[exact] match  (1/1 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/1 matches..."),
 		footerStyle.Render("87% (7/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2100,7 +2113,7 @@ func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
 		focusedStyle.Render("lin") + "e 1",
 		unfocusedStyle.Render("lin") + "e 2",
 		unfocusedStyle.Render("lin") + "e 3",
-		"[exact] lin  (1/7 matches o...",
+		"[exact] lin  " + matchesCountStyle.Matches.Render("(1/7 matches o..."),
 		footerStyle.Render("37% (3/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2110,7 +2123,7 @@ func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
 		unfocusedStyle.Render("lin") + "e 1",
 		focusedStyle.Render("lin") + "e 2",
 		unfocusedStyle.Render("lin") + "e 3",
-		"[exact] lin  (2/7 matches o...",
+		"[exact] lin  " + matchesCountStyle.Matches.Render("(2/7 matches o..."),
 		footerStyle.Render("37% (3/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2123,7 +2136,7 @@ func TestApplyFilterScrollsToFirstMatch(t *testing.T) {
 		focusedStyle.Render("line") + " 1",
 		unfocusedStyle.Render("line") + " 2",
 		unfocusedStyle.Render("line") + " 3",
-		"[exact] line  (1/7 matches ...",
+		"[exact] line  " + matchesCountStyle.Matches.Render("(1/7 matches ..."),
 		footerStyle.Render("37% (3/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2153,7 +2166,7 @@ func TestSetObjectsPreservesMatchIndex(t *testing.T) {
 		unfocusedStyle.Render("match") + " one",
 		focusedStyle.Render("match") + " two",
 		unfocusedStyle.Render("match") + " three",
-		"[exact] match  (2/3 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(2/3 matches..."),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2170,7 +2183,7 @@ func TestSetObjectsPreservesMatchIndex(t *testing.T) {
 		unfocusedStyle.Render("match") + " one",
 		focusedStyle.Render("match") + " new",
 		unfocusedStyle.Render("match") + " two",
-		"[exact] match  (2/4 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(2/4 matches..."),
 		footerStyle.Render("75% (3/4)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2199,7 +2212,7 @@ func TestAppendObjectsPreservesMatchIndex(t *testing.T) {
 		unfocusedStyle.Render("match") + " one",
 		focusedStyle.Render("match") + " two",
 		"",
-		"[exact] match  (2/2 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(2/2 matches..."),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2214,7 +2227,7 @@ func TestAppendObjectsPreservesMatchIndex(t *testing.T) {
 		unfocusedStyle.Render("match") + " one",
 		focusedStyle.Render("match") + " two",
 		unfocusedStyle.Render("match") + " three",
-		"[exact] match  (2/4 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(2/4 matches..."),
 		footerStyle.Render("75% (3/4)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2271,7 +2284,7 @@ func TestAppendObjectsRespectsMatchLimit(t *testing.T) {
 		focusedStyle.Render("match") + " one",
 		unfocusedStyle.Render("match") + " two",
 		unfocusedStyle.Render("match") + " three",
-		"[exact] match  (1/3 matches on 3 items)",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2288,7 +2301,7 @@ func TestAppendObjectsRespectsMatchLimit(t *testing.T) {
 		"match one",
 		"match two",
 		"match three",
-		"[exact] match  (5+ matches on 6+ items)",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(5+ matches on 6+ items)"),
 		footerStyle.Render("50% (3/6)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2321,7 +2334,7 @@ func TestAppendObjectsIncrementalWithMatchingItemsOnly(t *testing.T) {
 		unfocusedStyle.Render("match") + " two",
 		"",
 		"",
-		"[exact] match  (1/2 matches on 2 item...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 item..") + ".",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2340,7 +2353,7 @@ func TestAppendObjectsIncrementalWithMatchingItemsOnly(t *testing.T) {
 		unfocusedStyle.Render("match") + " two",
 		unfocusedStyle.Render("match") + " three",
 		unfocusedStyle.Render("match") + " four",
-		"[exact] match  (1/4 matches on 4 item...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/4 matches on 4 item..") + ".",
 		footerStyle.Render("100% (4/4)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2387,7 +2400,7 @@ func TestVerticalPadding(t *testing.T) {
 		focusedStyle.Render("match") + " item 10",
 		"item 11",
 		"item 12",
-		"[exact] match  (1/3 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/3 matches..."),
 		footerStyle.Render("26% (13/50)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2403,7 +2416,7 @@ func TestVerticalPadding(t *testing.T) {
 		focusedStyle.Render("match") + " item 20",
 		"item 21",
 		"item 22",
-		"[exact] match  (2/3 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(2/3 matches..."),
 		footerStyle.Render("46% (23/50)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2486,7 +2499,7 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 	for i := 0; i < h-3; i++ { // -3 for filter line, focused line, & footer
 		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
 	}
-	expectedStrings = append(expectedStrings, "[exact] hi  (1/50 matches on 50 items)")
+	expectedStrings = append(expectedStrings, "[exact] hi  "+matchesCountStyle.Matches.Render("(1/50 matches on 50 items)"))
 	expectedStrings = append(expectedStrings, footerStyle.Render("64% (32/50)"))
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2505,7 +2518,7 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 	for i := 0; i < h-10-3; i++ {
 		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
 	}
-	expectedStrings = append(expectedStrings, "[exact] hi  (29/50 matches on 50 items)")
+	expectedStrings = append(expectedStrings, "[exact] hi  "+matchesCountStyle.Matches.Render("(29/50 matches on 50 items)"))
 	expectedStrings = append(expectedStrings, footerStyle.Render("100% (50/50)"))
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2520,7 +2533,7 @@ func TestMatchNavigationWithVerticalPadding(t *testing.T) {
 	for i := 0; i < h-10-3; i++ {
 		expectedStrings = append(expectedStrings, unfocusedStyle.Render("hi"))
 	}
-	expectedStrings = append(expectedStrings, "[exact] hi  (28/50 matches on 50 items)")
+	expectedStrings = append(expectedStrings, "[exact] hi  "+matchesCountStyle.Matches.Render("(28/50 matches on 50 items)"))
 	expectedStrings = append(expectedStrings, footerStyle.Render("98% (49/50)"))
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), expectedStrings)
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2561,7 +2574,7 @@ func TestMatchNavigationRolloverWithVerticalPadding(t *testing.T) {
 		unfocusedStyle.Render("hi"),
 		unfocusedStyle.Render("hi"),
 		unfocusedStyle.Render("hi"),
-		"[exact] hi  (1/20 matches on 20 items)",
+		"[exact] hi  " + matchesCountStyle.Matches.Render("(1/20 matches on 20 items)"),
 		footerStyle.Render("5% (1/20)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2577,7 +2590,7 @@ func TestMatchNavigationRolloverWithVerticalPadding(t *testing.T) {
 		unfocusedStyle.Render("hi"),
 		unfocusedStyle.Render("hi"),
 		focusedStyle.Render("hi"),
-		"[exact] hi  (20/20 matches on 20 items)",
+		"[exact] hi  " + matchesCountStyle.Matches.Render("(20/20 matches on 20 items)"),
 		footerStyle.Render("100% (20/20)"),
 	})
 	internal.CmpStr(t, expectedViewAfterScroll, fv.View())
@@ -2625,7 +2638,7 @@ func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
 		unfocusedStyle.Render("1") + " 2",
 		focusedStyle.Render("1") + " 2",
 		unfocusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
-		"[exact] 1  (2/5 matches on 5 items)",
+		"[exact] 1  " + matchesCountStyle.Matches.Render("(2/5 matches on 5 items)"),
 		footerStyle.Render("60% (3/5)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2645,7 +2658,7 @@ func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
 		unfocusedStyle.Render("1") + " 2",
 		unfocusedStyle.Render("1") + " 2",
 		focusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
-		"[exact] 1  (3/6 matches on 6 items)",
+		"[exact] 1  " + matchesCountStyle.Matches.Render("(3/6 matches on 6 items)"),
 		footerStyle.Render("50% (3/6)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2655,7 +2668,7 @@ func TestSelectionAndFocusedMatchAfterItemsChange(t *testing.T) {
 		unfocusedStyle.Render("1") + " 2",
 		focusedStyle.Render("1") + selectedItemStyle.Render(" 2"),
 		unfocusedStyle.Render("1") + " 2",
-		"[exact] 1  (2/6 matches on 6 items)",
+		"[exact] 1  " + matchesCountStyle.Matches.Render("(2/6 matches on 6 items)"),
 		footerStyle.Render("33% (2/6)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2686,7 +2699,7 @@ func TestCurrentMatchNotCenteredAfterItemsChange(t *testing.T) {
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("1"),
 		"2",
-		"[exact] 1  (1/1 matches on 1 items)",
+		"[exact] 1  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("33% (2/6)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2696,7 +2709,7 @@ func TestCurrentMatchNotCenteredAfterItemsChange(t *testing.T) {
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"2",
 		"3",
-		"[exact] 1  (1/1 matches on 1 items)",
+		"[exact] 1  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("50% (3/6)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2741,7 +2754,7 @@ func TestMaxMatchLimit(t *testing.T) {
 		"apple apple",
 		"apple apple",
 		"apple apple",
-		"[exact] Filter: app  (5+ matches on 3+ items)",
+		"[exact] Filter: app  " + matchesCountStyle.Matches.Render("(5+ matches on 3+ items)"),
 		footerStyle.Render("66% (4/6)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2768,7 +2781,7 @@ func TestMaxMatchLimit(t *testing.T) {
 		"",
 		"",
 		"",
-		"[exact] Filter: b  (1/1 matches on 1 items) showing matches only",
+		"[exact] Filter: b  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)") + " showing matches only",
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2797,7 +2810,7 @@ func TestMaxMatchLimitWithAppendObjects(t *testing.T) {
 
 	expected := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		focusedStyle.Render("a"),
-		"[exact] Filter: a  (1/1 matches on 1 items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("50% (1/2)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2807,7 +2820,7 @@ func TestMaxMatchLimitWithAppendObjects(t *testing.T) {
 
 	expected = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
 		"a",
-		"[exact] Filter: a  (3+ matches on 2+ items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(3+ matches on 2+ items)"),
 		footerStyle.Render("25% (1/4)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2837,7 +2850,7 @@ func TestMaxMatchLimitUnlimited(t *testing.T) {
 		"",
 		"",
 		"",
-		"[exact] Filter: a  (1/2 matches on 1 items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(1/2 matches on 1 items)"),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -2883,7 +2896,7 @@ func TestToggleWrap_DoesNotJumpToMatchWhenScrolledAway(t *testing.T) {
 		"line 5",
 		"line 6",
 		focusedStyle.Render("match") + selectedItemStyle.Render(" here"),
-		"[exact] match  (1/1 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/1 matches..."),
 		footerStyle.Render("87% (7/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2894,7 +2907,7 @@ func TestToggleWrap_DoesNotJumpToMatchWhenScrolledAway(t *testing.T) {
 		selectedItemStyle.Render("line 1"),
 		"line 2",
 		"line 3",
-		"[exact] match  (1/1 matches...",
+		"[exact] match  " + matchesCountStyle.Matches.Render("(1/1 matches..."),
 		footerStyle.Render("12% (1/8)"),
 	})
 	internal.CmpStr(t, expected, fv.View())
@@ -2941,7 +2954,7 @@ func TestFilterLineAtBottom(t *testing.T) {
 		focusedStyle.Render("l") + "ine 1",
 		unfocusedStyle.Render("l") + "ine 2",
 		unfocusedStyle.Render("l") + "ine 3",
-		"[exact] Filter: l  (1/3 matches on 3 items)",
+		"[exact] Filter: l  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3029,7 +3042,7 @@ func TestFilterLinePositionDuringEditing(t *testing.T) {
 		"line 1",
 		"line 2",
 		"line 3",
-		"[exact] Filter: test" + cursorStyle.Render(" ") + " (no matches)",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " test" + cursorStyle.Render(" ") + " " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3129,7 +3142,7 @@ func TestSetFilter_ExactMode(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3162,7 +3175,7 @@ func TestSetFilter_RegexMode(t *testing.T) {
 		focusedStyle.Render("apple pie"),
 		"banana bread",
 		"apricot tart",
-		"[regex] ap.*e  (1/1 matches on 1 items)",
+		"[regex] ap.*e  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3236,7 +3249,7 @@ func TestSetFilter_SwitchBetweenModes(t *testing.T) {
 		focusedStyle.Render("test123"),
 		unfocusedStyle.Render("test456"),
 		"",
-		"[regex] test\\d+ (1/2 matches on 2 items)",
+		"[regex] test\\d+ " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3264,7 +3277,7 @@ func TestSetFilter_WithMatchingItemsOnly(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		unfocusedStyle.Render("apple") + " cake",
 		"",
-		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)") + " showing matches only",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3294,7 +3307,7 @@ func TestSetMatchingItemsOnly_EnableShowsOnlyMatches(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3309,7 +3322,7 @@ func TestSetMatchingItemsOnly_EnableShowsOnlyMatches(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		unfocusedStyle.Render("apple") + " cake",
 		"",
-		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)") + " showing matches only",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3339,7 +3352,7 @@ func TestSetMatchingItemsOnly_DisableShowsAllItems(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		unfocusedStyle.Render("apple") + " cake",
 		"",
-		"[exact] apple  (1/2 matches on 2 items) showing matches only",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)") + " showing matches only",
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3354,7 +3367,7 @@ func TestSetMatchingItemsOnly_DisableShowsAllItems(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3445,7 +3458,7 @@ func TestSetFilterableViewportStyles_ChangesMatchStyles(t *testing.T) {
 		focusedStyle.Render("apple") + " pie",
 		"banana bread",
 		unfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3465,7 +3478,7 @@ func TestSetFilterableViewportStyles_ChangesMatchStyles(t *testing.T) {
 		newFocusedStyle.Render("apple") + " pie",
 		"banana bread",
 		newUnfocusedStyle.Render("apple") + " cake",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3493,7 +3506,7 @@ func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
 		unfocusedStyle.Render("test") + " one",
 		focusedStyle.Render("test") + " two",
 		unfocusedStyle.Render("test") + " three",
-		"[exact] test  (2/3 matches on 3 items)",
+		"[exact] test  " + matchesCountStyle.Matches.Render("(2/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3513,7 +3526,7 @@ func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
 		newUnfocusedStyle.Render("test") + " one",
 		newFocusedStyle.Render("test") + " two",
 		newUnfocusedStyle.Render("test") + " three",
-		"[exact] test  (2/3 matches on 3 items)",
+		"[exact] test  " + matchesCountStyle.Matches.Render("(2/3 matches on 3 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3625,7 +3638,7 @@ func TestAdjustObjectsForFilter_ReplacesObjects(t *testing.T) {
 		"child-" + unfocusedStyle.Render("a") + "pple",
 		"",
 		"",
-		"[exact] a  (1/2 matches on 2 items)",
+		"[exact] a  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3662,7 +3675,7 @@ func TestAdjustObjectsForFilter_NilKeepsExistingObjects(t *testing.T) {
 		focusedStyle.Render("a") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
 		"",
-		"[exact] a  (1/4 matches on 2 items)",
+		"[exact] a  " + matchesCountStyle.Matches.Render("(1/4 matches on 2 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3690,7 +3703,7 @@ func TestAdjustObjectsForFilter_WithMatchingItemsOnlyTrue(t *testing.T) {
 		"child-" + focusedStyle.Render("apple"),
 		"",
 		"",
-		"[exact] apple  (1/1 matches on 1 items) showing matches only",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)") + " showing matches only",
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3717,7 +3730,7 @@ func TestAdjustObjectsForFilter_WithMatchingItemsOnlyFalse(t *testing.T) {
 		"parent-node",
 		"child-" + focusedStyle.Render("apple"),
 		"",
-		"[exact] apple  (1/1 matches on 1 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/1 matches on 1 items)"),
 		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3749,7 +3762,7 @@ func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
 		"no-match-here",
 		"second-" + unfocusedStyle.Render("apple"),
 		"",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3761,7 +3774,7 @@ func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
 		"no-match-here",
 		"second-" + focusedStyle.Render("apple"),
 		"",
-		"[exact] apple  (2/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(2/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3773,7 +3786,7 @@ func TestAdjustObjectsForFilter_MatchNavigationWorks(t *testing.T) {
 		"no-match-here",
 		"second-" + unfocusedStyle.Render("apple"),
 		"",
-		"[exact] apple  (1/2 matches on 2 items)",
+		"[exact] apple  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("100% (3/3)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3806,7 +3819,7 @@ func TestAdjustObjectsForFilter_ClearFilterRestoresOriginalBehavior(t *testing.T
 		"hook-provided",
 		"",
 		"",
-		"[exact] x  (no matches)",
+		"[exact] x  " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		footerStyle.Render("100% (1/1)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3865,7 +3878,7 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky(t *testing.T) {
 		"info: all good",
 		"info: still good",
 		"info: yep good",
-		"[exact] error  (1/2 matches on 2 items)",
+		"[exact] error  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("12% (1/8)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3912,7 +3925,7 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky_AppendDoesNotJump(t *testin
 		"info: all good",
 		"info: still good",
 		"info: yep good",
-		"[exact] error  (1/2 matches on 2 items)",
+		"[exact] error  " + matchesCountStyle.Matches.Render("(1/2 matches on 2 items)"),
 		footerStyle.Render("12% (1/8)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
@@ -3926,7 +3939,7 @@ func TestSetFilter_SelectionAtBottomWithBottomSticky_AppendDoesNotJump(t *testin
 		"info: all good",
 		"info: still good",
 		"info: yep good",
-		"[exact] error  (1/3 matches on 3 items)",
+		"[exact] error  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		footerStyle.Render("11% (1/9)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())

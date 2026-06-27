@@ -57,7 +57,7 @@ func TestFilterLinePositionTopWithActiveFilter(t *testing.T) {
 	fv, _ = fv.Update(applyFilterKeyMsg)
 
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: l  (1/3 matches on 3 items)",
+		"[exact] Filter: l  " + matchesCountStyle.Matches.Render("(1/3 matches on 3 items)"),
 		focusedStyle.Render("l") + "ine 1",
 		unfocusedStyle.Render("l") + "ine 2",
 		unfocusedStyle.Render("l") + "ine 3",
@@ -118,7 +118,7 @@ func TestFilterLinePositionTopDuringEditing(t *testing.T) {
 
 	// Filter line with cursor should appear at top
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: te" + cursorStyle.Render(" ") + " (no matches)",
+		"[exact] " + filterStyles.Focused.Prefix.Render("Filter:") + " te" + cursorStyle.Render(" ") + " " + matchesCountStyle.NoMatches.Render("(no matches)"),
 		"line 1",
 		"line 2",
 		"line 3",
@@ -248,7 +248,7 @@ func TestFilterLinePositionTopMatchNavigation(t *testing.T) {
 
 	// First match focused (apple=1, banana=3, apricot=1 = 5 total matches)
 	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: a  (1/5 matches on 3 items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(1/5 matches on 3 items)"),
 		focusedStyle.Render("a") + "pple",
 		"b" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
 		unfocusedStyle.Render("a") + "pricot",
@@ -259,7 +259,7 @@ func TestFilterLinePositionTopMatchNavigation(t *testing.T) {
 	// Navigate to next match
 	fv, _ = fv.Update(nextMatchKeyMsg)
 	expectedView = internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
-		"[exact] Filter: a  (2/5 matches on 3 items)",
+		"[exact] Filter: a  " + matchesCountStyle.Matches.Render("(2/5 matches on 3 items)"),
 		unfocusedStyle.Render("a") + "pple",
 		"b" + focusedStyle.Render("a") + "n" + unfocusedStyle.Render("a") + "n" + unfocusedStyle.Render("a"),
 		unfocusedStyle.Render("a") + "pricot",

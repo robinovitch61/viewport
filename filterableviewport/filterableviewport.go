@@ -741,11 +741,13 @@ func (m *Model[T]) renderFilterLine() string {
 	case filterModeOff:
 		filterContent = emptyText
 	case filterModeEditing, filterModeApplied:
-		var stateStyles StateFilterStyles
-		if m.filterMode == filterModeEditing {
-			stateStyles = m.styles.Filter.Focused
+		var prefix string
+		if m.prefixText == "" {
+			prefix = ""
+		} else if m.filterMode == filterModeEditing {
+			prefix = m.styles.Filter.Focused.Prefix.Render(m.prefixText)
 		} else {
-			stateStyles = m.styles.Filter.Unfocused
+			prefix = m.styles.Filter.Unfocused.Prefix.Render(m.prefixText)
 		}
 
 		if m.filterTextInput.Value() == "" && m.filterMode == filterModeApplied {
@@ -753,7 +755,7 @@ func (m *Model[T]) renderFilterLine() string {
 		} else {
 			filterContent = strings.Join(removeEmpty([]string{
 				m.getModeIndicator(),
-				stateStyles.Prefix.Render(m.prefixText),
+				prefix,
 				m.filterTextInput.View(),
 				m.getTextAfterFilter(),
 				matchingItemsOnlyText(m.showMatchesOnly()),
