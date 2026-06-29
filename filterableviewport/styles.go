@@ -31,7 +31,6 @@ func DefaultMatchStyles() MatchStyles {
 
 // FilterStyles contains styles for the filter line in the filterable viewport
 type FilterStyles struct {
-	Root        lipgloss.Style
 	Empty       lipgloss.Style
 	Placeholder lipgloss.Style
 	Cursor      textinput.CursorStyle
@@ -59,11 +58,6 @@ func DefaultFilterStyles() FilterStyles {
 type MatchesCountStyles struct {
 	NoMatches lipgloss.Style
 	Matches   lipgloss.Style
-}
-
-// StateMatchesCountStyles contains styles for the filter line for a given focus state
-type StateMatchesCountStyles struct {
-	Prefix lipgloss.Style
 }
 
 // DefaultMatchesCountStyles returns a set of default styles for the matches suffix.
