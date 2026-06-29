@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/robinovitch61/viewport/internal"
@@ -3515,6 +3516,154 @@ func TestSetFilterableViewportStyles_UpdatesExistingHighlights(t *testing.T) {
 		newUnfocusedStyle.Render("test") + " three",
 		"[exact] test  (2/3 matches on 3 items)",
 		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestWithStyles_AppliesNonDefaultFilterLineStyles(t *testing.T) {
+	focusedPrefixStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	placeholderStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+	newStyles := filterableViewportStyles
+	newStyles.Filter.Focused.Prefix = focusedPrefixStyle
+	newStyles.Filter.Placeholder = placeholderStyle
+
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithStyles[object](newStyles),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple",
+		"banana",
+		"[exact] " + focusedPrefixStyle.Render("Filter:") + " " + cursorStyle.Render(" ") + " " + placeholderStyle.Render("type to filter"),
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestSetFilterableViewportStyles_UpdatesRenderedFilterLine(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		5,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple pie",
+		"banana bread",
+		"apple cake",
+	}))
+	fv.SetFilter("apple", FilterExact)
+
+	unfocusedPrefixStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("13"))
+	matchesStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	newStyles := filterableViewportStyles
+	newStyles.Filter.Unfocused.Prefix = unfocusedPrefixStyle
+	newStyles.MatchesCount.Matches = matchesStyle
+	fv.SetFilterableViewportStyles(newStyles)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		focusedStyle.Render("apple") + " pie",
+		"banana bread",
+		unfocusedStyle.Render("apple") + " cake",
+		"[exact] " + unfocusedPrefixStyle.Render("Filter:") + " apple  " + matchesStyle.Render("(1/2 matches on 2 items)"),
+		footerStyle.Render("100% (3/3)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestWithPlaceholderText_OverridesDefaultPlaceholder(t *testing.T) {
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithPlaceholderText[object]("search here"),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple",
+		"banana",
+		"[exact] Filter: " + cursorStyle.Render(" ") + " search here",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestWithStyles_AppliesCustomCursorStyle(t *testing.T) {
+	newStyles := filterableViewportStyles
+	newStyles.Filter.Cursor = textinput.CursorStyle{Color: lipgloss.Color("9")}
+
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithStyles[object](newStyles),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+
+	customCursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Reverse(true)
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"apple",
+		"banana",
+		"[exact] Filter: " + customCursorStyle.Render(" ") + " type to filter",
+		footerStyle.Render("100% (2/2)"),
+	})
+	internal.CmpStr(t, expectedView, fv.View())
+}
+
+func TestWithStyles_AppliesFocusedTextInputStyle(t *testing.T) {
+	typedTextStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("14"))
+	newStyles := filterableViewportStyles
+	newStyles.Filter.Focused.TextInput.Text = typedTextStyle
+
+	fv := makeFilterableViewport(
+		80,
+		4,
+		[]viewport.Option[object]{},
+		[]Option[object]{
+			WithPrefixText[object]("Filter:"),
+			WithStyles[object](newStyles),
+		},
+	)
+	fv.SetObjects(stringsToItems([]string{
+		"apple",
+		"banana",
+	}))
+	fv, _ = fv.Update(filterKeyMsg)
+	fv, _ = fv.Update(internal.MakeKeyMsg('p'))
+
+	expectedView := internal.Pad(fv.GetWidth(), fv.GetHeight(), []string{
+		"a" + focusedStyle.Render("p") + unfocusedStyle.Render("p") + "le",
+		"banana",
+		"[exact] Filter: " + typedTextStyle.Render("p") + cursorStyle.Render(" ") + " (1/2 matches on 1 items)",
+		footerStyle.Render("100% (2/2)"),
 	})
 	internal.CmpStr(t, expectedView, fv.View())
 }

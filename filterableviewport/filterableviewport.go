@@ -45,6 +45,7 @@ func WithKeyMap[T viewport.Object](keyMap KeyMap) Option[T] {
 func WithStyles[T viewport.Object](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
+		m.applyFilterTextInputStyles()
 	}
 }
 
@@ -59,6 +60,13 @@ func WithPrefixText[T viewport.Object](prefix string) Option[T] {
 func WithEmptyText[T viewport.Object](whenEmpty string) Option[T] {
 	return func(m *Model[T]) {
 		m.emptyText = whenEmpty
+	}
+}
+
+// WithPlaceholderText sets the placeholder text to display when the filter is focused and empty
+func WithPlaceholderText[T viewport.Object](placeholder string) Option[T] {
+	return func(m *Model[T]) {
+		m.placeholderText = placeholder
 	}
 }
 
@@ -164,6 +172,7 @@ type Model[T viewport.Object] struct {
 	filterMode               filterMode
 	prefixText               string
 	emptyText                string
+	placeholderText          string
 	filterLinePosition       FilterLinePosition
 	filterLinePrefix         string
 	objects                  []T
@@ -220,6 +229,7 @@ func New[T viewport.Object](vp *viewport.Model[T], opts ...Option[T]) *Model[T] 
 		filterMode:                 filterModeOff,
 		prefixText:                 "",
 		emptyText:                  "No Filter",
+		placeholderText:            "type to filter",
 		objects:                    []T{},
 		filterModes:                DefaultFilterModes(),
 		activeFilterModeName:       "",
@@ -551,8 +561,10 @@ func (m *Model[T]) SetMatchingItemsOnly(matchingItemsOnly bool) {
 // SetFilterableViewportStyles sets the styles for the filterable viewport
 func (m *Model[T]) SetFilterableViewportStyles(styles Styles) {
 	m.styles = styles
+	m.applyFilterTextInputStyles()
 	// re-apply highlights with new styles
 	m.updateFocusedMatchHighlight()
+	m.setFilterLine(m.renderFilterLine())
 }
 
 // SetViewportStyles sets styles on the underlying viewport
@@ -712,17 +724,27 @@ func (m *Model[T]) updateFocusedMatchHighlight() {
 
 func (m *Model[T]) renderFilterLine() string {
 	var filterContent string
+	emptyText := m.styles.Filter.Empty.Render(m.emptyText)
 
 	switch m.filterMode {
 	case filterModeOff:
-		filterContent = m.emptyText
+		filterContent = emptyText
 	case filterModeEditing, filterModeApplied:
+		var prefix string
+		if m.prefixText != "" {
+			if m.filterMode == filterModeEditing {
+				prefix = m.styles.Filter.Focused.Prefix.Render(m.prefixText)
+			} else {
+				prefix = m.styles.Filter.Unfocused.Prefix.Render(m.prefixText)
+			}
+		}
+
 		if m.filterTextInput.Value() == "" && m.filterMode == filterModeApplied {
-			filterContent = m.emptyText
+			filterContent = emptyText
 		} else {
 			filterContent = strings.Join(removeEmpty([]string{
 				m.getModeIndicator(),
-				m.prefixText,
+				prefix,
 				m.filterTextInput.View(),
 				m.getTextAfterFilter(),
 				matchingItemsOnlyText(m.showMatchesOnly()),
@@ -738,6 +760,20 @@ func (m *Model[T]) renderFilterLine() string {
 	filterItem := item.NewItem(filterLine)
 	res, _ := filterItem.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
+}
+
+func (m *Model[T]) applyFilterTextInputStyles() {
+	styles := m.filterTextInput.Styles()
+	if !isZeroCursorStyle(m.styles.Filter.Cursor) {
+		styles.Cursor = m.styles.Filter.Cursor
+	}
+	styles.Focused = m.styles.Filter.Focused.TextInput
+	styles.Blurred = m.styles.Filter.Unfocused.TextInput
+	m.filterTextInput.SetStyles(styles)
+}
+
+func isZeroCursorStyle(style textinput.CursorStyle) bool {
+	return style.Color == nil && style.Shape == 0 && !style.Blink && style.BlinkSpeed == 0
 }
 
 // setFilterLine sets the rendered filter line on the appropriate viewport line based on position
@@ -1010,30 +1046,38 @@ func removeEmpty(s []string) []string {
 // getTextAfterFilter returns the text to display after the filter input
 func (m *Model[T]) getTextAfterFilter() string {
 	if m.filterTextInput.Value() == "" {
-		return "type to filter"
+		return m.styles.Filter.Placeholder.Render(m.placeholderText)
 	}
 	return m.getMatchCountText()
 }
 
 // getMatchCountText returns the formatted match count text
 func (m *Model[T]) getMatchCountText() string {
+	s := m.styles.MatchesCount
 	if m.matchLimitExceeded {
 		if m.itemDescriptor != "" {
-			return fmt.Sprintf("(%d+ matches on %d+ %s)", m.maxMatchLimit, m.numMatchingItems, m.itemDescriptor)
+			return s.Matches.Render(
+				fmt.Sprintf(
+					"(%d+ matches on %d+ %s)",
+					m.maxMatchLimit,
+					m.numMatchingItems,
+					m.itemDescriptor,
+				),
+			)
 		}
-		return fmt.Sprintf("(%d+ matches)", m.maxMatchLimit)
+		return s.Matches.Render(fmt.Sprintf("(%d+ matches)", m.maxMatchLimit))
 	}
 	if m.totalMatchesOnAllItems == 0 {
-		return "(no matches)"
+		return s.NoMatches.Render("(no matches)")
 	}
 	currentMatch := m.focusedMatchIdx + 1
 	if m.focusedMatchIdx < 0 {
 		currentMatch = 0
 	}
 	if m.itemDescriptor != "" {
-		return fmt.Sprintf("(%d/%d matches on %d %s)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems, m.itemDescriptor)
+		return s.Matches.Render(fmt.Sprintf("(%d/%d matches on %d %s)", currentMatch, m.totalMatchesOnAllItems, m.numMatchingItems, m.itemDescriptor))
 	}
-	return fmt.Sprintf("(%d/%d matches)", currentMatch, m.totalMatchesOnAllItems)
+	return s.Matches.Render(fmt.Sprintf("(%d/%d matches)", currentMatch, m.totalMatchesOnAllItems))
 }
 
 func (m *Model[T]) navigateToNextMatch() {
