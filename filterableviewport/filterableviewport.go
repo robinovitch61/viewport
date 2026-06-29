@@ -45,13 +45,7 @@ func WithKeyMap[T viewport.Object](keyMap KeyMap) Option[T] {
 func WithStyles[T viewport.Object](styles Styles) Option[T] {
 	return func(m *Model[T]) {
 		m.styles = styles
-		m.filterTextInput.SetStyles(
-			textinput.Styles{
-				Cursor:  styles.Filter.Cursor,
-				Focused: styles.Filter.Focused.TextInput,
-				Blurred: styles.Filter.Unfocused.TextInput,
-			},
-		)
+		m.applyFilterTextInputStyles()
 	}
 }
 
@@ -567,15 +561,10 @@ func (m *Model[T]) SetMatchingItemsOnly(matchingItemsOnly bool) {
 // SetFilterableViewportStyles sets the styles for the filterable viewport
 func (m *Model[T]) SetFilterableViewportStyles(styles Styles) {
 	m.styles = styles
-	m.filterTextInput.SetStyles(
-		textinput.Styles{
-			Cursor:  styles.Filter.Cursor,
-			Focused: styles.Filter.Focused.TextInput,
-			Blurred: styles.Filter.Unfocused.TextInput,
-		},
-	)
+	m.applyFilterTextInputStyles()
 	// re-apply highlights with new styles
 	m.updateFocusedMatchHighlight()
+	m.setFilterLine(m.renderFilterLine())
 }
 
 // SetViewportStyles sets styles on the underlying viewport
@@ -773,6 +762,20 @@ func (m *Model[T]) renderFilterLine() string {
 	filterItem := item.NewItem(filterLine)
 	res, _ := filterItem.Take(0, m.GetWidth(), "...", []item.Highlight{})
 	return res
+}
+
+func (m *Model[T]) applyFilterTextInputStyles() {
+	styles := m.filterTextInput.Styles()
+	if !isZeroCursorStyle(m.styles.Filter.Cursor) {
+		styles.Cursor = m.styles.Filter.Cursor
+	}
+	styles.Focused = m.styles.Filter.Focused.TextInput
+	styles.Blurred = m.styles.Filter.Unfocused.TextInput
+	m.filterTextInput.SetStyles(styles)
+}
+
+func isZeroCursorStyle(style textinput.CursorStyle) bool {
+	return style.Color == nil && style.Shape == 0 && !style.Blink && style.BlinkSpeed == 0
 }
 
 // setFilterLine sets the rendered filter line on the appropriate viewport line based on position
